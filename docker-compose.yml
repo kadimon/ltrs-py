@@ -3,6 +3,10 @@ services:
     container_name: worker-scraping-browser-${SESSION}
     restart: always
 
+    build:
+      context: ./
+      dockerfile: ./Dockerfile
+
     environment:
       # - PRISMA_URI=${PRISMA_URI}
       - SESSION=${SESSION}
