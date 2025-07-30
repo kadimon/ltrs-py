@@ -15,7 +15,7 @@ check_status = hatchet.workflow(
 @check_status.task(
     execution_timeout='30s',
     schedule_timeout='10m',
-    retries=5,
+    retries=3,
     backoff_max_seconds=3,
     backoff_factor=2.0,
 )
@@ -31,7 +31,7 @@ async def get_ip(input: EmptyModel, ctx: Context):
         page = context.pages[0] if context.pages else await context.new_page()
 
         await page.goto(
-            f'https://2ip.ru',
+            'https://2ip.ru',
             wait_until='domcontentloaded',
         )
 
