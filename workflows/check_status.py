@@ -31,11 +31,11 @@ async def get_ip(input: EmptyModel, ctx: Context):
         page = context.pages[0] if context.pages else await context.new_page()
 
         await page.goto(
-            'https://2ip.ru',
+            'https://www.reg.ru/web-tools/myip',
             wait_until='domcontentloaded',
         )
 
-        ip_locator = page.locator('div.ip > span')
+        ip_locator = page.locator('b#myip-info-ip')
         await ip_locator.wait_for(state='visible', timeout=45_000)
         ip = await ip_locator.text_content()
 
