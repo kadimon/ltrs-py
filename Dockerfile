@@ -7,15 +7,17 @@ RUN apt-get update \
 RUN pip install playwright \
     hatchet-sdk==1.15.1 \
     prisma \
+    pymongo \
     && pip cache purge
 
 WORKDIR /app
 
-COPY ./prisma ./prisma
-RUN prisma generate --generator client-py
+# COPY ./prisma ./prisma
+# RUN prisma generate --generator client-py
 
 COPY ./workflows/ ./workflows/
-COPY ./workers/telegram_web/worker.py \
+COPY ./worker.py \
+    ./settings.py \
     ./
 
 ENTRYPOINT ["/usr/bin/tini", "--"]

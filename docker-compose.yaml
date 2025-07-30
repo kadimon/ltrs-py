@@ -4,12 +4,14 @@ services:
     restart: always
 
     environment:
+      # - PRISMA_URI=${PRISMA_URI}
       - SESSION=${SESSION}
+      - PROXY_URI=${PROXY_URI}
+      - MONGO_URI=${MONGO_URI}
       - TZ=${TZ}
       - SERVER=${SERVER}
       - HATCHET_CLIENT_TOKEN=${HATCHET_CLIENT_TOKEN}
       - HATCHET_CLIENT_TLS_STRATEGY=${HATCHET_CLIENT_TLS_STRATEGY}
-      - PRISMA_URI=${PRISMA_URI}
 
     logging:
       driver: gelf
