@@ -1,0 +1,42 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("PRISMA_URI")
+  schemas  = ["public"]
+}
+
+generator client-py {
+  provider                    = "prisma-client-py"
+  interface                   = "asyncio"
+  recursive_type_depth        = 7
+  enable_experimental_decimal = true
+  previewFeatures             = ["fullTextSearch", "multiSchema", "prismaSchemaFolder"]
+}
+
+model Session {
+  id      BigInt   @id
+  name    BigInt   @unique
+  proxy   Proxy    @relation(fields: [proxyId], references: [id])
+  proxyId Int      @default(1)
+  created DateTime @default(now())
+  updated DateTime @updatedAt
+
+  @@schema("public")
+}
+
+model Proxy {
+  id       Int       @id @default(autoincrement())
+  ip       String    @db.VarChar(16)
+  port     Int
+  type     ProxyType
+  sessions Session[]
+
+  @@schema("public")
+}
+
+enum ProxyType {
+  http
+  socks4
+  socks5
+
+  @@schema("public")
+}

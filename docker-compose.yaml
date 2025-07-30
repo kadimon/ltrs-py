@@ -1,0 +1,21 @@
+services:
+  worker-scraping-browser:
+    container_name: worker-scraping-browser-${SESSION}
+    restart: always
+
+    environment:
+      - SESSION=${SESSION}
+      - TZ=${TZ}
+      - SERVER=${SERVER}
+      - HATCHET_CLIENT_TOKEN=${HATCHET_CLIENT_TOKEN}
+      - HATCHET_CLIENT_TLS_STRATEGY=${HATCHET_CLIENT_TLS_STRATEGY}
+      - PRISMA_URI=${PRISMA_URI}
+
+    logging:
+      driver: gelf
+      options:
+        gelf-address: ${GELF_URI}
+        tag: worker-scraping-browser
+        labels: "server=${SERVER},SESSION=${SESSION}"
+        mode: non-blocking
+        max-buffer-size: 1k
