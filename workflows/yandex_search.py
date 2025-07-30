@@ -32,6 +32,8 @@ yandex_ltrs_workflow = hatchet.workflow(
     backoff_factor=2.0,
 )
 async def get_positions(input: InputYandexLtrs, ctx: Context):
+    results = []
+
     async with async_playwright() as p:
         context = await p.firefox.launch_persistent_context(
             './profileDir',
@@ -48,7 +50,7 @@ async def get_positions(input: InputYandexLtrs, ctx: Context):
         )
 
         results_locator = page.locator('div.OrganicTitle')
-        results = []
+
         for r_num in range(await results_locator.count()):
             r = results_locator.nth(r_num)
 
@@ -62,23 +64,26 @@ async def get_positions(input: InputYandexLtrs, ctx: Context):
 
         await context.close()
 
-        client = AsyncMongoClient(settings.MONGO_URI)
-        collection = client['ltrs']['yandex']
+    if not results:
+        raise Exception('no results')
 
-        unique_key = {
-            'book_id': input.book_id,
-            'site': input.site,
-        }
+    client = AsyncMongoClient(settings.MONGO_URI)
+    collection = client['ltrs']['yandex']
 
-        data = unique_key | {'results': results}
+    unique_key = {
+        'book_id': input.book_id,
+        'site': input.site,
+    }
 
-        # Обновляем документ или вставляем новый, если не существует
-        await collection.collection.update_one(
-            unique_key,
-            {'$set': data},
-            upsert=True
-        )
+    data = unique_key | {'results': results}
 
-        await client.aclose()
+    # Обновляем документ или вставляем новый, если не существует
+    await collection.collection.update_one(
+        unique_key,
+        {'$set': data},
+        upsert=True
+    )
 
-        return result
+    await client.aclose()
+
+    return result
