@@ -87,11 +87,6 @@ check_status = hatchet.workflow(
     name='check-status',
     on_events=['status:check'],
     input_validator=EmptyModel,
-    concurrency=ConcurrencyExpression(
-        expression='yandex-positions-ltrs',
-        max_runs=2,
-        limit_strategy=ConcurrencyLimitStrategy.GROUP_ROUND_ROBIN,
-    ),
 )
 
 @check_status.task(
@@ -101,7 +96,7 @@ check_status = hatchet.workflow(
     backoff_max_seconds=3,
     backoff_factor=2.0,
 )
-async def get_positions(input: EmptyModel, ctx: Context):
+async def get_ip(input: EmptyModel, ctx: Context):
     async with async_playwright() as p:
         context = await p.firefox.launch_persistent_context(
             './profileDir',
