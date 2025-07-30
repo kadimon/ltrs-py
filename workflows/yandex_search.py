@@ -86,4 +86,4 @@ async def get_positions(input: InputYandexLtrs, ctx: Context):
 
     await client.aclose()
 
-    return result
+    return results
