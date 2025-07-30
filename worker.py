@@ -3,7 +3,7 @@ import logging
 from hatchet_sdk import Hatchet, ClientConfig
 
 import settings
-from workflows.yandex_search import yandex_ltrs_workflow
+from workflows.yandex_search import yandex_ltrs_workflow, check_status
 
 root_logger = logging.getLogger('hatchet')
 root_logger.setLevel(logging.WARNING)
@@ -21,6 +21,7 @@ def main():
         slots=1,
         workflows=[
             yandex_ltrs_workflow,
+            check_status,
         ],
     )
 
