@@ -36,7 +36,7 @@ async def get_ip(input: EmptyModel, ctx: Context):
         )
 
         ip_locator = page.locator('div.ip > span')
-        await ip_locator.is_visible()
+        await ip_locator.wait_for(state='visible', timeout=45_000)
         ip = await ip_locator.text_content()
 
         await context.close()
