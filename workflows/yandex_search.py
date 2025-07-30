@@ -10,7 +10,7 @@ hatchet = Hatchet(debug=True)
 class InputYandexLtrs(BaseModel):
     site: str
     query: str
-    book_id: str
+    book_id: int
 
 
 yandex_ltrs_workflow = hatchet.workflow(
