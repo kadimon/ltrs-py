@@ -49,7 +49,7 @@ async def get_book(input: InputBook, ctx: Context):
         await page.wait_for_selector('h1')
 
         book = {
-            'title': await page.text_content('h1.name'),
+            'title': await page.text_content('h1'),
             'author': await page.text_content('h2.book-author'),
         }
 
