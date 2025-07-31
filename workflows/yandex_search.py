@@ -18,7 +18,7 @@ yandex_ltrs_workflow = hatchet.workflow(
     on_events=['ltrs:yandex'],
     input_validator=InputYandexLtrs,
     concurrency=ConcurrencyExpression(
-        expression='yandex-positions-ltrs',
+        expression="'yandex-positions-ltrs'",
         max_runs=2,
         limit_strategy=ConcurrencyLimitStrategy.GROUP_ROUND_ROBIN,
     ),
@@ -68,7 +68,7 @@ async def get_positions(input: InputYandexLtrs, ctx: Context):
         raise Exception('no results')
 
     client = AsyncMongoClient(settings.MONGO_URI)
-    collection = client['ltrs']['yandex']
+    col = client['ltrs']['yandex']
 
     unique_key = {
         'book_id': input.book_id,
@@ -78,7 +78,7 @@ async def get_positions(input: InputYandexLtrs, ctx: Context):
     data = unique_key | {'results': results}
 
     # Обновляем документ или вставляем новый, если не существует
-    await collection.update_one(
+    await col.update_one(
         unique_key,
         {'$set': data},
         upsert=True

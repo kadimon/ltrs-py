@@ -72,7 +72,7 @@ async def get_book(input: InputBook, ctx: Context):
         await context.close()
 
     client = AsyncMongoClient(settings.MONGO_URI)
-    collection = client['ltrs']['books']
+    col = client['ltrs']['books']
 
     unique_key = {
         'book_id': input.book_id,
@@ -83,7 +83,7 @@ async def get_book(input: InputBook, ctx: Context):
     data = unique_key | book
 
     # Обновляем документ или вставляем новый, если не существует
-    await collection.update_one(
+    await col.update_one(
         unique_key,
         {'$set': data},
         upsert=True
