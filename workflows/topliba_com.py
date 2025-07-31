@@ -9,6 +9,7 @@ hatchet = Hatchet(debug=True)
 
 class InputBook(BaseModel):
     url: str
+    site: str
     book_id: int
 
 
@@ -31,6 +32,7 @@ topliba_com_workflow = hatchet.workflow(
     backoff_factor=2.0,
 )
 async def get_book(input: InputBook, ctx: Context):
+    book = dict()
     async with async_playwright() as p:
         context = await p.firefox.launch_persistent_context(
             './profileDir',
@@ -53,30 +55,40 @@ async def get_book(input: InputBook, ctx: Context):
             'author': await page.text_content('h2.book-author'),
         }
 
+        if links_download := await page.query_selector_all('a.download-btn'):
+            book['links-download'] = [await l.get_attribute('href') for l in links_download]
+
+        reader_site_locator = page.locator('a.read-btn')
+        if await reader_site_locator.count() > 0:
+            book['reader-site'] = await reader_site_locator.get_attribute('href')
+
+        try:
+            reader_litres_locator = page.locator('div.litres_fragment_body iframe')
+            await reader_litres_locator.wait_for(state='attached', timeout=10_000)
+            book['reader-litres'] = await reader_litres_locator.get_attribute('src')
+        except:
+            pass
+
         await context.close()
 
-        return book
+    client = AsyncMongoClient(settings.MONGO_URI)
+    collection = client['ltrs']['books']
 
-    # if not results:
-    #     raise Exception('no results')
+    unique_key = {
+        'book_id': input.book_id,
+        'site': input.site,
+        'url': input.url
+    }
 
-    # client = AsyncMongoClient(settings.MONGO_URI)
-    # collection = client['ltrs']['yandex']
+    data = unique_key | book
 
-    # unique_key = {
-    #     'book_id': input.book_id,
-    #     'site': input.site,
-    # }
+    # Обновляем документ или вставляем новый, если не существует
+    await collection.update_one(
+        unique_key,
+        {'$set': data},
+        upsert=True
+    )
 
-    # data = unique_key | {'results': results}
+    await client.aclose()
 
-    # # Обновляем документ или вставляем новый, если не существует
-    # await collection.collection.update_one(
-    #     unique_key,
-    #     {'$set': data},
-    #     upsert=True
-    # )
-
-    # await client.aclose()
-
-    # return {'results': results}
+    return {'book': book}

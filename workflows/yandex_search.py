@@ -78,7 +78,7 @@ async def get_positions(input: InputYandexLtrs, ctx: Context):
     data = unique_key | {'results': results}
 
     # Обновляем документ или вставляем новый, если не существует
-    await collection.collection.update_one(
+    await collection.update_one(
         unique_key,
         {'$set': data},
         upsert=True
