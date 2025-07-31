@@ -18,7 +18,7 @@ topliba_com_workflow = hatchet.workflow(
     on_events=['ltrs:topliba-book'],
     input_validator=InputBook,
     concurrency=ConcurrencyExpression(
-        expression='topliba-com',
+        expression="'topliba-com'",
         max_runs=2,
         limit_strategy=ConcurrencyLimitStrategy.GROUP_ROUND_ROBIN,
     ),
