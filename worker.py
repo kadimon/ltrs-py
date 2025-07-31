@@ -5,6 +5,7 @@ from hatchet_sdk import Hatchet, ClientConfig
 import settings
 from workflows.yandex_search import yandex_ltrs_workflow
 from workflows.check_status import check_status
+from workflows.topliba_com import topliba_com_workflow
 
 root_logger = logging.getLogger('hatchet')
 root_logger.setLevel(logging.WARNING)
@@ -23,6 +24,7 @@ def main():
         workflows=[
             yandex_ltrs_workflow,
             check_status,
+            topliba_com_workflow,
         ],
     )
 
