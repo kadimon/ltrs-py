@@ -5,7 +5,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 RUN pip install playwright \
-    hatchet-sdk==1.15.1 \
+    hatchet-sdk==1.16.5 \
     prisma \
     pymongo \
     && pip cache purge
