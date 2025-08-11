@@ -19,7 +19,7 @@ yandex_ltrs_workflow = hatchet.workflow(
     input_validator=InputYandexLtrs,
     concurrency=ConcurrencyExpression(
         expression="'yandex-positions-ltrs'",
-        max_runs=2,
+        max_runs=4,
         limit_strategy=ConcurrencyLimitStrategy.GROUP_ROUND_ROBIN,
     ),
 )
