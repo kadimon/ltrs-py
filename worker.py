@@ -15,6 +15,7 @@ from hatchet_sdk import (
 from playwright.async_api import async_playwright
 
 from workflow_base import BaseLitresPartnersWorkflow
+import settings
 
 
 root_logger = logging.getLogger('hatchet')
