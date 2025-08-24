@@ -8,7 +8,7 @@ services:
       dockerfile: ./Dockerfile
 
     volumes:
-      - /home/dima/scrape_sessions/${SERVER}_${SESSION}":/app/profileDir
+      - /home/dima/scrape_sessions/${SERVER}_${SESSION}:/app/profileDir
 
     environment:
       # - PRISMA_URI=${PRISMA_URI}

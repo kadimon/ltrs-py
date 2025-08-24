@@ -18,6 +18,9 @@ WORKDIR /app
 COPY ./workflows/ ./workflows/
 COPY ./worker.py \
     ./settings.py \
+    ./db.py \
+    ./interfaces.py \
+    ./workflow_base.py \
     ./
 
 ENTRYPOINT ["/usr/bin/tini", "--"]
