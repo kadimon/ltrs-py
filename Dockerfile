@@ -21,6 +21,7 @@ COPY ./worker.py \
     ./db.py \
     ./interfaces.py \
     ./workflow_base.py \
+    ./utils.py \
     ./
 
 ENTRYPOINT ["/usr/bin/tini", "--"]
