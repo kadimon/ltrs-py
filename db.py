@@ -7,22 +7,25 @@ import settings
 
 
 async def save_book(input: InputLitresPartnersBook, book: dict[str, Any]):
-        client = AsyncMongoClient(settings.MONGO_URI)
-        col = client['ltrs']['books']
+    if settings.DEBUG:
+        return
 
-        unique_key = {
-            'book_id': input.book_id,
-            'site': input.site,
-            'url': input.url
-        }
+    client = AsyncMongoClient(settings.MONGO_URI)
+    col = client['ltrs']['books']
 
-        data = unique_key | book
+    unique_key = {
+        'book_id': input.book_id,
+        'site': input.site,
+        'url': input.url
+    }
 
-        # Обновляем документ или вставляем новый, если не существует
-        await col.update_one(
-            unique_key,
-            {'$set': data},
-            upsert=True
-        )
+    data = unique_key | book
 
-        await client.aclose()
+    # Обновляем документ или вставляем новый, если не существует
+    await col.update_one(
+        unique_key,
+        {'$set': data},
+        upsert=True
+    )
+
+    await client.aclose()

@@ -1,8 +1,7 @@
 from dataclasses import dataclass
-from typing import Protocol, Type, TypeVar, Generic
+from typing import Type, TypeVar, Generic
 
 from pydantic import BaseModel
-from hatchet_sdk import Context
 from playwright.async_api import Page
 
 import interfaces
@@ -10,35 +9,17 @@ import interfaces
 TInput = TypeVar('TInput', bound=BaseModel)
 TOutput = TypeVar('TOutput', bound=BaseModel)
 
-class BaseWorkflowProtocol(Protocol, Generic[TInput, TOutput]):
+@dataclass
+class BaseWorkflow(
+    Generic[TInput, TOutput]
+):
+    name: str
     event: str
     input: Type[TInput]
     output: Type[TOutput]
 
-    async def task(self, input: interfaces.InputLitresPartnersBook, ctx: Context, page: Page) -> interfaces.Output: ...
-
-    # атрибуты по умолчанию
-    concurrency: int
-    execution_timeout_sec: int
-    schedule_timeout_hours: int
-    retries: int
-    backoff_max_seconds: int
-    backoff_factor: float
-
-@dataclass
-class BaseLitresPartnersWorkflow(
-    BaseWorkflowProtocol[
-        interfaces.InputLitresPartnersBook,
-        interfaces.Output,
-    ]
-):
-    name: str
-    event: str
-    input: Type[interfaces.InputLitresPartnersBook]
-    output: Type[interfaces.Output]
-
-    async def task(self, input: interfaces.InputLitresPartnersBook, ctx: Context, page: Page) -> interfaces.Output:
-        return interfaces.Output(
+    async def task(self, input: TInput, page: Page) -> TOutput:
+        return self.output(
             result='debug',
             data=input.model_dump()
         )
@@ -49,3 +30,20 @@ class BaseLitresPartnersWorkflow(
     retries: int = 5
     backoff_max_seconds: int = 10
     backoff_factor: float = 1.5
+
+
+@dataclass
+class BaseLitresPartnersWorkflow(
+    BaseWorkflow[
+        interfaces.InputLitresPartnersBook,
+        interfaces.Output,
+    ]
+):
+    input: Type[interfaces.InputLitresPartnersBook]
+    output: Type[interfaces.Output]
+
+    async def task(self, input: interfaces.InputLitresPartnersBook, page: Page) -> interfaces.Output:
+        return interfaces.Output(
+            result='debug',
+            data=input.model_dump()
+        )

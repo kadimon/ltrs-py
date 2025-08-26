@@ -1,12 +1,9 @@
-from hatchet_sdk import Hatchet, Context, ConcurrencyExpression, ConcurrencyLimitStrategy
-from pydantic import BaseModel
 from playwright.async_api import Page
-
 
 from workflow_base import BaseLitresPartnersWorkflow
 from interfaces import InputLitresPartnersBook, Output
-import settings
 from db import save_book
+from utils import run_task
 
 
 class ToplibaCom(BaseLitresPartnersWorkflow):
@@ -15,9 +12,7 @@ class ToplibaCom(BaseLitresPartnersWorkflow):
     input = InputLitresPartnersBook
     output = Output
 
-    async def task(self, input: InputLitresPartnersBook, ctx: Context, page: Page) -> Output:
-        book = dict()
-
+    async def task(self, input: InputLitresPartnersBook, page: Page) -> Output:
         await page.goto(
             input.url,
             wait_until='domcontentloaded',
@@ -50,3 +45,13 @@ class ToplibaCom(BaseLitresPartnersWorkflow):
             result='done',
             data=book,
         )
+
+if __name__ == '__main__':
+    run_task(
+        ToplibaCom,
+        InputLitresPartnersBook(
+            url='https://topliba.com/books/535238',
+            site='topliba.com',
+            book_id=0,
+        )
+    )

@@ -32,9 +32,9 @@ WORKFLOWS_DIR = pathlib.Path(__file__).parent / 'workflows'
 PACKAGE_NAME = 'workflows'  # папка должна содержать __init__.py
 
 
-def create_task_for_class(cls: BaseLitresPartnersWorkflow) -> Workflow:
+def create_task_for_class(wf: BaseLitresPartnersWorkflow) -> Workflow:
 
-    async def task_function(input: cls.input, ctx: Context) -> cls.output:
+    async def task_function(input: wf.input, ctx: Context) -> wf.output:
 
         async with async_playwright() as p:
             context = await p.firefox.launch_persistent_context(
@@ -45,32 +45,32 @@ def create_task_for_class(cls: BaseLitresPartnersWorkflow) -> Workflow:
             )
 
             page = context.pages[0] if context.pages else await context.new_page()
-            instance = cls(
-                name=cls.name,
-                event=cls.event,
-                input=cls.input,
-                output=cls.output,
+            instance = wf(
+                name=wf.name,
+                event=wf.event,
+                input=wf.input,
+                output=wf.output,
             )
-            result = await instance.task(input, ctx, page)
+            result = await instance.task(input, page)
 
             await context.close()
 
             return result
 
     task = hatchet.task(
-        name=cls.name,
-        on_events=[cls.event],
-        input_validator=cls.input,
+        name=wf.name,
+        on_events=[wf.event],
+        input_validator=wf.input,
         concurrency=ConcurrencyExpression(
-            expression=f"'{cls.name}'",
-            max_runs=cls.concurrency,
+            expression=f"'{wf.name}'",
+            max_runs=wf.concurrency,
             limit_strategy=ConcurrencyLimitStrategy.GROUP_ROUND_ROBIN,
         ),
-        execution_timeout=f'{cls.execution_timeout_sec}s',
-        schedule_timeout=f'{cls.schedule_timeout_hours}h',
-        retries=cls.retries,
-        backoff_max_seconds=cls.backoff_max_seconds,
-        backoff_factor=cls.backoff_factor,
+        execution_timeout=f'{wf.execution_timeout_sec}s',
+        schedule_timeout=f'{wf.schedule_timeout_hours}h',
+        retries=wf.retries,
+        backoff_max_seconds=wf.backoff_max_seconds,
+        backoff_factor=wf.backoff_factor,
 
     )(task_function)
 
@@ -84,15 +84,15 @@ def load_workflows() -> list[Workflow]:
         module_name = f'{PACKAGE_NAME}.{module_info.name}'
         module = importlib.import_module(module_name)
 
-        classes = [
+        classes_wf = [
             obj
             for _, obj in inspect.getmembers(module, inspect.isclass)
             if obj.__module__ == module_name
         ]
 
-        for cls in classes:
+        for wf in classes_wf:
             # Создаём таск для этого класса
-            workflows.append(create_task_for_class(cls))
+            workflows.append(create_task_for_class(wf))
 
     return workflows
 
