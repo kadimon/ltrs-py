@@ -3,6 +3,7 @@ from typing import Protocol, Type, TypeVar, Generic
 
 from pydantic import BaseModel
 from hatchet_sdk import Context
+from playwright.async_api import Page
 
 import interfaces
 
@@ -14,7 +15,7 @@ class BaseWorkflowProtocol(Protocol, Generic[TInput, TOutput]):
     input: Type[TInput]
     output: Type[TOutput]
 
-    async def task(self, input: interfaces.InputLitresPartnersBook, ctx: Context) -> interfaces.Output: ...
+    async def task(self, input: interfaces.InputLitresPartnersBook, ctx: Context, page: Page) -> interfaces.Output: ...
 
     # атрибуты по умолчанию
     concurrency: int
@@ -36,7 +37,7 @@ class BaseLitresPartnersWorkflow(
     input: Type[interfaces.InputLitresPartnersBook]
     output: Type[interfaces.Output]
 
-    async def task(self, input: interfaces.InputLitresPartnersBook, ctx: Context) -> interfaces.Output:
+    async def task(self, input: interfaces.InputLitresPartnersBook, ctx: Context, page: Page) -> interfaces.Output:
         return interfaces.Output(
             result='debug',
             data=input.model_dump()

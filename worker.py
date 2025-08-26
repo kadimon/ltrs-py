@@ -45,7 +45,12 @@ def create_task_for_class(cls: BaseLitresPartnersWorkflow) -> Workflow:
             )
 
             page = context.pages[0] if context.pages else await context.new_page()
-            instance = cls()
+            instance = cls(
+                name=cls.name,
+                event=cls.event,
+                input=cls.input,
+                output=cls.output,
+            )
             result = await instance.task(input, ctx, page)
 
             await context.close()
