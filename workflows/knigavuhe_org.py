@@ -40,7 +40,7 @@ if __name__ == '__main__':
     run_task(
         KnigavuheOrg,
         InputLitresPartnersBook(
-            url='https://knigavuhe.org/book/plokhaja-reputacija-kurochki-rjaby/',
+            url='https://knigavuhe.org/book/13-neschastijj-gerakla/',
             site='avidreaders.ru',
             book_id=0,
         )

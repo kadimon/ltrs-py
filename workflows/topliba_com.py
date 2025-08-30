@@ -20,13 +20,18 @@ class ToplibaCom(BaseLitresPartnersWorkflow):
 
         await page.wait_for_selector('h1')
 
+        # await page.wait_for_timeout(10_000)
+        # await page.screenshot(path='screenshot.png', full_page=True)
+
         book = {
             'title': await page.text_content('h1'),
             'author': await page.text_content('h2.book-author'),
         }
 
         if links_download := await page.query_selector_all('a.download-btn'):
-            book['links-download'] = [await l.get_attribute('href') for l in links_download]
+            links_download = [await l.get_attribute('href') for l in links_download]
+            book['links-download'] = [l for l in links_download if '/trial/' not in l]
+            book['links-litres'] = [l for l in links_download if '/trial/' in l]
 
         reader_site_locator = page.locator('a.read-btn')
         if await reader_site_locator.count() > 0:
@@ -35,7 +40,8 @@ class ToplibaCom(BaseLitresPartnersWorkflow):
         try:
             reader_litres_locator = page.locator('div.litres_fragment_body iframe')
             await reader_litres_locator.wait_for(state='attached', timeout=10_000)
-            book['reader-litres'] = await reader_litres_locator.get_attribute('src')
+            if iframe_src := await reader_litres_locator.get_attribute('src'):
+                book['reader-litres'] = 'https:' + iframe_src if iframe_src.startswith('//') else iframe_src
         except:
             pass
 
@@ -50,7 +56,7 @@ if __name__ == '__main__':
     run_task(
         ToplibaCom,
         InputLitresPartnersBook(
-            url='https://topliba.com/books/535238',
+            url='https://topliba.com/books/448594',
             site='topliba.com',
             book_id=0,
         )

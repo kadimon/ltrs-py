@@ -22,8 +22,16 @@ class AvidreadersRu(BaseLitresPartnersWorkflow):
 
         book = {
             'title': await page.text_content('h1'),
-            'author': await page.text_content('.author_wrapper div[itemprop="author"] a'),
+            'author': await page.text_content('.author_wrapper div[itemprop="author"] *[itemprop="name"]'),
         }
+
+        download_button_locator = page.locator('.format_download a')
+        if await download_button_locator.count() > 0:
+            await download_button_locator.first.click()
+            if download := await page.wait_for_event('download', timeout=10_000):
+                if 'litres.ru' in download.url:
+                    book['links-litres'] = [download.url]
+                await download.cancel()
 
         await save_book(input, book)
 
@@ -36,7 +44,7 @@ if __name__ == '__main__':
     run_task(
         AvidreadersRu,
         InputLitresPartnersBook(
-            url='https://avidreaders.ru/book/taksi-do-lesa-berendeya.html',
+            url='https://avidreaders.ru/book/predel-pogruzheniya.html',
             site='avidreaders.ru',
             book_id=0,
         )
