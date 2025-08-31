@@ -8,7 +8,7 @@ from utils import run_task
 
 class FlibustaOne(BaseLitresPartnersWorkflow):
     name = 'ltrs-flibusta-one'
-    event = 'ltrs:avidreaders-ru'
+    event = 'ltrs:flibusta-one'
     input = InputLitresPartnersBook
     output = Output
 
