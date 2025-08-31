@@ -28,9 +28,8 @@ class LibrebookMe(BaseLitresPartnersWorkflow):
             'author': await page.text_content('.elem_author'),
         }
 
-        link_litres_locator = page.locator('a.sell-tile-info')
-        if await link_litres_locator.count() > 0:
-            book['links-litres'] = [await link_litres_locator.get_attribute('href')]
+        if links_litres := await page.query_selector_all('a.sell-tile-info'):
+            book['links-litres'] = [await l.get_attribute('href') for l in links_litres]
 
         await save_book(input, book)
 
