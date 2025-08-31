@@ -6,9 +6,9 @@ from db import save_book
 from utils import run_task
 
 
-class FlibustaOne(BaseLitresPartnersWorkflow):
-    name = 'ltrs-flibusta-one'
-    event = 'ltrs:flibusta-one'
+class FlibustaSu(BaseLitresPartnersWorkflow):
+    name = 'ltrs-flibusta-su'
+    event = 'ltrs:flibusta-su'
     input = InputLitresPartnersBook
     output = Output
 
@@ -22,11 +22,13 @@ class FlibustaOne(BaseLitresPartnersWorkflow):
 
         book = {
             'title': await page.text_content('h1'),
-            'author': await page.text_content('.flist a[itemprop="author"]'),
+            'author': await page.text_content('a[itemprop="author"]'),
         }
 
-        if links_litres := await page.query_selector_all('.sect-format span'):
-            book['links-litres'] = [await l.get_attribute('data-link') for l in links_litres]
+        litres_reader_locator = page.locator('div[class="btn list litres"] a')
+        if await litres_reader_locator.count() > 0:
+            litres_reader_href = await litres_reader_locator.get_attribute('href')
+            book['reader-litres'] = 'https://flibusta.su' + litres_reader_href if litres_reader_href.startswith('/') else litres_reader_href
 
         await save_book(input, book)
 
@@ -37,10 +39,10 @@ class FlibustaOne(BaseLitresPartnersWorkflow):
 
 if __name__ == '__main__':
     run_task(
-        FlibustaOne,
+        FlibustaSu,
         InputLitresPartnersBook(
-            url='https://flibusta.one/books/78991-devyanosto-tretiy-god/',
-            site='flibusta.one',
+            url='https://flibusta.su/book/412375-zastav-mena-vlubitsa/',
+            site='flibusta.su',
             book_id=0,
         )
     )
