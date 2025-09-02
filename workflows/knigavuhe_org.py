@@ -23,8 +23,6 @@ class KnigavuheOrg(BaseLitresPartnersWorkflow):
                 data={'status': resp.status},
             )
 
-        await page.wait_for_selector('h1')
-
         book = {
             'title': await page.text_content('h1 span[itemprop="name"]'),
             'author': await page.text_content('h1 span[itemprop="author"] a'),

@@ -42,6 +42,7 @@ def create_task_for_class(wf: BaseLitresPartnersWorkflow) -> Workflow:
                 proxy={'server': settings.PROXY_URI},
                 headless=False,
                 viewport={'width': 1920, 'height': 1080},
+                timeout=10_000,
             )
 
             page = context.pages[0] if context.pages else await context.new_page()
