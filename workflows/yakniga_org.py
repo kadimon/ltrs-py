@@ -13,10 +13,15 @@ class YaknigaOrg(BaseLitresPartnersWorkflow):
     output = Output
 
     async def task(self, input: InputLitresPartnersBook, page: Page) -> Output:
-        await page.goto(
+        resp = await page.goto(
             input.url,
             wait_until='domcontentloaded',
         )
+        if not (200 <= resp.status < 400):
+            return Output(
+                result='error',
+                data={'status': resp.status},
+            )
 
         await page.wait_for_selector('.breadcrumb__list > li > .breadcrumb__text')
 
