@@ -28,7 +28,7 @@ class FlibustaSu(BaseLitresPartnersWorkflow):
         litres_reader_locator = page.locator('div[class="btn list litres"] a')
         if await litres_reader_locator.count() > 0:
             litres_reader_href = await litres_reader_locator.get_attribute('href')
-            book['reader-litres'] = 'https://flibusta.su' + litres_reader_href if litres_reader_href.startswith('/') else litres_reader_href
+            book['reader-litres'] = ['https://flibusta.su' + litres_reader_href if litres_reader_href.startswith('/') else litres_reader_href]
 
         await save_book(input, book)
 
