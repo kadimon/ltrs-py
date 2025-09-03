@@ -60,6 +60,9 @@ class DcComListing(BaseLivelibWorkflow):
 
             data['items-links'] += 1
 
+        if data['items-links'] == 0:
+            raise Exception('ERROR: No Items')
+
         return Output(
             result='done',
             data=data,
