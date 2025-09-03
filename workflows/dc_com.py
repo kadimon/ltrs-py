@@ -16,6 +16,7 @@ class DcComListing(BaseLivelibWorkflow):
     event = 'livelib:dc-com-listing'
     input = InputLivelibBook
     output = Output
+    execution_timeout_sec=60
 
     async def task(self, input: InputLivelibBook, page: Page) -> Output:
         resp = await page.goto(
@@ -69,6 +70,7 @@ class DcComItem(BaseLivelibWorkflow):
     event = 'livelib:dc-com-item'
     input = InputLivelibBook
     output = Output
+    execution_timeout_sec=60
 
     async def task(self, input: InputLivelibBook, page: Page) -> Output:
         resp = await page.goto(
