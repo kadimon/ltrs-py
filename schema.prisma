@@ -1,1 +1,123 @@
-/mnt/nfs_projects/ltrs_samizdat_api/schema.prisma
+datasource db {
+  provider = "postgresql"
+  url      = env("PRISMA_URI")
+}
+
+generator client-py {
+  provider                    = "prisma-client-py"
+  recursive_type_depth        = 5
+  enable_experimental_decimal = true
+  previewFeatures             = ["fullTextSearch"]
+  // previewFeatures             = ["fullTextSearchPostgres"]
+}
+
+generator client-js {
+  provider                    = "prisma-client-js"
+  recursive_type_depth        = 5
+  enable_experimental_decimal = true
+  previewFeatures             = ["fullTextSearch"]
+  // previewFeatures             = ["fullTextSearchPostgres"]
+}
+
+model Book {
+  id             Int          @id @default(autoincrement())
+  url            String       @unique @db.VarChar(2048)
+  source         String       @db.VarChar(100)
+  title          String       @db.VarChar(1000)
+  title_original String?      @db.VarChar(1000)
+  titles_other   String[]
+  language       String?
+  persons        BookPerson[]
+  author         String?      @db.VarChar(1000)
+  artist         String?      @db.VarChar(1000)
+  publisher      String?      @db.VarChar(1000)
+  owner          String?      @db.VarChar(1000)
+  translate      String?      @db.VarChar(1000)
+  voice          String?      @db.VarChar(1000)
+  category       String[]
+  series         String[]
+  tags           String[]
+  artwork_type   String?
+  age_rating     Int?
+  annotation     String?
+  coverImage     String?      @db.VarChar(100)
+  url_audio      String?      @db.VarChar(2048)
+  date_release   DateTime?
+  date_final     DateTime?
+  deleted        DateTime?
+  metrics        Metrics[]
+
+  datected DateTime @default(now())
+  updated  DateTime @updatedAt
+}
+
+model Metrics {
+  id                  Int            @id @default(autoincrement())
+  rating              Float?
+  votes               Int?
+  views               Int?
+  added_to_lib        Int?
+  read_process        Int?
+  read_stoped         Int?
+  read_on_pause       Int?
+  read_later          Int?
+  read_finished       Int?
+  downloaded          Int?
+  likes               Int?
+  unlike              Int?
+  site_ratings        Json?
+  awards              Json?
+  comments            Int?
+  content_update_date DateTime?
+  status_writing      StatusWriting?
+  status_translate    StatusWriting?
+  pages_count         Int?
+  characters_count    Int?
+  chapters_count      Int?
+  duration            Int?
+  price               Float?
+  price_discount      Float?
+  price_old           Float?
+  price_audio         Float?
+  in_subscribe        Boolean        @default(false)
+  updated             DateTime       @updatedAt @db.Timestamp(3)
+  book                Book           @relation(fields: [bookUrl], references: [url], onDelete: Cascade)
+  bookUrl             String         @db.VarChar(2048)
+
+  @@unique([bookUrl, updated])
+}
+
+model Person {
+  id    Int          @id @default(autoincrement())
+  url   String       @unique @db.VarChar(2048)
+  name  String       @db.VarChar(512)
+  books BookPerson[]
+}
+
+model BookPerson {
+  id       Int    @id @default(autoincrement())
+  book     Book   @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  bookId   Int
+  person   Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+  personId Int
+  role     Role
+}
+
+enum StatusWriting {
+  FINISH
+  PROCESS
+  PAUSE
+  STOP
+  ANNOUNCE
+  LICENSE
+  NOLICENSE
+}
+
+enum Role {
+  AUTHOR
+  ARTIST
+  PUBLISHER
+  OWNER
+  TRANSLATOR
+  VOICE
+}
