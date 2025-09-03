@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Type, TypeVar, Generic
 
 from pydantic import BaseModel
@@ -17,6 +17,8 @@ class BaseWorkflow(
     event: str
     input: Type[TInput]
     output: Type[TOutput]
+
+    customer: str = 'default'
 
     async def task(self, input: TInput, page: Page) -> TOutput:
         return self.output(
@@ -42,7 +44,27 @@ class BaseLitresPartnersWorkflow(
     input: Type[interfaces.InputLitresPartnersBook]
     output: Type[interfaces.Output]
 
+    customer = 'ltrs-partners'
+
     async def task(self, input: interfaces.InputLitresPartnersBook, page: Page) -> interfaces.Output:
+        return interfaces.Output(
+            result='debug',
+            data=input.model_dump()
+        )
+
+@dataclass
+class BaseLivelibWorkflow(
+    BaseWorkflow[
+        interfaces.InputLivelibBook,
+        interfaces.Output,
+    ]
+):
+    input: Type[interfaces.InputLivelibBook]
+    output: Type[interfaces.Output]
+
+    customer = 'livelib'
+
+    async def task(self, input: interfaces.InputLivelibBook, page: Page) -> interfaces.Output:
         return interfaces.Output(
             result='debug',
             data=input.model_dump()

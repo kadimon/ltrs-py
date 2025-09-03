@@ -2,7 +2,7 @@ from playwright.async_api import Page
 
 from workflow_base import BaseLitresPartnersWorkflow
 from interfaces import InputLitresPartnersBook, Output
-from db import save_book
+from db import save_book_mongo
 from utils import run_task
 
 
@@ -30,7 +30,7 @@ class FlibustaSu(BaseLitresPartnersWorkflow):
             litres_reader_href = await litres_reader_locator.get_attribute('href')
             book['reader-litres'] = ['https://flibusta.su' + litres_reader_href if litres_reader_href.startswith('/') else litres_reader_href]
 
-        await save_book(input, book)
+        await save_book_mongo(input, book)
 
         return Output(
             result='done',

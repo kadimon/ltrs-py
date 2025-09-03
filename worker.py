@@ -49,6 +49,7 @@ def create_task_for_class(wf: BaseLitresPartnersWorkflow) -> Workflow:
             instance = wf(
                 name=wf.name,
                 event=wf.event,
+                customer=wf.customer,
                 input=wf.input,
                 output=wf.output,
             )

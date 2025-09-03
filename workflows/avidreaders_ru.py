@@ -2,7 +2,7 @@ from playwright.async_api import Page
 
 from workflow_base import BaseLitresPartnersWorkflow
 from interfaces import InputLitresPartnersBook, Output
-from db import save_book
+from db import save_book_mongo
 from utils import run_task
 
 
@@ -39,7 +39,7 @@ class AvidreadersRu(BaseLitresPartnersWorkflow):
                     book['links-litres'] = [download.url]
                 await download.cancel()
 
-        await save_book(input, book)
+        await save_book_mongo(input, book)
 
         return Output(
             result='done',

@@ -8,12 +8,14 @@ RUN pip install playwright \
     hatchet-sdk==1.16.5 \
     prisma \
     pymongo \
+    dateparser \
+    pillow \
     && pip cache purge
 
 WORKDIR /app
 
-# COPY ./prisma ./prisma
-# RUN prisma generate --generator client-py
+COPY ./schema.prisma ./
+RUN prisma generate --generator client-py
 
 COPY ./workflows/ ./workflows/
 COPY ./worker.py \

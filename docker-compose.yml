@@ -9,9 +9,10 @@ services:
 
     volumes:
       - /home/dima/scrape_sessions/${SERVER}_${SESSION}:/app/profileDir
+      - ${COVERS_DIR}:/app/data_files/covers
 
     environment:
-      # - PRISMA_URI=${PRISMA_URI}
+      - PRISMA_URI=${PRISMA_URI}
       - SESSION=${SESSION}
       - PROXY_URI=${PROXY_URI}
       - MONGO_URI=${MONGO_URI}
@@ -19,6 +20,7 @@ services:
       - SERVER=${SERVER}
       - HATCHET_CLIENT_TOKEN=${HATCHET_CLIENT_TOKEN}
       - HATCHET_CLIENT_TLS_STRATEGY=${HATCHET_CLIENT_TLS_STRATEGY}
+      - COVERS_DIR=/app/data_files/covers
 
     logging:
       driver: gelf

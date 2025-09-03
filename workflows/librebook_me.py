@@ -2,7 +2,7 @@ from playwright.async_api import Page
 
 from workflow_base import BaseLitresPartnersWorkflow
 from interfaces import InputLitresPartnersBook, Output
-from db import save_book
+from db import save_book_mongo
 from utils import run_task
 
 
@@ -31,7 +31,7 @@ class LibrebookMe(BaseLitresPartnersWorkflow):
         if links_litres := await page.query_selector_all('a.sell-tile-info'):
             book['links-litres'] = [await l.get_attribute('href') for l in links_litres]
 
-        await save_book(input, book)
+        await save_book_mongo(input, book)
 
         return Output(
             result='done',
