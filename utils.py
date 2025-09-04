@@ -70,7 +70,7 @@ async def set_task(input: InputEvent):
         )
     )
 
-async def save_cover(page: Page, cover_url: str) -> str | None:
+async def save_cover(page: Page, cover_url: str, timeout: int = 10_000) -> str | None:
     page_url = page.url
     cover_url = urljoin(page_url, cover_url).split('?', 1)[0]
 
@@ -80,7 +80,7 @@ async def save_cover(page: Page, cover_url: str) -> str | None:
     }
 
     try:
-        img_resp = await page.request.get(cover_url, headers=headers)
+        img_resp = await page.request.get(cover_url, headers=headers, timeout=timeout)
         if not img_resp.ok:
             return None
 
