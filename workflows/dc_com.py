@@ -84,6 +84,7 @@ class DcComItem(BaseLivelibWorkflow):
         resp = await page.goto(
             input.url,
             wait_until='domcontentloaded',
+            timeout=20_000,
         )
         if not (200 <= resp.status < 400):
             return Output(
