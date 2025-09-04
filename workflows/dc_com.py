@@ -172,10 +172,10 @@ class DcComItem(BaseLivelibWorkflow):
             if artwork_type := await page.text_content('p:has(~h1)'):
                 book['artwork_type'] = artwork_type
 
-            # if not await db.check_book_have_cover(page.url):
-            #     if img_src := await page.get_attribute('article > section:nth-child(2) img', 'src'):
-            #         if img_name := await save_cover(page, img_src, timeout=20_000):
-            #             book['coverImage'] = img_name
+            if not await db.check_book_have_cover(page.url):
+                if img_src := await page.get_attribute('article > section:nth-child(2) img', 'src'):
+                    if img_name := await save_cover(page, img_src, timeout=20_000):
+                        book['coverImage'] = img_name
 
             await db.update_book(book)
             await db.create_metrics(metrics)
