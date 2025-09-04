@@ -107,7 +107,7 @@ class DcComItem(BaseLivelibWorkflow):
                 await db.create_book(book)
 
             authors_locator = page.locator('.list-values').filter(
-                has_text='Writer:'
+                has_text=re.compile(r'Writer:|Written by:')
             ).locator('a')
             if await authors_locator.count() > 0:
                 book['author'] = await authors_locator.first.text_content()
