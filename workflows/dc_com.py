@@ -39,12 +39,10 @@ class DcComListing(BaseLivelibWorkflow):
         }
 
         if page.url == 'https://www.dc.com/comics':
-            last_page_num = int(
-                await page.locator(
+            last_page_num = await page.locator(
                     'a[data-testid="pagination-navigation-button"]'
-                ).last.text_content().strip()
-            )
-            for page_num in range(1, last_page_num+1):
+                ).last.text_content()
+            for page_num in range(1, int(last_page_num.strip())+1):
                 await set_task(InputEvent(
                     url=f'https://www.dc.com/comics?page={page_num}',
                     event=DcComListing.event,
@@ -153,7 +151,7 @@ class DcComItem(BaseLivelibWorkflow):
                  has_text='U.S. Price:'
              ).locator('*[aria-label="list-values"]')
             if await price_locator.count() > 0:
-                 metrics['price'] = price_locator.text_content()
+                 metrics['price'] = await price_locator.text_content()
 
             if pages_count := await page.locator('.list-values').filter(
                  has_text='Page Count:'
