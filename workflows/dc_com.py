@@ -38,18 +38,21 @@ class DcComListing(BaseLivelibWorkflow):
             'page-links': 0,
         }
 
-        next_page_locator = page.locator('a[data-testid="pagination-navigation-arrow"][aria-label*="forward"]')
-        if await next_page_locator.count() > 0:
-            next_page_href = await next_page_locator.get_attribute('href')
-            next_page_url = urljoin(page.url, next_page_href)
-            await set_task(InputEvent(
-                url=next_page_url,
-                event=DcComListing.event,
-                site=input.site,
-                customer=self.customer,
-            ))
+        if page.url == 'https://www.dc.com/comics':
+            last_page_num = int(
+                await page.locator(
+                    'a[data-testid="pagination-navigation-button"]'
+                ).last.text_content().strip()
+            )
+            for page_num in range(1, last_page_num+1):
+                await set_task(InputEvent(
+                    url=f'https://www.dc.com/comics?page={page_num}',
+                    event=DcComListing.event,
+                    site=input.site,
+                    customer=self.customer,
+                ))
 
-            data['page-links'] += 1
+                data['page-links'] += 1
 
         items_links = await page.query_selector_all('.resultsContainer .link-card a')
         for i in items_links:
@@ -167,10 +170,10 @@ class DcComItem(BaseLivelibWorkflow):
             if artwork_type := await page.text_content('p:has(~h1)'):
                 book['artwork_type'] = artwork_type
 
-            # if not await db.check_book_have_cover(page.url):
-            #     if img_src := await page.get_attribute('article > section:nth-child(2) img', 'src'):
-            #         if img_name := await save_cover(page, img_src):
-            #             book['coverImage'] = img_name
+            if not await db.check_book_have_cover(page.url):
+                if img_src := await page.get_attribute('article > section:nth-child(2) img', 'src'):
+                    if img_name := await save_cover(page, img_src):
+                        book['coverImage'] = img_name
 
             await db.update_book(book)
             await db.create_metrics(metrics)
