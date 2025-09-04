@@ -39,7 +39,7 @@ def create_task_for_class(wf: BaseLitresPartnersWorkflow) -> Workflow:
         async with async_playwright() as p:
             context = await p.firefox.launch_persistent_context(
                 './profileDir',
-                # proxy={'server': settings.PROXY_URI},
+                proxy={'server': settings.PROXY_URI},
                 headless=False,
                 viewport={'width': 1920, 'height': 1080},
                 timeout=10_000,
