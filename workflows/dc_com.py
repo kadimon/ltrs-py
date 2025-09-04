@@ -140,10 +140,11 @@ class DcComItem(BaseLivelibWorkflow):
                         'url': absolute_url
                     })
 
-            if serie := await page.locator('.list-values').filter(
+            serie_locator = page.locator('.list-values').filter(
                 has_text='Series:'
-            ).locator('*[aria-label="list-values"]').text_content():
-                book['series'] = [serie]
+            ).locator('*[aria-label="list-values"]')
+            if await serie_locator.count() > 0:
+                book['series'] = [await serie_locator.text_content()]
 
             if price := await page.locator('.list-values').filter(
                  has_text='U.S. Price:'
