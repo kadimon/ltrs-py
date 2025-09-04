@@ -17,6 +17,7 @@ class BaseWorkflow(
     event: str
     input: Type[TInput]
     output: Type[TOutput]
+    proxy_enable: bool = True
 
     customer: str = 'default'
 
