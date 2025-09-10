@@ -1,7 +1,10 @@
-from typing import Literal, Any
+from typing import Literal, Any, TypedDict
 
 from pydantic import BaseModel
 
+
+class WorkerLabels(TypedDict, total=False):
+    ip: Literal['ru', 'rs']
 
 class InputLitresPartnersBook(BaseModel):
     url: str

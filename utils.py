@@ -4,10 +4,11 @@ import logging
 from urllib.parse import urljoin
 from pathlib import Path
 import hashlib
+from datetime import datetime, timedelta, timezone
 
 from pydantic import BaseModel
 from playwright.async_api import async_playwright, Page
-from hatchet_sdk import Hatchet, ClientConfig, PushEventOptions
+from hatchet_sdk import Hatchet, ClientConfig, PushEventOptions, V1TaskStatus
 from PIL import Image
 
 
@@ -30,7 +31,7 @@ async def run_task_async(wf: BaseWorkflow, input: BaseModel):
         browser = await p.firefox.connect('ws://127.0.0.1:3000/')
 
         context = await browser.new_context(
-            proxy={'server': settings.PROXY_URI},
+            proxy={'server': settings.PROXY_URI} if wf.proxy_enable else None,
             viewport={'width': 1920, 'height': 1080},
         )
 
@@ -52,23 +53,46 @@ async def run_task_async(wf: BaseWorkflow, input: BaseModel):
 def run_task(wf: BaseWorkflow, input: BaseModel):
     asyncio.run(run_task_async(wf, input))
 
+
 async def set_task(input: InputEvent):
     if settings.DEBUG:
         return
 
-    await hatchet.event.aio_push(
-        input.event,
-        {
-            'url': input.url,
-            'site': input.site,
-        },
-        options=PushEventOptions(
-            additional_metadata={
-                'customer': input.customer,
+    if await not_dupe(input.url, input.event, 96):
+        await hatchet.event.aio_push(
+            input.event,
+            {
+                'url': input.url,
                 'site': input.site,
-            }
+            },
+            options=PushEventOptions(
+                additional_metadata={
+                    'customer': input.customer,
+                    'site': input.site,
+                    'url': input.url,
+                    'event': input.event,
+                }
+            )
         )
+
+async def not_dupe(url: str, event: str, hours: int) -> bool:
+    runs_list = await hatchet.runs.aio_list(
+        since=datetime.now(timezone.utc) - timedelta(hours=hours),
+        additional_metadata={
+            'url': url,
+            'event': event,
+        },
+        statuses=[
+            V1TaskStatus.RUNNING,
+            V1TaskStatus.QUEUED,
+            # V1TaskStatus.COMPLETED,
+        ],
     )
+
+    if runs_list.rows:
+        return False
+    else:
+        return True
 
 async def save_cover(page: Page, cover_url: str, timeout: int = 10_000) -> str | None:
     page_url = page.url

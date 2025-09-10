@@ -6,7 +6,7 @@ from playwright.async_api import Page
 import dateparser
 
 from workflow_base import BaseLivelibWorkflow
-from interfaces import InputLivelibBook, Output, InputEvent
+from interfaces import InputLivelibBook, Output, InputEvent, WorkerLabels
 from db import DbSamizdatPrisma
 from utils import run_task, set_task, save_cover
 
@@ -16,6 +16,8 @@ class DcComListing(BaseLivelibWorkflow):
     event = 'livelib:dc-com-listing'
     input = InputLivelibBook
     output = Output
+
+    labels = WorkerLabels(ip='rs')
 
     execution_timeout_sec=60
     retries=10
@@ -78,6 +80,8 @@ class DcComItem(BaseLivelibWorkflow):
     event = 'livelib:dc-com-item'
     input = InputLivelibBook
     output = Output
+
+    labels = WorkerLabels(ip='rs')
 
     proxy_enable = False
     execution_timeout_sec=60
@@ -174,7 +178,7 @@ class DcComItem(BaseLivelibWorkflow):
 
             if not await db.check_book_have_cover(page.url):
                 if img_src := await page.get_attribute('article > section:nth-child(2) img', 'src'):
-                    if img_name := await save_cover(page, img_src, timeout=20_000):
+                    if img_name := await save_cover(page, img_src, timeout=5_000):
                         book['coverImage'] = img_name
 
             await db.update_book(book)
@@ -187,10 +191,14 @@ class DcComItem(BaseLivelibWorkflow):
 
 
 if __name__ == '__main__':
+    start_urls = [
+        'https://www.dc.com/comics',
+    ]
+
     # run_task(
     #     DcComListing,
     #     InputLivelibBook(
-    #         url='https://www.dc.com/comics',
+    #         url=start_urls[0],
     #         site='dc.com'
     #     )
     # )

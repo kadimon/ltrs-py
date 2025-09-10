@@ -10,8 +10,9 @@ from hatchet_sdk import (
     Context,
     ConcurrencyExpression,
     ConcurrencyLimitStrategy,
-    Workflow
+    Workflow,
 )
+from hatchet_sdk.labels import DesiredWorkerLabel
 from playwright.async_api import async_playwright
 
 from workflow_base import BaseLitresPartnersWorkflow
@@ -59,10 +60,15 @@ def create_task_for_class(wf: BaseLitresPartnersWorkflow) -> Workflow:
 
             return result
 
+
     task = hatchet.task(
         name=wf.name,
         on_events=[wf.event],
         input_validator=wf.input,
+        desired_worker_labels={
+            k: DesiredWorkerLabel(value=v, required=True)
+            for k, v in wf.labels.items()
+        },
         concurrency=ConcurrencyExpression(
             expression=f"'{wf.name}'",
             max_runs=wf.concurrency,
@@ -105,6 +111,7 @@ def main() -> None:
     worker = hatchet.worker(
         name=f'scaper-{settings.SESSION}',
         slots=1,
+        labels=settings.WORKER_LABELS,
         workflows=workflows,
     )
     worker.start()

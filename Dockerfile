@@ -10,6 +10,7 @@ RUN pip install playwright \
     pymongo \
     dateparser \
     pillow \
+    furl \
     && pip cache purge
 
 WORKDIR /app
