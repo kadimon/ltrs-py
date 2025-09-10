@@ -6,8 +6,8 @@ PROXY_URI = os.environ['PROXY_URI']
 MONGO_URI = os.environ['MONGO_URI']
 COVERS_DIR = os.environ['COVERS_DIR']
 
+print(os.environ)
 if labels_str := os.environ.get('LABELS'):
-    print(labels_str)
     labels_list = [
         set(l.split(':'))
         for l in labels_str.split(',')
