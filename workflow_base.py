@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Type, TypeVar, Generic
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from playwright.async_api import Page
 
 import interfaces
@@ -18,7 +18,7 @@ class BaseWorkflow(
     input: Type[TInput]
     output: Type[TOutput]
     proxy_enable: bool = True
-    labels: interfaces.WorkerLabels = Field(default_factory=dict)
+    labels: interfaces.WorkerLabels = interfaces.WorkerLabels()
 
     customer: str = 'default'
 
