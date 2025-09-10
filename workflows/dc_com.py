@@ -18,6 +18,7 @@ class DcComListing(BaseLivelibWorkflow):
     output = Output
 
     labels = WorkerLabels(ip='rs')
+    proxy_enable=False
 
     execution_timeout_sec=60
     retries=10
