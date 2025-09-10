@@ -60,7 +60,7 @@ def create_task_for_class(wf: BaseLitresPartnersWorkflow) -> Workflow:
 
             return result
 
-    print(wf)
+
     task = hatchet.task(
         name=wf.name,
         on_events=[wf.event],
