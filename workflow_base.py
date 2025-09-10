@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Type, TypeVar, Generic
 
 from pydantic import BaseModel
@@ -18,7 +18,7 @@ class BaseWorkflow(
     input: Type[TInput]
     output: Type[TOutput]
     proxy_enable: bool = True
-    labels: interfaces.WorkerLabels = interfaces.WorkerLabels()
+    labels: interfaces.WorkerLabels = field(default_factory=interfaces.WorkerLabels)
 
     customer: str = 'default'
 
