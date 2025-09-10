@@ -83,7 +83,7 @@ class DcComItem(BaseLivelibWorkflow):
 
     labels = WorkerLabels(ip='rs')
 
-    proxy_enable = False
+    # proxy_enable = False
     execution_timeout_sec=60
 
     async def task(self, input: InputLivelibBook, page: Page) -> Output:

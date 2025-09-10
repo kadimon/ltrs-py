@@ -12,11 +12,9 @@ if labels_str := os.environ.get('LABELS'):
         for l in labels_str.split(',')
         if l.strip()
     ]
-    print(labels_list)
     WORKER_LABELS = interfaces.WorkerLabels(**{
         k.strip(): v.strip() for (k,v) in labels_list
     })
-    print(WORKER_LABELS)
 else:
     WORKER_LABELS = interfaces.WorkerLabels()
 
