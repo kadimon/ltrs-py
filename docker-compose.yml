@@ -12,6 +12,7 @@ services:
       - ${COVERS_DIR}:/app/data_files/covers
 
     environment:
+      - LABELS=${LABELS}
       - PRISMA_URI=${PRISMA_URI}
       - SESSION=${SESSION}
       - PROXY_URI=${PROXY_URI}
