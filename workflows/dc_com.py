@@ -9,6 +9,7 @@ from workflow_base import BaseLivelibWorkflow
 from interfaces import InputLivelibBook, Output, InputEvent, WorkerLabels
 from db import DbSamizdatPrisma
 from utils import run_task, set_task, save_cover
+import settings
 
 
 class DcComListing(BaseLivelibWorkflow):
@@ -26,6 +27,7 @@ class DcComListing(BaseLivelibWorkflow):
     backoff_factor=2
 
     async def task(self, input: InputLivelibBook, page: Page) -> Output:
+        print(input.url, settings.PROXY_URI)
         resp = await page.goto(
             input.url,
             wait_until='domcontentloaded',
