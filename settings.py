@@ -6,6 +6,7 @@ PROXY_URI = os.environ['PROXY_URI']
 MONGO_URI = os.environ['MONGO_URI']
 COVERS_DIR = os.environ['COVERS_DIR']
 
+print(os.environ)
 if labels_str := os.environ.get('LABELS'):
     labels_list = [
         set(l.split(':'))
@@ -18,5 +19,6 @@ if labels_str := os.environ.get('LABELS'):
 else:
     WORKER_LABELS = interfaces.WorkerLabels()
 
+print(WORKER_LABELS)
 
 DEBUG = os.environ.get('DEBUG')
