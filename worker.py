@@ -11,6 +11,7 @@ from hatchet_sdk import (
     ConcurrencyExpression,
     ConcurrencyLimitStrategy,
     Workflow,
+    WorkerLabelComparator,
 )
 from hatchet_sdk.labels import DesiredWorkerLabel
 from playwright.async_api import async_playwright
@@ -66,7 +67,11 @@ def create_task_for_class(wf: BaseLitresPartnersWorkflow) -> Workflow:
         on_events=[wf.event],
         input_validator=wf.input,
         desired_worker_labels={
-            k: DesiredWorkerLabel(value=v, required=True)
+            k: DesiredWorkerLabel(
+                value=v,
+                required=True,
+                comparator=WorkerLabelComparator.EQUAL,
+            )
             for k, v in wf.labels.items()
         },
         concurrency=ConcurrencyExpression(
