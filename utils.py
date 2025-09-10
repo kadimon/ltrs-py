@@ -89,6 +89,8 @@ async def not_dupe(url: str, event: str, hours: int) -> bool:
         ],
     )
 
+    print(len(runs_list.rows))
+
     if runs_list.rows:
         return False
     else:
