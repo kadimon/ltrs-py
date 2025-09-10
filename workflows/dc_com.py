@@ -195,13 +195,13 @@ if __name__ == '__main__':
         'https://www.dc.com/comics',
     ]
 
-    # run_task(
-    #     DcComListing,
-    #     InputLivelibBook(
-    #         url=start_urls[0],
-    #         site='dc.com'
-    #     )
-    # )
+    run_task(
+        DcComListing,
+        InputLivelibBook(
+            url=start_urls[0],
+            site='dc.com'
+        )
+    )
 
     run_task(
         DcComItem,
