@@ -70,7 +70,8 @@ def create_task_for_class(wf: BaseLitresPartnersWorkflow) -> Workflow:
             k: DesiredWorkerLabel(
                 value=v,
                 required=True,
-                # comparator=WorkerLabelComparator.EQUAL,
+                comparator=WorkerLabelComparator.EQUAL,
+                weight=10,
             )
             for k, v in wf.labels.items()
         },
