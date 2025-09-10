@@ -8,7 +8,7 @@ COVERS_DIR = os.environ['COVERS_DIR']
 
 if labels_str := os.environ.get('LABELS'):
     labels_list = [
-        set(l.split(':'))
+        l.split(':')
         for l in labels_str.split(',')
         if l.strip()
     ]
