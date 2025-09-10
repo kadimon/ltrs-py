@@ -58,7 +58,7 @@ async def set_task(input: InputEvent):
     if settings.DEBUG:
         return
 
-    if await not_dupe(input.url, input.event, 96):
+    if await not_dupe(input.url, input.event, 48):
         await hatchet.event.aio_push(
             input.event,
             {
