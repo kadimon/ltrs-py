@@ -21,13 +21,12 @@ class DcComListing(BaseLivelibWorkflow):
     labels = WorkerLabels(ip='rs')
     # proxy_enable=False
 
-    execution_timeout_sec=60
+    execution_timeout_sec=600
     retries=10
     backoff_max_seconds=30
     backoff_factor=2
 
     async def task(self, input: InputLivelibBook, page: Page) -> Output:
-        print(input.url, settings.PROXY_URI)
         resp = await page.goto(
             input.url,
             wait_until='domcontentloaded',

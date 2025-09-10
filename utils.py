@@ -58,22 +58,22 @@ async def set_task(input: InputEvent):
     if settings.DEBUG:
         return
 
-    # if await not_dupe(input.url, input.event, 48):
-    await hatchet.event.aio_push(
-        input.event,
-        {
-            'url': input.url,
-            'site': input.site,
-        },
-        options=PushEventOptions(
-            additional_metadata={
-                'customer': input.customer,
-                'site': input.site,
+    if await not_dupe(input.url, input.event, 48):
+        await hatchet.event.aio_push(
+            input.event,
+            {
                 'url': input.url,
-                'event': input.event,
-            }
+                'site': input.site,
+            },
+            options=PushEventOptions(
+                additional_metadata={
+                    'customer': input.customer,
+                    'site': input.site,
+                    'url': input.url,
+                    'event': input.event,
+                }
+            )
         )
-    )
 
 async def not_dupe(url: str, event: str, hours: int) -> bool:
     runs_list = await hatchet.runs.aio_list(
