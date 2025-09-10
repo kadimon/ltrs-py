@@ -17,4 +17,6 @@ if labels_str := os.environ.get('LABELS'):
 else:
     WORKER_LABELS = interfaces.WorkerLabels()
 
+print(WORKER_LABELS)
+
 DEBUG = os.environ.get('DEBUG')
