@@ -67,7 +67,7 @@ def create_task_for_class(wf: BaseLitresPartnersWorkflow) -> Workflow:
         input_validator=wf.input,
         desired_worker_labels={
             k: DesiredWorkerLabel(value=v, required=True)
-            for k, v in wf.labels.items()
+            for k, v in wf.model_fields['labels'].default_factory().items()
         },
         concurrency=ConcurrencyExpression(
             expression=f"'{wf.name}'",
