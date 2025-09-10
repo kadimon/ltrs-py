@@ -47,27 +47,25 @@ class DcComListing(BaseLivelibWorkflow):
                     'a[data-testid="pagination-navigation-button"]'
                 ).last.text_content()
             for page_num in range(1, int(last_page_num.strip())+1):
-                await set_task(InputEvent(
+                if await set_task(InputEvent(
                     url=f'https://www.dc.com/comics?page={page_num}',
                     event=DcComListing.event,
                     site=input.site,
                     customer=self.customer,
-                ))
-
-                data['page-links'] += 1
+                )):
+                    data['page-links'] += 1
 
         items_links = await page.query_selector_all('.resultsContainer .link-card a')
         for i in items_links:
             item_href = await i.get_attribute('href')
             item_url = urljoin(page.url, item_href)
-            await set_task(InputEvent(
+            if await set_task(InputEvent(
                 url=item_url,
                 event=DcComItem.event,
                 site=input.site,
                 customer=self.customer,
-            ))
-
-            data['items-links'] += 1
+            )):
+                data['items-links'] += 1
 
         if data['items-links'] == 0:
             raise Exception('ERROR: No Items')

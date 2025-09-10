@@ -54,9 +54,9 @@ def run_task(wf: BaseWorkflow, input: BaseModel):
     asyncio.run(run_task_async(wf, input))
 
 
-async def set_task(input: InputEvent):
+async def set_task(input: InputEvent) -> bool:
     if settings.DEBUG:
-        return
+        return False
 
     if await not_dupe(input.url, input.event, 48):
         await hatchet.event.aio_push(
@@ -74,6 +74,9 @@ async def set_task(input: InputEvent):
                 }
             )
         )
+        return True
+    else:
+        return False
 
 async def not_dupe(url: str, event: str, hours: int) -> bool:
     runs_list = await hatchet.runs.aio_list(
