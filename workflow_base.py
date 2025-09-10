@@ -18,7 +18,7 @@ class BaseWorkflow(
     input: Type[TInput]
     output: Type[TOutput]
     proxy_enable: bool = True
-    labels: interfaces.WorkerLabels = Field(default_factory=interfaces.WorkerLabels)
+    labels: interfaces.WorkerLabels = Field(default_factory=dict)
 
     customer: str = 'default'
 
