@@ -7,9 +7,11 @@ MONGO_URI = os.environ['MONGO_URI']
 COVERS_DIR = os.environ['COVERS_DIR']
 
 if labels_str := os.environ.get('LABELS'):
+    print(labels_str)
     labels_list = [
         set(l.split(':'))
         for l in labels_str.split(',')
+        if l.strip()
     ]
     WORKER_LABELS = interfaces.WorkerLabels(**{
         k.strip(): v.strip() for (k,v) in labels_list
