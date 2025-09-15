@@ -233,25 +233,23 @@ class DcComPerson(BaseLivelibWorkflow):
                 data={'status': resp.status},
             )
 
-        data = {
-            'items-links': 0,
-        }
-
         items_links = await page.query_selector_all('.grid-items a')
+        new_items = 0
         for i in items_links:
             item_href = await i.get_attribute('href')
             item_url = urljoin(page.url, item_href)
-            await set_task(InputEvent(
+            if await set_task(InputEvent(
                 url=item_url,
                 event=DcComItem.event,
                 site=input.site,
                 customer=self.customer,
-            ))
-            data['items-links'] += 1
+            )):
+                new_items += 1
+
 
         return Output(
             result='done',
-            data=data,
+            data={'new-items': new_items},
         )
 
 
