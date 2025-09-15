@@ -119,6 +119,8 @@ class DcComItem(BaseLivelibWorkflow):
                 book['title'] = await page.text_content('h1')
                 await db.create_book(book)
 
+            persons_urls = []
+
             authors_locator = page.locator('.list-values').filter(
                 has_text=re.compile(r'Writer:|Written by:')
             ).locator('a')
@@ -136,6 +138,8 @@ class DcComItem(BaseLivelibWorkflow):
                         'url': absolute_url
                     })
 
+                    persons_urls.append(absolute_url)
+
             artists_locator = page.locator('.list-values').filter(
                 has_text=re.compile(r'Art by:|Cover:|Colorist:')
             ).locator('a')
@@ -152,6 +156,8 @@ class DcComItem(BaseLivelibWorkflow):
                         'name': text.strip(),
                         'url': absolute_url
                     })
+
+                    persons_urls.append(absolute_url)
 
             serie_locator = page.locator('.list-values').filter(
                 has_text='Series:'
@@ -189,10 +195,63 @@ class DcComItem(BaseLivelibWorkflow):
             await db.update_book(book)
             await db.create_metrics(metrics)
 
+            new_persons = 0
+            for p_url in persons_urls:
+                if await set_task(InputEvent(
+                    url=p_url,
+                    event=DcComPerson.event,
+                    site=input.site,
+                    customer=self.customer,
+                )):
+                    new_persons += 1
+
             return Output(
                 result='done',
-                data={'book': book, 'metrics': metrics},
+                data={
+                    'book': book,
+                    'metrics': metrics,
+                    'new-persons': new_persons,
+                },
             )
+
+class DcComPerson(BaseLivelibWorkflow):
+    name = 'livelib-dc-com-person'
+    event = 'livelib:dc-com-person'
+    input = InputLivelibBook
+    output = Output
+
+    async def task(self, input: InputLivelibBook, page: Page) -> Output:
+        resp = await page.goto(
+            input.url,
+            wait_until='domcontentloaded',
+        )
+        if not (200 <= resp.status < 400):
+            return Output(
+                result='error',
+                data={'status': resp.status},
+            )
+
+        data = {
+            'items-links': 0,
+        }
+
+        items_links = await page.query_selector_all('.grid-items a')
+        for i in items_links:
+            item_href = await i.get_attribute('href')
+            item_url = urljoin(page.url, item_href)
+            await set_task(InputEvent(
+                url=item_url,
+                event=DcComItem.event,
+                site=input.site,
+                customer=self.customer,
+            ))
+            data['items-links'] += 1
+
+        return Output(
+            result='done',
+            data=data,
+        )
+
 
 start_urls = [
     'https://www.dc.com/comics',
