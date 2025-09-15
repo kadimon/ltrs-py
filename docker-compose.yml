@@ -21,6 +21,7 @@ services:
       - SERVER=${SERVER}
       - HATCHET_CLIENT_TOKEN=${HATCHET_CLIENT_TOKEN}
       - HATCHET_CLIENT_TLS_STRATEGY=${HATCHET_CLIENT_TLS_STRATEGY}
+      - PREFECT_API_URL=${PREFECT_API_URL}
       - COVERS_DIR=/app/data_files/covers
 
     logging:

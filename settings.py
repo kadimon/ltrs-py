@@ -1,7 +1,12 @@
 import os
 import interfaces
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 SESSION = os.environ['SESSION']
+TEMPORAL_URI = os.environ['TEMPORAL_URI']
 PROXY_URI = os.environ['PROXY_URI']
 MONGO_URI = os.environ['MONGO_URI']
 COVERS_DIR = os.environ['COVERS_DIR']

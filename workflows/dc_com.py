@@ -47,6 +47,7 @@ class DcComListing(BaseLivelibWorkflow):
                     'a[data-testid="pagination-navigation-button"]'
                 ).last.text_content()
             for page_num in range(1, int(last_page_num.strip())+1):
+                print(f'https://www.dc.com/comics?page={page_num}')
                 if await set_task(InputEvent(
                     url=f'https://www.dc.com/comics?page={page_num}',
                     event=DcComListing.event,

@@ -58,7 +58,9 @@ async def set_task(input: InputEvent) -> bool:
     if settings.DEBUG:
         return False
 
-    if await not_dupe(input.url, input.event, 48):
+    hash = hashlib.md5(f'{input.event}{input.url}'.encode()).hexdigest()
+
+    if await not_dupe(hash, 48):
         await hatchet.event.aio_push(
             input.event,
             {
@@ -71,6 +73,7 @@ async def set_task(input: InputEvent) -> bool:
                     'site': input.site,
                     'url': input.url,
                     'event': input.event,
+                    'hash': hash,
                 }
             )
         )
@@ -78,23 +81,24 @@ async def set_task(input: InputEvent) -> bool:
     else:
         return False
 
-async def not_dupe(url: str, event: str, hours: int) -> bool:
-    runs_list = await hatchet.runs.aio_list(
-        since=datetime.now(timezone.utc) - timedelta(hours=hours),
+async def not_dupe(hash: str, hours: int) -> bool:
+    runs_list = await hatchet.runs.aio_list_with_pagination(
+        # since=datetime.now(timezone.utc) - timedelta(hours=hours),
         additional_metadata={
-            'url': url,
-            'event': event,
+            'hash': hash,
         },
         statuses=[
             V1TaskStatus.RUNNING,
             V1TaskStatus.QUEUED,
-            # V1TaskStatus.COMPLETED,
+            V1TaskStatus.COMPLETED,
         ],
+        # limit=1,
+        # only_tasks=True,
     )
+    for t in runs_list:
+        print(t.additional_metadata)
 
-    print(len(runs_list.rows))
-
-    if runs_list.rows:
+    if runs_list:
         return False
     else:
         return True
