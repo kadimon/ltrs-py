@@ -64,13 +64,13 @@ class DcComListing(BaseLivelibWorkflow):
         for i in items_links:
             item_href = await i.get_attribute('href')
             item_url = urljoin(page.url, item_href)
-            await set_task(InputEvent(
+            if await set_task(InputEvent(
                 url=item_url,
                 event=DcComItem.event,
                 site=input.site,
                 customer=self.customer,
-            ))
-            data['new-items-links'] += 1
+            )):
+                data['new-items-links'] += 1
 
         if not items_links:
             raise Exception('ERROR: No Items')
