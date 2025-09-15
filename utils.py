@@ -92,7 +92,7 @@ async def not_dupe(hash: str, hours: int) -> bool:
             V1TaskStatus.QUEUED,
             V1TaskStatus.COMPLETED,
         ],
-        # limit=1,
+        limit=1,
         # only_tasks=True,
     )
     for t in runs_list:
