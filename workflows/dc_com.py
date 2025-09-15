@@ -189,7 +189,7 @@ class DcComItem(BaseLivelibWorkflow):
 
             if not await db.check_book_have_cover(page.url):
                 if img_src := await page.get_attribute('article > section:nth-child(2) img', 'src'):
-                    if img_name := await save_cover(page, img_src, timeout=5_000):
+                    if img_name := await save_cover(page, img_src, timeout=10_000):
                         book['coverImage'] = img_name
 
             await db.update_book(book)
