@@ -19,7 +19,7 @@ class DcComListing(BaseLivelibWorkflow):
     input = InputLivelibBook
     output = Output
 
-    labels = WorkerLabels(ip='rs')
+    # labels = WorkerLabels(ip='rs')
     # proxy_enable=False
 
     execution_timeout_sec=600
