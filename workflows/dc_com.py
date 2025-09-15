@@ -4,6 +4,7 @@ from pathlib import Path
 
 from playwright.async_api import Page
 import dateparser
+from furl import furl
 
 from workflow_base import BaseLivelibWorkflow
 from interfaces import InputLivelibBook, Output, InputEvent, WorkerLabels
@@ -18,7 +19,7 @@ class DcComListing(BaseLivelibWorkflow):
     input = InputLivelibBook
     output = Output
 
-    labels = WorkerLabels(ip='rs')
+    # labels = WorkerLabels(ip='rs')
     # proxy_enable=False
 
     execution_timeout_sec=600
@@ -42,14 +43,16 @@ class DcComListing(BaseLivelibWorkflow):
             'page-links': 0,
         }
 
-        if page.url == 'https://www.dc.com/comics':
+        if page.url in start_urls:
+            url_data = furl(page.url)
+
             last_page_num = await page.locator(
                     'a[data-testid="pagination-navigation-button"]'
                 ).last.text_content()
             for page_num in range(1, int(last_page_num.strip())+1):
-                print(f'https://www.dc.com/comics?page={page_num}')
+                url_data.args['page'] = page_num
                 if await set_task(InputEvent(
-                    url=f'https://www.dc.com/comics?page={page_num}',
+                    url=url_data.url,
                     event=DcComListing.event,
                     site=input.site,
                     customer=self.customer,
@@ -194,6 +197,10 @@ class DcComItem(BaseLivelibWorkflow):
 if __name__ == '__main__':
     start_urls = [
         'https://www.dc.com/comics',
+        'https://www.dc.com/comics?sort=',
+        'https://www.dc.com/comics?sort=eyJvcmRlciI6ImFzYyIsImZpZWxkIjoiY3JlYXRlZCJ9',
+        'https://www.dc.com/comics?sort=eyJvcmRlciI6ImFzYyIsImZpZWxkIjoidGl0bGUifQ%3D%3D',
+        'https://www.dc.com/comics?sort=eyJvcmRlciI6ImRlc2MiLCJmaWVsZCI6InRpdGxlIn0%3D',
     ]
 
     run_task(
