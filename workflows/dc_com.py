@@ -193,15 +193,14 @@ class DcComItem(BaseLivelibWorkflow):
                 data={'book': book, 'metrics': metrics},
             )
 
+start_urls = [
+    'https://www.dc.com/comics',
+    'https://www.dc.com/comics?sort=eyJvcmRlciI6ImFzYyIsImZpZWxkIjoiY3JlYXRlZCJ9',
+    'https://www.dc.com/comics?sort=eyJvcmRlciI6ImFzYyIsImZpZWxkIjoidGl0bGUifQ%3D%3D',
+    'https://www.dc.com/comics?sort=eyJvcmRlciI6ImRlc2MiLCJmaWVsZCI6InRpdGxlIn0%3D',
+]
 
 if __name__ == '__main__':
-    start_urls = [
-        'https://www.dc.com/comics',
-        'https://www.dc.com/comics?sort=',
-        'https://www.dc.com/comics?sort=eyJvcmRlciI6ImFzYyIsImZpZWxkIjoiY3JlYXRlZCJ9',
-        'https://www.dc.com/comics?sort=eyJvcmRlciI6ImFzYyIsImZpZWxkIjoidGl0bGUifQ%3D%3D',
-        'https://www.dc.com/comics?sort=eyJvcmRlciI6ImRlc2MiLCJmaWVsZCI6InRpdGxlIn0%3D',
-    ]
     for url in start_urls:
         set_task_sync(
             InputEvent(
@@ -215,7 +214,7 @@ if __name__ == '__main__':
     run_task(
         DcComListing,
         InputLivelibBook(
-            url=start_urls[0],
+            url=start_urls[3],
             site='dc.com'
         )
     )

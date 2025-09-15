@@ -88,7 +88,7 @@ def set_task_sync(input: InputEvent):
 
 async def not_dupe(hash: str, hours: int) -> bool:
     runs_list = await hatchet.runs.aio_list_with_pagination(
-        # since=datetime.now(timezone.utc) - timedelta(hours=hours),
+        since=datetime.now(timezone.utc) - timedelta(hours=hours),
         additional_metadata={
             'hash': hash,
         },
