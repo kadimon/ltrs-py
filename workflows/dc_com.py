@@ -56,6 +56,7 @@ class DcComListing(BaseLivelibWorkflow):
                     event=DcComListing.event,
                     site=input.site,
                     customer=self.customer,
+                    dedupe_hours=0,
                 )):
                     data['page-links'] += 1
 
@@ -208,6 +209,7 @@ if __name__ == '__main__':
                 event=DcComListing.event,
                 site='dc.com',
                 customer=DcComListing.customer,
+                dedupe_hours=0,
             )
         )
 

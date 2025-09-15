@@ -24,3 +24,4 @@ class InputEvent(BaseModel):
     event: str
     site: str
     customer: str
+    dedupe_hours: int = 48
