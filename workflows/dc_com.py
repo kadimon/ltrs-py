@@ -39,8 +39,8 @@ class DcComListing(BaseLivelibWorkflow):
             )
 
         data = {
-            'items-links': 0,
-            'page-links': 0,
+            'new-items-links': 0,
+            'new-page-links': 0,
         }
 
         if page.url in start_urls:
@@ -58,7 +58,7 @@ class DcComListing(BaseLivelibWorkflow):
                     customer=self.customer,
                     dedupe_hours=0,
                 )):
-                    data['page-links'] += 1
+                    data['new-page-links'] += 1
 
         items_links = await page.query_selector_all('.resultsContainer .link-card a')
         for i in items_links:
@@ -70,9 +70,9 @@ class DcComListing(BaseLivelibWorkflow):
                 site=input.site,
                 customer=self.customer,
             ))
-            data['items-links'] += 1
+            data['new-items-links'] += 1
 
-        if data['items-links'] == 0:
+        if not items_links:
             raise Exception('ERROR: No Items')
 
         return Output(
