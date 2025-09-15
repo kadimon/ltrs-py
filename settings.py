@@ -24,3 +24,4 @@ else:
 
 
 DEBUG = os.environ.get('DEBUG')
+RUN = os.environ.get('RUN')

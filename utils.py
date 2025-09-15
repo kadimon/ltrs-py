@@ -51,7 +51,8 @@ async def run_task_async(wf: BaseWorkflow, input: BaseModel):
         pp(result.model_dump())
 
 def run_task(wf: BaseWorkflow, input: BaseModel):
-    asyncio.run(run_task_async(wf, input))
+    if settings.DEBUG:
+        asyncio.run(run_task_async(wf, input))
 
 
 async def set_task(input: InputEvent) -> bool:
@@ -81,6 +82,10 @@ async def set_task(input: InputEvent) -> bool:
     else:
         return False
 
+def set_task_sync(input: InputEvent):
+    if settings.RUN:
+        asyncio.run(set_task(input))
+
 async def not_dupe(hash: str, hours: int) -> bool:
     runs_list = await hatchet.runs.aio_list_with_pagination(
         # since=datetime.now(timezone.utc) - timedelta(hours=hours),
@@ -95,8 +100,8 @@ async def not_dupe(hash: str, hours: int) -> bool:
         limit=1,
         # only_tasks=True,
     )
-    for t in runs_list:
-        print(t.additional_metadata)
+    # for t in runs_list:
+    #     print(t.additional_metadata)
 
     if runs_list:
         return False

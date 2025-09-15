@@ -9,7 +9,7 @@ from furl import furl
 from workflow_base import BaseLivelibWorkflow
 from interfaces import InputLivelibBook, Output, InputEvent, WorkerLabels
 from db import DbSamizdatPrisma
-from utils import run_task, set_task, save_cover
+from utils import run_task, set_task, save_cover, set_task_sync
 import settings
 
 
@@ -19,7 +19,7 @@ class DcComListing(BaseLivelibWorkflow):
     input = InputLivelibBook
     output = Output
 
-    # labels = WorkerLabels(ip='rs')
+    labels = WorkerLabels(ip='rs')
     # proxy_enable=False
 
     execution_timeout_sec=600
@@ -202,6 +202,15 @@ if __name__ == '__main__':
         'https://www.dc.com/comics?sort=eyJvcmRlciI6ImFzYyIsImZpZWxkIjoidGl0bGUifQ%3D%3D',
         'https://www.dc.com/comics?sort=eyJvcmRlciI6ImRlc2MiLCJmaWVsZCI6InRpdGxlIn0%3D',
     ]
+    for url in start_urls:
+        set_task_sync(
+            InputEvent(
+                url=url,
+                event=DcComListing.event,
+                site='dc.com',
+                customer=DcComListing.customer,
+            )
+        )
 
     run_task(
         DcComListing,
