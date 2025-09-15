@@ -60,7 +60,6 @@ async def set_task(input: InputEvent) -> bool:
         return False
 
     hash = hashlib.md5(f'{input.event}{input.url}'.encode()).hexdigest()
-
     if await not_dupe(hash, input.dedupe_hours):
         await hatchet.event.aio_push(
             input.event,

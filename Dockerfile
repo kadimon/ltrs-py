@@ -28,7 +28,7 @@ COPY ./worker.py \
     ./
 
 ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["xvfb-run", "python", "worker.py"]
+CMD ["xvfb-run", "-a", "python", "worker.py"]
 
 # CMD ["sh", "-c", "npx -y playwright@1.51.0 run-server --port 3000 --host 0.0.0.0"]
 # CMD ["tail", "-f", "/dev/null"]
