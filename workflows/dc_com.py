@@ -30,7 +30,7 @@ class DcComListing(BaseLivelibWorkflow):
     async def task(self, input: InputLivelibBook, page: Page) -> Output:
         resp = await page.goto(
             input.url,
-            wait_until='domcontentloaded',
+            wait_until='networkidle',
         )
         if not (200 <= resp.status < 400):
             return Output(

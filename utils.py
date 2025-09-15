@@ -72,7 +72,6 @@ async def set_task(input: InputEvent) -> bool:
                     'customer': input.customer,
                     'site': input.site,
                     'url': input.url,
-                    'event': input.event,
                     'hash': hash,
                 }
             )
