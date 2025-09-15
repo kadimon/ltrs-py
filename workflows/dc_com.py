@@ -220,6 +220,8 @@ class DcComPerson(BaseLivelibWorkflow):
     input = InputLivelibBook
     output = Output
 
+    execution_timeout_sec = 120
+
     async def task(self, input: InputLivelibBook, page: Page) -> Output:
         resp = await page.goto(
             input.url,
