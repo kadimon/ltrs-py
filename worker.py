@@ -35,7 +35,31 @@ PACKAGE_NAME = 'workflows'  # папка должна содержать __init_
 
 
 def create_task_for_class(wf: BaseLitresPartnersWorkflow) -> Workflow:
+    @hatchet.task(
+        name=wf.name,
+        on_events=[wf.event],
+        input_validator=wf.input,
+        desired_worker_labels={
+            k: DesiredWorkerLabel(
+                value=v,
+                required=True,
+                # comparator=WorkerLabelComparator.EQUAL,
+                # weight=10,
+            )
+            for k, v in wf.labels.items()
+        },
+        concurrency=ConcurrencyExpression(
+            expression=f"'{wf.name}'",
+            max_runs=wf.concurrency,
+            limit_strategy=ConcurrencyLimitStrategy.GROUP_ROUND_ROBIN,
+        ),
+        execution_timeout=f'{wf.execution_timeout_sec}s',
+        schedule_timeout=f'{wf.schedule_timeout_hours}h',
+        retries=wf.retries,
+        backoff_max_seconds=wf.backoff_max_seconds,
+        backoff_factor=wf.backoff_factor,
 
+    )
     async def task_function(input: wf.input, ctx: Context) -> wf.output:
 
         async with async_playwright() as p:
@@ -61,34 +85,7 @@ def create_task_for_class(wf: BaseLitresPartnersWorkflow) -> Workflow:
 
             return result
 
-
-    task = hatchet.task(
-        name=wf.name,
-        on_events=[wf.event],
-        input_validator=wf.input,
-        desired_worker_labels={
-            k: DesiredWorkerLabel(
-                value=v,
-                required=True,
-                # comparator=WorkerLabelComparator.EQUAL,
-                # weight=10,
-            )
-            for k, v in wf.labels.items()
-        },
-        concurrency=ConcurrencyExpression(
-            expression=f"'{wf.name}'",
-            max_runs=wf.concurrency,
-            limit_strategy=ConcurrencyLimitStrategy.GROUP_ROUND_ROBIN,
-        ),
-        execution_timeout=f'{wf.execution_timeout_sec}s',
-        schedule_timeout=f'{wf.schedule_timeout_hours}h',
-        retries=wf.retries,
-        backoff_max_seconds=wf.backoff_max_seconds,
-        backoff_factor=wf.backoff_factor,
-
-    )(task_function)
-
-    return task
+    return task_function
 
 
 def load_workflows() -> list[Workflow]:
