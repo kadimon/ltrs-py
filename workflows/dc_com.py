@@ -144,7 +144,6 @@ class DcComItem(BaseLivelibWorkflow):
                 has_text=re.compile(r'Art by:|Cover:|Colorist:')
             ).locator('a')
             if await artists_locator.count() > 0:
-                book['artist'] = await artists_locator.first.text_content()
                 # Все авторы с текстом и ссылками
                 book['artists_data'] = []
                 for a in await artists_locator.all():

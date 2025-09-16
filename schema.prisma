@@ -22,6 +22,7 @@ generator client-js {
 model Book {
   id             Int          @id @default(autoincrement())
   url            String       @unique @db.VarChar(2048)
+  isbn           BigInt?
   source         String       @db.VarChar(100)
   title          String       @db.VarChar(1000)
   title_original String?      @db.VarChar(1000)
@@ -39,6 +40,7 @@ model Book {
   tags           String[]
   artwork_type   String?
   age_rating     Int?
+  age_rating_str String?
   annotation     String?
   coverImage     String?      @db.VarChar(100)
   url_audio      String?      @db.VarChar(2048)
@@ -120,4 +122,5 @@ enum Role {
   OWNER
   TRANSLATOR
   VOICE
+  EDITOR
 }

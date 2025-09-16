@@ -110,6 +110,7 @@ class DbSamizdatPrisma:
             "owners_data": "OWNER",
             "translators_data": "TRANSLATOR",
             "voices_data": "VOICE",
+            "editors_data": "EDITOR",
         }
 
         async with self.con.tx() as tx:
@@ -199,8 +200,14 @@ class DbSamizdatPrisma:
                 item_clear[k] = v
 
         # Преобразуем нужные поля в int
-        if "age_rating" in item:
-            item_clear["age_rating"] = str2int(item["age_rating"])
+        fields2int = [
+            'isbn',
+            'age_rating',
+        ]
+        for field in fields2int:
+            val = item.get(field)
+            if val and not isinstance(val, int):
+                item_clear[field] = str2int(val)
 
         return item_clear
 
