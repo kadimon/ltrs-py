@@ -24,4 +24,5 @@ else:
 
 
 DEBUG = os.environ.get('DEBUG')
+DEBUG_PW_SERVER = 'ws://127.0.0.1:3000/'
 RUN = os.environ.get('RUN')

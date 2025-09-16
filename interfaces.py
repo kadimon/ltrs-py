@@ -9,11 +9,11 @@ class WorkerLabels(TypedDict, total=False):
 class InputLitresPartnersBook(BaseModel):
     url: str
     site: str
-    book_id: int
+    book_id: int = 0
 
 class InputLivelibBook(BaseModel):
     url: str
-    site: str
+    site: str = 'default'
 
 class Output(BaseModel):
     result: Literal['done', 'error', 'empty', 'debug']

@@ -26,9 +26,9 @@ hatchet = Hatchet(
     ),
 )
 
-async def run_task_async(wf: BaseWorkflow, input: BaseModel):
+async def run_task(wf: BaseWorkflow, input: BaseModel):
     async with async_playwright() as p:
-        browser = await p.firefox.connect('ws://127.0.0.1:3000/')
+        browser = await p.firefox.connect(settings.DEBUG_PW_SERVER)
 
         context = await browser.new_context(
             proxy={'server': settings.PROXY_URI} if wf.proxy_enable else None,
@@ -40,6 +40,7 @@ async def run_task_async(wf: BaseWorkflow, input: BaseModel):
         instance = wf(
             name=wf.name,
             event=wf.event,
+            site=wf.site,
             input=wf.input,
             output=wf.output,
         )
@@ -50,9 +51,9 @@ async def run_task_async(wf: BaseWorkflow, input: BaseModel):
 
         pp(result.model_dump())
 
-def run_task(wf: BaseWorkflow, input: BaseModel):
+def run_task_sync(wf: BaseWorkflow, input: BaseModel):
     if settings.DEBUG:
-        asyncio.run(run_task_async(wf, input))
+        asyncio.run(run_task(wf, input))
 
 
 async def set_task(input: InputEvent) -> bool:
