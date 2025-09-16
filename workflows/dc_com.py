@@ -175,6 +175,11 @@ class DcComItem(BaseLivelibWorkflow):
              ).locator('*[aria-label="list-values"]').text_content():
                  metrics['pages_count'] = pages_count
 
+            if age_rating := await page.locator('.list-values').filter(
+                 has_text='Rated:'
+             ).locator('*[aria-label="list-values"]').text_content():
+                 metrics['age_rating_str'] = age_rating
+
             if date_release := await page.locator('.list-values').filter(
                  has_text='On Sale Date:'
              ).locator('*[aria-label="list-values"]').text_content():
