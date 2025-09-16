@@ -6,10 +6,9 @@ import dateparser
 from furl import furl
 
 from workflow_base import BaseLivelibWorkflow
-from interfaces import InputLivelibBook, Output, InputEvent, WorkerLabels
+from interfaces import InputLivelibBook, Output, WorkerLabels
 from db import DbSamizdatPrisma
-from utils import run_task_sync, set_task, save_cover, set_task_sync
-import settings
+from utils import save_cover
 
 
 DEDUPE_HOURSE = 3
@@ -51,26 +50,20 @@ class DcComListing(BaseLivelibWorkflow):
                 ).last.text_content()
             for page_num in range(1, int(last_page_num.strip())+1):
                 url_data.args['page'] = page_num
-                if await set_task(InputEvent(
-                    url=url_data.url,
-                    event=DcComListing.event,
-                    site=input.site,
-                    customer=cls.customer,
+                if await cls.crawl(
+                    url_data.url,
                     dedupe_hours=DEDUPE_HOURSE,
-                )):
+                ):
                     data['new-page-links'] += 1
 
         items_links = await page.query_selector_all('.resultsContainer .link-card a')
         for i in items_links:
             item_href = await i.get_attribute('href')
             item_url = urljoin(page.url, item_href)
-            if await set_task(InputEvent(
-                url=item_url,
-                event=DcComItem.event,
-                site=input.site,
-                customer=cls.customer,
+            if await DcComItem.crawl(
+                item_url,
                 dedupe_hours=DEDUPE_HOURSE,
-            )):
+            ):
                 data['new-items-links'] += 1
 
         if not items_links:
@@ -204,13 +197,10 @@ class DcComItem(BaseLivelibWorkflow):
 
             new_persons = 0
             for p_url in persons_urls:
-                if await set_task(InputEvent(
-                    url=p_url,
-                    event=DcComPerson.event,
-                    site=input.site,
-                    customer=cls.customer,
+                if await DcComPerson.crawl(
+                    p_url,
                     dedupe_hours=DEDUPE_HOURSE,
-                )):
+                ):
                     new_persons += 1
 
             return Output(
@@ -247,13 +237,10 @@ class DcComPerson(BaseLivelibWorkflow):
         for i in items_links:
             item_href = await i.get_attribute('href')
             item_url = urljoin(page.url, item_href)
-            if await set_task(InputEvent(
-                url=item_url,
-                event=DcComItem.event,
-                site=input.site,
-                customer=self.customer,
+            if await DcComItem.crawl(
+                item_url,
                 dedupe_hours=DEDUPE_HOURSE,
-            )):
+            ):
                 new_items += 1
 
 
@@ -271,31 +258,8 @@ start_urls = [
 ]
 
 if __name__ == '__main__':
-    # for url in start_urls:
-    #     set_task_sync(
-    #         InputEvent(
-    #             url=url,
-    #             event=DcComListing.event,
-    #             site='dc.com',
-    #             customer=DcComListing.customer,
-    #             dedupe_hours=0,
-    #         )
-    #     )
+    for url in start_urls:
+        DcComListing.crawl_sync(url, dedupe_hours=0)
 
-    # run_task_sync(
-    #     DcComListing,
-    #     InputLivelibBook(
-    #         url=start_urls[3],
-    #         site='dc.com'
-    #     )
-    # )
-
-    # run_task_sync(
-    #     DcComItem,
-    #     InputLivelibBook(
-    #         url='https://www.dc.com/comics/batman-fortress-2022/batman-fortress-4',
-    #         site='dc.com'
-    #     )
-    # )
-
+    DcComListing.debug_sync(start_urls[0])
     DcComItem.debug_sync('https://www.dc.com/comics/batman-fortress-2022/batman-fortress-4')

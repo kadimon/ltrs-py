@@ -8,7 +8,6 @@ class WorkerLabels(TypedDict, total=False):
 
 class InputLitresPartnersBook(BaseModel):
     url: str
-    site: str
     book_id: int = 0
 
 class InputLivelibBook(BaseModel):
@@ -18,10 +17,3 @@ class InputLivelibBook(BaseModel):
 class Output(BaseModel):
     result: Literal['done', 'error', 'empty', 'debug']
     data: dict[str, Any]
-
-class InputEvent(BaseModel):
-    url: str
-    event: str
-    site: str
-    customer: str
-    dedupe_hours: int = 48

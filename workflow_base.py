@@ -2,13 +2,28 @@ from dataclasses import dataclass
 from typing import Type, TypeVar, ClassVar, Generic, Optional
 import asyncio
 from pprint import pp
+import hashlib
+import logging
+from datetime import datetime, timedelta, timezone
 
 from pydantic import BaseModel
 from playwright.async_api import async_playwright, Page
+from hatchet_sdk import Hatchet, ClientConfig, PushEventOptions, V1TaskStatus
 
 import interfaces
 import settings
 # from utils import run_task, set_task
+
+
+root_logger = logging.getLogger('hatchet')
+root_logger.setLevel(logging.WARNING)
+
+hatchet = Hatchet(
+    debug=False,
+    config=ClientConfig(
+        logger=root_logger,
+    ),
+)
 
 TInput = TypeVar('TInput', bound=BaseModel)
 TOutput = TypeVar('TOutput', bound=BaseModel)
@@ -67,6 +82,37 @@ class BaseWorkflow(
     def debug_sync(cls, url: str) -> Optional[bool]:
         return asyncio.run(cls.debug(url))
 
+    @classmethod
+    async def crawl(cls, url: str, dedupe_hours: int = 48) -> bool:
+        if settings.DEBUG:
+            return False
+
+        hash = hashlib.md5(f'{cls.event}{url}'.encode()).hexdigest()
+        if await not_dupe(hash, dedupe_hours):
+            await hatchet.event.aio_push(
+                cls.event,
+                {
+                    'url': url,
+                    'site': cls.site,
+                },
+                options=PushEventOptions(
+                    additional_metadata={
+                        'customer': cls.customer,
+                        'site': cls.site,
+                        'url': url,
+                        'hash': hash,
+                    }
+                )
+            )
+            return True
+        else:
+            return False
+
+    @classmethod
+    def crawl_sync(cls, url: str, dedupe_hours: int = 48) -> bool:
+        return asyncio.run(cls.crawl(url, dedupe_hours))
+
+
 @dataclass
 class BaseLitresPartnersWorkflow(
     BaseWorkflow[
@@ -103,3 +149,26 @@ class BaseLivelibWorkflow(
             result='debug',
             data=input.model_dump()
         )
+
+
+async def not_dupe(hash: str, hours: int) -> bool:
+    runs_list = await hatchet.runs.aio_list_with_pagination(
+        since=datetime.now(timezone.utc) - timedelta(hours=hours),
+        additional_metadata={
+            'hash': hash,
+        },
+        statuses=[
+            V1TaskStatus.RUNNING,
+            V1TaskStatus.QUEUED,
+            V1TaskStatus.COMPLETED,
+        ],
+        limit=1,
+        # only_tasks=True,
+    )
+    # for t in runs_list:
+    #     print(t.additional_metadata)
+
+    if runs_list:
+        return False
+    else:
+        return True
