@@ -18,6 +18,7 @@ class MarvelComListing(BaseLivelibWorkflow):
     input = InputLivelibBook
     output = Output
 
+    execution_timeout_sec=300
     # proxy_enable = False
 
     async def task(self, input: InputLivelibBook, page: Page) -> Output:
@@ -79,7 +80,6 @@ class MarvelComItem(BaseLivelibWorkflow):
     output = Output
 
     # proxy_enable = False
-    execution_timeout_sec=300
 
     async def task(self, input: InputLivelibBook, page: Page) -> Output:
         resp = await page.goto(
