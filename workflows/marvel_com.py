@@ -182,15 +182,17 @@ class MarvelComItem(BaseLivelibWorkflow):
             if await price_locator.count() > 0:
                  metrics['price'] = await price_locator.text_content()
 
-            if pages_count := await page.locator('.ComicIssueMoreDetails__List li').filter(
+            pages_count_locator = page.locator('.ComicIssueMoreDetails__List li').filter(
                  has_text='Page Count:'
-             ).locator('span:nth-child(2)').text_content():
-                 metrics['pages_count'] = pages_count
+             ).locator('span:nth-child(2)')
+            if await pages_count_locator.count() > 0:
+                 metrics['pages_count'] = pages_count_locator.text_content()
 
-            if date_release := await page.locator('.ComicIssueMoreDetails__List li').filter(
+            date_release_locator = page.locator('.ComicIssueMoreDetails__List li').filter(
                  has_text='FOC Date:'
-             ).locator('span:nth-child(2)').text_content():
-                 book['date_release'] = dateparser.parse(date_release)
+             ).locator('span:nth-child(2)')
+            if await date_release_locator.count() > 0:
+                 book['date_release'] = dateparser.parse(date_release_locator.text_content())
 
             if annotation := await page.text_content('.ComicMasthead__Description'):
                 book['annotation'] = annotation
