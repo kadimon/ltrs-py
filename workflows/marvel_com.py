@@ -186,13 +186,14 @@ class MarvelComItem(BaseLivelibWorkflow):
                  has_text='Page Count:'
              ).locator('span:nth-child(2)')
             if await pages_count_locator.count() > 0:
-                 metrics['pages_count'] = pages_count_locator.text_content()
+                 metrics['pages_count'] = await pages_count_locator.text_content()
 
             date_release_locator = page.locator('.ComicIssueMoreDetails__List li').filter(
                  has_text='FOC Date:'
              ).locator('span:nth-child(2)')
             if await date_release_locator.count() > 0:
-                 book['date_release'] = dateparser.parse(date_release_locator.text_content())
+                release_date_str = await date_release_locator.text_content()
+                book['date_release'] = dateparser.parse(release_date_str)
 
             if annotation := await page.text_content('.ComicMasthead__Description'):
                 book['annotation'] = annotation
@@ -242,7 +243,7 @@ if __name__ == '__main__':
     run_task(
         MarvelComItem,
         InputLivelibBook(
-            url='https://www.marvel.com/comics/issue/98395/the_amazing_spider-man_2018_78.1',
+            url='https://www.marvel.com/comics/issue/5538/new_excalibur_2005_13',
             site='marvel.com'
         )
     )
