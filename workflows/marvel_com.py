@@ -168,13 +168,13 @@ class MarvelComItem(BaseLivelibWorkflow):
                  has_text='UPC:'
              ).locator('span:nth-child(2)')
             if await isbn_locator.count() > 0:
-                 metrics['isbn'] = await isbn_locator.text_content()
+                 book['isbn'] = await isbn_locator.text_content()
 
             age_rating_locator = page.locator('.ComicIssueMoreDetails__List li').filter(
                  has_text='Rating:'
              ).locator('span:nth-child(2)')
             if await age_rating_locator.count() > 0:
-                 metrics['age_rating_str'] = await age_rating_locator.text_content()
+                 book['age_rating_str'] = await age_rating_locator.text_content()
 
             price_locator = page.locator('.ComicIssueMoreDetails__List li').filter(
                  has_text='Price:'
