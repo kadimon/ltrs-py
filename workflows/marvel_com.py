@@ -78,7 +78,7 @@ class MarvelComItem(BaseLivelibWorkflow):
     output = Output
 
     proxy_enable = False
-    execution_timeout_sec=60
+    execution_timeout_sec=300
 
     async def task(self, input: InputLivelibBook, page: Page) -> Output:
         resp = await page.goto(
@@ -214,7 +214,7 @@ class MarvelComItem(BaseLivelibWorkflow):
             )
 
 start_urls = [
-    ''
+    'https://bifrost.marvel.com/v1/catalog/comics/calendar/?byType=date&offset=0&limit=1000&orderBy=release_date%2Bdesc%2Ctitle%2Basc&variants=false&formatType=issue&dateStart=1820-12-31&dateEnd=2028-12-31',
 ]
 
 if __name__ == '__main__':
