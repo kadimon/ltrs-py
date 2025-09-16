@@ -69,6 +69,7 @@ class DcComListing(BaseLivelibWorkflow):
                 event=DcComItem.event,
                 site=input.site,
                 customer=self.customer,
+                dedupe_hours=3,
             )):
                 data['new-items-links'] += 1
 
@@ -206,6 +207,7 @@ class DcComItem(BaseLivelibWorkflow):
                     event=DcComPerson.event,
                     site=input.site,
                     customer=self.customer,
+                    dedupe_hours=3,
                 )):
                     new_persons += 1
 
@@ -247,6 +249,7 @@ class DcComPerson(BaseLivelibWorkflow):
                 event=DcComItem.event,
                 site=input.site,
                 customer=self.customer,
+                dedupe_hours=3,
             )):
                 new_items += 1
 
