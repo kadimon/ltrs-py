@@ -18,7 +18,7 @@ class MarvelComListing(BaseLivelibWorkflow):
     input = InputLivelibBook
     output = Output
 
-    execution_timeout_sec=600
+    execution_timeout_sec=300
     # proxy_enable = False
 
     async def task(self, input: InputLivelibBook, page: Page) -> Output:
@@ -43,7 +43,7 @@ class MarvelComListing(BaseLivelibWorkflow):
 
         if page_url.args['offset'] == '0':
             total_books = page_data['data']['total']
-            for offset in range(1000, total_books, 1000):
+            for offset in range(100, total_books, 100):
                 page_url.args['offset'] = offset
                 await set_task(InputEvent(
                     url=page_url.tostr(),
@@ -218,7 +218,7 @@ class MarvelComItem(BaseLivelibWorkflow):
             )
 
 start_urls = [
-    'https://bifrost.marvel.com/v1/catalog/comics/calendar/?byType=date&offset=0&limit=1000&orderBy=release_date%2Bdesc%2Ctitle%2Basc&variants=false&formatType=issue&dateStart=1820-12-31&dateEnd=2028-12-31',
+    'https://bifrost.marvel.com/v1/catalog/comics/calendar/?byType=date&offset=0&limit=100&orderBy=release_date%2Bdesc%2Ctitle%2Basc&variants=false&formatType=issue&dateStart=1820-12-31&dateEnd=2028-12-31',
 ]
 
 if __name__ == '__main__':
