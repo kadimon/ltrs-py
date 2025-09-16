@@ -49,6 +49,7 @@ class MarvelComListing(BaseLivelibWorkflow):
                     event=MarvelComListing.event,
                     site=input.site,
                     customer=self.customer,
+                    dedupe_hours=0,
                 ))
 
                 data['page-links'] += 1
