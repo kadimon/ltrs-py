@@ -10,6 +10,7 @@ from workflow_base import BaseLivelibWorkflow
 from interfaces import InputLivelibBook, Output
 from db import DbSamizdatPrisma
 from utils import save_cover
+import settings
 
 class MarvelComListing(BaseLivelibWorkflow):
     name = 'livelib-marvel-com-listing'
@@ -45,11 +46,11 @@ class MarvelComListing(BaseLivelibWorkflow):
             total_books = page_data['data']['total']
             for offset in range(100, total_books, 100):
                 page_url_data.args['offset'] = offset
-                if await MarvelComListing.crawl(page_url_data.url):
+                if await MarvelComListing.crawl(page_url_data.url, input.task_id):
                     data['new-page-links'] += 1
 
         for i in page_data['data']['results']:
-            if await MarvelComItem.crawl(i['metadata']['url']):
+            if await MarvelComItem.crawl(i['metadata']['url'], input.task_id):
                 data['new-items-links'] += 1
 
         if not page_data['data']['results']:
@@ -212,7 +213,7 @@ start_urls = [
 
 if __name__ == '__main__':
     for url in start_urls:
-        MarvelComListing.crawl_sync(url)
+        MarvelComListing.crawl_sync(url, MarvelComListing.site + settings.START_TIME)
 
     MarvelComListing.debug_sync(start_urls[0])
     MarvelComItem.debug_sync('https://www.marvel.com/comics/issue/5538/new_excalibur_2005_13')

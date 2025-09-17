@@ -9,9 +9,8 @@ from workflow_base import BaseLivelibWorkflow
 from interfaces import InputLivelibBook, Output, WorkerLabels
 from db import DbSamizdatPrisma
 from utils import save_cover
+import settings
 
-
-DEDUPE_HOURSE = 30
 
 class DcComListing(BaseLivelibWorkflow):
     name = 'livelib-dc-com-listing'
@@ -50,20 +49,14 @@ class DcComListing(BaseLivelibWorkflow):
                 ).last.text_content()
             for page_num in range(1, int(last_page_num.strip())+1):
                 url_data.args['page'] = page_num
-                if await cls.crawl(
-                    url_data.url,
-                    dedupe_hours=DEDUPE_HOURSE,
-                ):
+                if await cls.crawl(url_data.url, input.task_id):
                     data['new-page-links'] += 1
 
         items_links = await page.query_selector_all('.resultsContainer .link-card a')
         for i in items_links:
             item_href = await i.get_attribute('href')
             item_url = urljoin(page.url, item_href)
-            if await DcComItem.crawl(
-                item_url,
-                dedupe_hours=DEDUPE_HOURSE,
-            ):
+            if await DcComItem.crawl(item_url, input.task_id):
                 data['new-items-links'] += 1
 
         if not items_links:
@@ -197,10 +190,7 @@ class DcComItem(BaseLivelibWorkflow):
 
             new_persons = 0
             for p_url in persons_urls:
-                if await DcComPerson.crawl(
-                    p_url,
-                    dedupe_hours=DEDUPE_HOURSE,
-                ):
+                if await DcComPerson.crawl(p_url, input.task_id):
                     new_persons += 1
 
             return Output(
@@ -237,10 +227,7 @@ class DcComPerson(BaseLivelibWorkflow):
         for i in items_links:
             item_href = await i.get_attribute('href')
             item_url = urljoin(page.url, item_href)
-            if await DcComItem.crawl(
-                item_url,
-                dedupe_hours=DEDUPE_HOURSE,
-            ):
+            if await DcComItem.crawl(item_url, input.task_id):
                 new_items += 1
 
 
@@ -259,7 +246,7 @@ start_urls = [
 
 if __name__ == '__main__':
     for url in start_urls:
-        DcComListing.crawl_sync(url, dedupe_hours=0)
+        DcComListing.crawl_sync(url, DcComListing.site + settings.START_TIME)
 
     DcComListing.debug_sync(start_urls[0])
     DcComItem.debug_sync('https://www.dc.com/comics/batman-fortress-2022/batman-fortress-4')

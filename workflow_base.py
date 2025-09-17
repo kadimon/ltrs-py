@@ -12,7 +12,6 @@ from hatchet_sdk import Hatchet, ClientConfig, PushEventOptions, V1TaskStatus
 
 import interfaces
 import settings
-# from utils import run_task, set_task
 
 
 root_logger = logging.getLogger('hatchet')
@@ -25,8 +24,8 @@ hatchet = Hatchet(
     ),
 )
 
-TInput = TypeVar('TInput', bound=BaseModel)
-TOutput = TypeVar('TOutput', bound=BaseModel)
+TInput = TypeVar('TInput', bound=interfaces.InputBase)
+TOutput = TypeVar('TOutput', bound=interfaces.InputBase)
 
 @dataclass
 class BaseWorkflow(
@@ -35,8 +34,8 @@ class BaseWorkflow(
     name: str = 'default'
     event: str = 'default'
     site: str = 'default'
-    input: Type[TInput] = BaseModel
-    output: Type[TOutput] = BaseModel
+    input: Type[TInput] = TInput
+    output: Type[TOutput] = TOutput
 
     proxy_enable: bool = True
     labels: ClassVar[interfaces.WorkerLabels] = {}
@@ -83,17 +82,22 @@ class BaseWorkflow(
         return asyncio.run(cls.debug(url))
 
     @classmethod
-    async def crawl(cls, url: str, dedupe_hours: int = 48) -> bool:
+    async def crawl(
+        cls,
+        url: str,
+        task_id: str,
+        dedupe_hours: int = 480,
+    ) -> bool:
         if settings.DEBUG:
             return False
 
-        hash = settings.START_TIME + hashlib.md5(f'{cls.event}{url}'.encode()).hexdigest()
+        hash = task_id + hashlib.md5(f'{cls.event}{url}'.encode()).hexdigest()
         if await cls._not_dupe(hash, dedupe_hours):
             await hatchet.event.aio_push(
                 cls.event,
                 {
                     'url': url,
-                    'site': cls.site,
+                    'task_id': task_id,
                 },
                 options=PushEventOptions(
                     additional_metadata={
@@ -101,6 +105,7 @@ class BaseWorkflow(
                         'site': cls.site,
                         'url': url,
                         'hash': hash,
+                        'task_id': task_id,
                     }
                 )
             )
@@ -109,8 +114,13 @@ class BaseWorkflow(
             return False
 
     @classmethod
-    def crawl_sync(cls, url: str, dedupe_hours: int = 48) -> bool:
-        return asyncio.run(cls.crawl(url, dedupe_hours))
+    def crawl_sync(
+        cls,
+        url: str,
+        task_id: str,
+        dedupe_hours: int = 480,
+    ) -> bool:
+        return asyncio.run(cls.crawl(url, task_id, dedupe_hours))
 
     @classmethod
     async def _not_dupe(cls, hash: str, hours: int) -> bool:

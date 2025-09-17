@@ -6,13 +6,15 @@ from pydantic import BaseModel
 class WorkerLabels(TypedDict, total=False):
     ip: Literal['ru', 'rs']
 
-class InputLitresPartnersBook(BaseModel):
+class InputBase(BaseModel):
     url: str
+    task_id: str = 'default'
+
+class InputLitresPartnersBook(InputBase):
     book_id: int = 0
 
-class InputLivelibBook(BaseModel):
-    url: str
-    site: str = 'default'
+class InputLivelibBook(InputBase):
+    pass
 
 class Output(BaseModel):
     result: Literal['done', 'error', 'empty', 'debug']
