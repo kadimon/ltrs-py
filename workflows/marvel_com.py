@@ -184,8 +184,9 @@ class MarvelComItem(BaseLivelibWorkflow):
                 release_date_str = await date_release_locator.text_content()
                 book['date_release'] = dateparser.parse(release_date_str)
 
-            if annotation := await page.text_content('.ComicMasthead__Description'):
-                book['annotation'] = annotation
+            annotation_locator = page.locator('.ComicMasthead__Description')
+            if await annotation_locator.count() > 0:
+                book['annotation'] = annotation_locator.text_content()
 
             if artwork_type := await page.locator('.ComicIssueMoreDetails__List li').filter(
                  has_text='Format:'
