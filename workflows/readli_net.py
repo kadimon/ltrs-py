@@ -40,19 +40,20 @@ class ReadliNetListing(BaseLivelibWorkflow):
                 data={'status': resp.status},
             )
 
+        await page.screenshot(path='screenshot.png', full_page=True)
+
         data = {
             'new-items-links': 0,
             'new-page-links': 0,
         }
 
-        if page.url in cls.start_urls:
-            pages_locator = page.locator('.pagination :not(.disabled) a')
-            for page_locator in await pages_locator.all():
-                if await cls.crawl(
-                    urljoin(page.url, await page_locator.get_attribute('href')),
-                    input.task_id,
-                ):
-                    data['new-page-links'] += 1
+        pages_locator = page.locator('.pagination :not(.disabled) a')
+        for page_locator in await pages_locator.all():
+            if await cls.crawl(
+                urljoin(page.url, await page_locator.get_attribute('href')),
+                input.task_id,
+            ):
+                data['new-page-links'] += 1
 
         items_links = await page.query_selector_all('.book__title a.book__link')
         for i in items_links:
@@ -155,4 +156,5 @@ if __name__ == '__main__':
     ReadliNetListing.run_sync()
 
     ReadliNetListing.debug_sync(ReadliNetListing.start_urls[0])
+    ReadliNetListing.debug_sync('https://readli.net/cat/proza-i-stihi/fanfik/page/2/')
     ReadliNetItem.debug_sync('https://readli.net/skazaniya-o-prepodobnom-demone-tom-2/')

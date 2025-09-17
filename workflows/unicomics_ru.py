@@ -46,14 +46,13 @@ class UnicomicsRuListing(BaseLivelibWorkflow):
             'new-series-links': 0
         }
 
-        if page.url in cls.start_urls or '/series/' in page.url:
-            pages_locator = page.locator('.paginator').first.locator('a')
-            for page_locator in await pages_locator.all():
-                if await cls.crawl(
-                    urljoin(page.url, await page_locator.get_attribute('href')),
-                    input.task_id,
-                ):
-                    data['new-page-links'] += 1
+        pages_locator = page.locator('.paginator').first.locator('a')
+        for page_locator in await pages_locator.all():
+            if await cls.crawl(
+                urljoin(page.url, await page_locator.get_attribute('href')),
+                input.task_id,
+            ):
+                data['new-page-links'] += 1
 
         items_links = await page.query_selector_all('a.list_title')
         for i in items_links:
