@@ -10,7 +10,6 @@ from workflow_base import BaseLivelibWorkflow
 from interfaces import InputLivelibBook, Output
 from db import DbSamizdatPrisma
 from utils import save_cover
-import settings
 
 class MarvelComListing(BaseLivelibWorkflow):
     name = 'livelib-marvel-com-listing'
@@ -21,6 +20,10 @@ class MarvelComListing(BaseLivelibWorkflow):
 
     execution_timeout_sec=300
     # proxy_enable = False
+
+    start_urls = [
+        'https://bifrost.marvel.com/v1/catalog/comics/calendar/?byType=date&offset=0&limit=100&orderBy=release_date%2Bdesc%2Ctitle%2Basc&variants=false&formatType=issue&dateStart=1820-12-31&dateEnd=2028-12-31',
+    ]
 
     async def task(self, input: InputLivelibBook, page: Page) -> Output:
         resp = await page.goto(
@@ -207,13 +210,8 @@ class MarvelComItem(BaseLivelibWorkflow):
                 data={'book': book, 'metrics': metrics},
             )
 
-start_urls = [
-    'https://bifrost.marvel.com/v1/catalog/comics/calendar/?byType=date&offset=0&limit=100&orderBy=release_date%2Bdesc%2Ctitle%2Basc&variants=false&formatType=issue&dateStart=1820-12-31&dateEnd=2028-12-31',
-]
-
 if __name__ == '__main__':
-    for url in start_urls:
-        MarvelComListing.crawl_sync(url, MarvelComListing.site + settings.START_TIME)
+    MarvelComListing.run_sync()
 
-    MarvelComListing.debug_sync(start_urls[0])
+    MarvelComListing.debug_sync(MarvelComListing.start_urls[0])
     MarvelComItem.debug_sync('https://www.marvel.com/comics/issue/5538/new_excalibur_2005_13')

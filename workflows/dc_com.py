@@ -9,7 +9,6 @@ from workflow_base import BaseLivelibWorkflow
 from interfaces import InputLivelibBook, Output, WorkerLabels
 from db import DbSamizdatPrisma
 from utils import save_cover
-import settings
 
 
 class DcComListing(BaseLivelibWorkflow):
@@ -23,6 +22,13 @@ class DcComListing(BaseLivelibWorkflow):
     retries=10
     backoff_max_seconds=30
     backoff_factor=2
+
+    start_urls = [
+        'https://www.dc.com/comics',
+        'https://www.dc.com/comics?sort=eyJvcmRlciI6ImFzYyIsImZpZWxkIjoiY3JlYXRlZCJ9',
+        'https://www.dc.com/comics?sort=eyJvcmRlciI6ImFzYyIsImZpZWxkIjoidGl0bGUifQ%3D%3D',
+        'https://www.dc.com/comics?sort=eyJvcmRlciI6ImRlc2MiLCJmaWVsZCI6InRpdGxlIn0%3D',
+    ]
 
     @classmethod
     async def task(cls, input: InputLivelibBook, page: Page) -> Output:
@@ -41,7 +47,7 @@ class DcComListing(BaseLivelibWorkflow):
             'new-page-links': 0,
         }
 
-        if page.url in start_urls:
+        if page.url in cls.start_urls:
             url_data = furl(page.url)
 
             last_page_num = await page.locator(
@@ -237,16 +243,8 @@ class DcComPerson(BaseLivelibWorkflow):
         )
 
 
-start_urls = [
-    'https://www.dc.com/comics',
-    'https://www.dc.com/comics?sort=eyJvcmRlciI6ImFzYyIsImZpZWxkIjoiY3JlYXRlZCJ9',
-    'https://www.dc.com/comics?sort=eyJvcmRlciI6ImFzYyIsImZpZWxkIjoidGl0bGUifQ%3D%3D',
-    'https://www.dc.com/comics?sort=eyJvcmRlciI6ImRlc2MiLCJmaWVsZCI6InRpdGxlIn0%3D',
-]
-
 if __name__ == '__main__':
-    for url in start_urls:
-        DcComListing.crawl_sync(url, DcComListing.site + settings.START_TIME)
+    DcComListing.run_sync()
 
-    DcComListing.debug_sync(start_urls[0])
+    DcComListing.debug_sync(DcComListing.start_urls[0])
     DcComItem.debug_sync('https://www.dc.com/comics/batman-fortress-2022/batman-fortress-4')

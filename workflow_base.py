@@ -42,12 +42,7 @@ class BaseWorkflow(
 
     customer: str = 'default'
 
-    @classmethod
-    async def task(cls, input: TInput, page: Page) -> TOutput:
-        return cls.output(
-            result='debug',
-            data=input.model_dump()
-        )
+    start_urls: ClassVar[list[str]] = []
 
     concurrency: int = 10
     execution_timeout_sec: int = 30
@@ -55,6 +50,22 @@ class BaseWorkflow(
     retries: int = 5
     backoff_max_seconds: int = 10
     backoff_factor: float = 1.5
+
+    @classmethod
+    async def run(cls) -> None:
+        for url in cls.start_urls:
+            await cls.crawl(url, cls.site + settings.START_TIME)
+
+    @classmethod
+    def run_sync(cls) -> None:
+        asyncio.run(cls.run())
+
+    @classmethod
+    async def task(cls, input: TInput, page: Page) -> TOutput:
+        return cls.output(
+            result='debug',
+            data=input.model_dump()
+        )
 
     @classmethod
     async def debug(cls, url: str) -> None:
@@ -89,7 +100,7 @@ class BaseWorkflow(
         dedupe_hours: int = 480,
     ) -> bool:
         if settings.DEBUG:
-            return False
+            return True
 
         hash = task_id + hashlib.md5(f'{cls.event}{url}'.encode()).hexdigest()
         if await cls._not_dupe(hash, dedupe_hours):
