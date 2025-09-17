@@ -57,7 +57,7 @@ class BaseWorkflow(
     backoff_factor: float = 1.5
 
     @classmethod
-    async def debug(cls, url: str, dedupe_hours: int = 48) -> None:
+    async def debug(cls, url: str) -> None:
         if settings.DEBUG:
             async with async_playwright() as p:
                 browser = await p.firefox.connect(settings.DEBUG_PW_SERVER)

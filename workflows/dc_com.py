@@ -97,7 +97,7 @@ class DcComItem(BaseLivelibWorkflow):
         async with DbSamizdatPrisma() as db:
             book = {
                 'url': page.url,
-                'source': input.site,
+                'source': cls.site,
             };
 
             metrics = {
