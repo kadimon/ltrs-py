@@ -21,7 +21,7 @@ class DarkhorseComListing(BaseLivelibWorkflow):
 
     labels = WorkerLabels(ip='rs')
 
-    execution_timeout_sec=120
+    execution_timeout_sec=300
     retries=10
     backoff_max_seconds=30
     backoff_factor=2
