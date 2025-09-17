@@ -146,7 +146,7 @@ class DarkhorseComItem(BaseLivelibWorkflow):
 
             genres_locator = page.locator('.genre a')
             if await genres_locator.count() > 0:
-                book['genres'] = [await g.text_content() for g in await genres_locator.all()]
+                book['tags'] = [await g.text_content() for g in await genres_locator.all()]
 
             price_locator = page.locator('.product-meta dd').filter(
                 has_text=re.compile(r'\$[\d+\.]+')
@@ -200,5 +200,5 @@ class DarkhorseComItem(BaseLivelibWorkflow):
 if __name__ == '__main__':
     DarkhorseComListing.run_sync()
 
-    # DarkhorseComListing.debug_sync(DarkhorseComListing.start_urls[0])
+    DarkhorseComListing.debug_sync(DarkhorseComListing.start_urls[0])
     DarkhorseComItem.debug_sync('https://www.darkhorse.com/Comics/3016-672/Dungeons-Dragons-The-Fallbacks-Series-1-3-Uzuri-Variant-Cover')
