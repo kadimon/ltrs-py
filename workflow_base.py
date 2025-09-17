@@ -87,8 +87,8 @@ class BaseWorkflow(
         if settings.DEBUG:
             return False
 
-        hash = hashlib.md5(f'{cls.event}{url}'.encode()).hexdigest()
-        if await not_dupe(hash, dedupe_hours):
+        hash = settings.START_TIME + hashlib.md5(f'{cls.event}{url}'.encode()).hexdigest()
+        if await cls._not_dupe(hash, dedupe_hours):
             await hatchet.event.aio_push(
                 cls.event,
                 {
@@ -111,6 +111,29 @@ class BaseWorkflow(
     @classmethod
     def crawl_sync(cls, url: str, dedupe_hours: int = 48) -> bool:
         return asyncio.run(cls.crawl(url, dedupe_hours))
+
+    @classmethod
+    async def _not_dupe(cls, hash: str, hours: int) -> bool:
+        runs_list = await hatchet.runs.aio_list_with_pagination(
+            since=datetime.now(timezone.utc) - timedelta(hours=hours),
+            additional_metadata={
+                'hash': hash,
+            },
+            statuses=[
+                V1TaskStatus.RUNNING,
+                V1TaskStatus.QUEUED,
+                V1TaskStatus.COMPLETED,
+            ],
+            limit=1,
+            # only_tasks=True,
+        )
+        # for t in runs_list:
+        #     print(t.additional_metadata)
+
+        if runs_list:
+            return False
+        else:
+            return True
 
 
 @dataclass
@@ -149,26 +172,3 @@ class BaseLivelibWorkflow(
             result='debug',
             data=input.model_dump()
         )
-
-
-async def not_dupe(hash: str, hours: int) -> bool:
-    runs_list = await hatchet.runs.aio_list_with_pagination(
-        since=datetime.now(timezone.utc) - timedelta(hours=hours),
-        additional_metadata={
-            'hash': hash,
-        },
-        statuses=[
-            V1TaskStatus.RUNNING,
-            V1TaskStatus.QUEUED,
-            V1TaskStatus.COMPLETED,
-        ],
-        limit=1,
-        # only_tasks=True,
-    )
-    # for t in runs_list:
-    #     print(t.additional_metadata)
-
-    if runs_list:
-        return False
-    else:
-        return True

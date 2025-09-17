@@ -11,7 +11,7 @@ from db import DbSamizdatPrisma
 from utils import save_cover
 
 
-DEDUPE_HOURSE = 3
+DEDUPE_HOURSE = 30
 
 class DcComListing(BaseLivelibWorkflow):
     name = 'livelib-dc-com-listing'
