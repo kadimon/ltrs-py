@@ -19,7 +19,8 @@ class DarkhorseComListing(BaseLivelibWorkflow):
     input = InputLivelibBook
     output = Output
 
-    execution_timeout_sec=600
+    labels = WorkerLabels(ip='rs')
+
     retries=10
     backoff_max_seconds=30
     backoff_factor=2
@@ -79,7 +80,7 @@ class DarkhorseComItem(BaseLivelibWorkflow):
     input = InputLivelibBook
     output = Output
 
-    execution_timeout_sec=60
+    labels = WorkerLabels(ip='rs')
 
     @classmethod
     async def task(cls, input: InputLivelibBook, page: Page) -> Output:
@@ -197,7 +198,7 @@ class DarkhorseComItem(BaseLivelibWorkflow):
             )
 
 if __name__ == '__main__':
-    # DarkhorseComListing.run_sync()
+    DarkhorseComListing.run_sync()
 
     # DarkhorseComListing.debug_sync(DarkhorseComListing.start_urls[0])
     DarkhorseComItem.debug_sync('https://www.darkhorse.com/Comics/3016-672/Dungeons-Dragons-The-Fallbacks-Series-1-3-Uzuri-Variant-Cover')
