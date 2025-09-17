@@ -18,6 +18,7 @@ class MarvelComListing(BaseLivelibWorkflow):
     input = InputLivelibBook
     output = Output
 
+    concurrency=3
     execution_timeout_sec=300
     # proxy_enable = False
 

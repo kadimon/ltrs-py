@@ -18,6 +18,7 @@ class DcComListing(BaseLivelibWorkflow):
     input = InputLivelibBook
     output = Output
 
+    concurrency=3
     execution_timeout_sec=600
     retries=10
     backoff_max_seconds=30

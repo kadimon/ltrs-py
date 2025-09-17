@@ -9,7 +9,6 @@ from workflow_base import BaseLivelibWorkflow
 from interfaces import InputLivelibBook, Output, WorkerLabels
 from db import DbSamizdatPrisma
 from utils import save_cover
-import settings
 
 
 class DarkhorseComListing(BaseLivelibWorkflow):
@@ -21,6 +20,7 @@ class DarkhorseComListing(BaseLivelibWorkflow):
 
     labels = WorkerLabels(ip='rs')
 
+    concurrency=3
     execution_timeout_sec=300
     retries=10
     backoff_max_seconds=30
@@ -165,7 +165,7 @@ class DarkhorseComItem(BaseLivelibWorkflow):
                 has_text=re.compile(r'Age range:')
             ).locator('+ dd')
             if await age_rating_locator.count() > 0:
-                 metrics['age_rating'] = re.search(r'\d+', await age_rating_locator.text_content())[0]
+                 book['age_rating'] = re.search(r'\d+', await age_rating_locator.text_content())[0]
 
             date_release_locator = page.locator('.product-meta dt').filter(
                  has_text='Publication Date:'
