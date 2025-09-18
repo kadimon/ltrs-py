@@ -133,6 +133,7 @@ class ReadliNetItem(BaseLivelibWorkflow):
             if await genres_locator.count() > 0:
                 book['tags'] = [await g.text_content() for g in await genres_locator.all()]
 
+
             if annotation := await page.inner_text('.seo__content'):
                 book['annotation'] = annotation
 
@@ -141,8 +142,41 @@ class ReadliNetItem(BaseLivelibWorkflow):
                     if img_name := await save_cover(page, img_src, timeout=10_000):
                         book['coverImage'] = img_name
 
+            views_locator = page.locator('.book-sidebar .rating-numbers__item_icon-1')
+            if await views_locator.count() > 0:
+                metrics['views'] = await views_locator.text_content()
+
+            added_to_lib_locator = page.locator('.book-sidebar .rating-numbers__item_icon-2')
+            if await added_to_lib_locator.count() > 0:
+                metrics['added_to_lib'] = await added_to_lib_locator.text_content()
+
+            comments_locator = page.locator('.book-sidebar .rating-numbers__item_icon-3')
+            if await comments_locator.count() > 0:
+                metrics['comments'] = await comments_locator.text_content()
+
+            likes_locator = page.locator('.book-sidebar .button-like__count')
+            if await likes_locator.count() > 0:
+                metrics['likes'] = await likes_locator.first.text_content()
+
+            rating_locator = page.locator('.book-sidebar .rating-info__count')
+            if await rating_locator.count() > 0:
+                metrics['rating'] = await rating_locator.text_content()
+
+            date_release_locator = page.locator('.book-sidebar .book-chars__item').filter(
+                has_text=re.compile(r'Размещено ')
+            )
+            if await date_release_locator.count() > 0:
+                date_release_str = await date_release_locator.text_content()
+                date_release_str = re.search(r'\d\d\.\d\d\.\d\d\d\d', date_release_str)[0]
+                metrics['date_release'] = dateparser.parse(date_release_str, languages=['ru'])
+
+            pages_count_locator = page.locator('.book-sidebar .button-pages__cols .button-pages__right')
+            if await pages_count_locator.count() > 0:
+                pages_count_str = await pages_count_locator.text_content()
+                metrics['pages_count'] = re.search(r'\d+', pages_count_str)[0]
+
             await db.update_book(book)
-            # await db.create_metrics(metrics)
+            await db.create_metrics(metrics)
 
             return Output(
                 result='done',
