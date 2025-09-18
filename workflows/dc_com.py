@@ -195,10 +195,10 @@ class DcComItem(BaseLivelibWorkflow):
             await db.update_book(book)
             await db.create_metrics(metrics)
 
-            new_persons = 0
-            for p_url in persons_urls:
-                if await DcComPerson.crawl(p_url, input.task_id):
-                    new_persons += 1
+            # new_persons = 0
+            # for p_url in persons_urls:
+            #     if await DcComPerson.crawl(p_url, input.task_id):
+            #         new_persons += 1
 
             return Output(
                 result='done',
