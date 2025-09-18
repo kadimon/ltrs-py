@@ -209,39 +209,39 @@ class DcComItem(BaseLivelibWorkflow):
                 },
             )
 
-class DcComPerson(BaseLivelibWorkflow):
-    name = 'livelib-dc-com-person'
-    event = 'livelib:dc-com-person'
-    site='dc.com'
-    input = InputLivelibBook
-    output = Output
+# class DcComPerson(BaseLivelibWorkflow):
+#     name = 'livelib-dc-com-person'
+#     event = 'livelib:dc-com-person'
+#     site='dc.com'
+#     input = InputLivelibBook
+#     output = Output
 
-    execution_timeout_sec = 240
+#     execution_timeout_sec = 240
 
-    async def task(self, input: InputLivelibBook, page: Page) -> Output:
-        resp = await page.goto(
-            input.url,
-            wait_until='domcontentloaded',
-        )
-        if not (200 <= resp.status < 400):
-            return Output(
-                result='error',
-                data={'status': resp.status},
-            )
+#     async def task(self, input: InputLivelibBook, page: Page) -> Output:
+#         resp = await page.goto(
+#             input.url,
+#             wait_until='domcontentloaded',
+#         )
+#         if not (200 <= resp.status < 400):
+#             return Output(
+#                 result='error',
+#                 data={'status': resp.status},
+#             )
 
-        items_links = await page.query_selector_all('.grid-items a')
-        new_items = 0
-        for i in items_links:
-            item_href = await i.get_attribute('href')
-            item_url = urljoin(page.url, item_href)
-            if await DcComItem.crawl(item_url, input.task_id):
-                new_items += 1
+#         items_links = await page.query_selector_all('.grid-items a')
+#         new_items = 0
+#         for i in items_links:
+#             item_href = await i.get_attribute('href')
+#             item_url = urljoin(page.url, item_href)
+#             if await DcComItem.crawl(item_url, input.task_id):
+#                 new_items += 1
 
 
-        return Output(
-            result='done',
-            data={'new-items': new_items},
-        )
+#         return Output(
+#             result='done',
+#             data={'new-items': new_items},
+#         )
 
 
 if __name__ == '__main__':
