@@ -136,8 +136,13 @@ class UnicomicsRuItem(BaseLivelibWorkflow):
                     if img_name := await save_cover(page, img_src, timeout=10_000):
                         book['coverImage'] = img_name
 
+            likes_locator = page.frame_locator('#vkwidget2').locator('#stats_num')
+            await likes_locator.wait_for(state='visible')
+            if await likes_locator.count() > 0:
+                metrics['likes'] = await likes_locator.text_content()
+
             await db.update_book(book)
-            # await db.create_metrics(metrics)
+            await db.create_metrics(metrics)
 
             return Output(
                 result='done',
