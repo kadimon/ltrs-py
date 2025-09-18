@@ -54,6 +54,9 @@ class BaseWorkflow(
 
     @classmethod
     async def run(cls) -> None:
+        if settings.DEBUG:
+            return
+
         while True:
             user_check = input(f'Ты уверен что хочешь запустить {cls.site}? Y/N:')
             if user_check.lower() == 'y':

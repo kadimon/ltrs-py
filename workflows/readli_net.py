@@ -40,7 +40,6 @@ class ReadliNetListing(BaseLivelibWorkflow):
                 data={'status': resp.status},
             )
 
-        await page.screenshot(path='screenshot.png', full_page=True)
 
         data = {
             'new-items-links': 0,
