@@ -133,6 +133,13 @@ class ReadliNetItem(BaseLivelibWorkflow):
             if await genres_locator.count() > 0:
                 book['tags'] = [await g.text_content() for g in await genres_locator.all()]
 
+            date_release_locator = page.locator('.book-sidebar .book-chars__item').filter(
+                has_text=re.compile(r'Размещено ')
+            )
+            if await date_release_locator.count() > 0:
+                date_release_str = await date_release_locator.text_content()
+                date_release_str = re.search(r'\d\d\.\d\d\.\d\d\d\d', date_release_str)[0]
+                book['date_release'] = dateparser.parse(date_release_str, languages=['ru'])
 
             if annotation := await page.inner_text('.seo__content'):
                 book['annotation'] = annotation
@@ -161,14 +168,6 @@ class ReadliNetItem(BaseLivelibWorkflow):
             rating_locator = page.locator('.book-sidebar .rating-info__count')
             if await rating_locator.count() > 0:
                 metrics['rating'] = await rating_locator.text_content()
-
-            date_release_locator = page.locator('.book-sidebar .book-chars__item').filter(
-                has_text=re.compile(r'Размещено ')
-            )
-            if await date_release_locator.count() > 0:
-                date_release_str = await date_release_locator.text_content()
-                date_release_str = re.search(r'\d\d\.\d\d\.\d\d\d\d', date_release_str)[0]
-                metrics['date_release'] = dateparser.parse(date_release_str, languages=['ru'])
 
             pages_count_locator = page.locator('.book-sidebar .button-pages__cols .button-pages__right')
             if await pages_count_locator.count() > 0:

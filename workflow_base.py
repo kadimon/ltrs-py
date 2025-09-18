@@ -51,10 +51,22 @@ class BaseWorkflow(
     backoff_max_seconds: int = 10
     backoff_factor: float = 1.5
 
+
     @classmethod
     async def run(cls) -> None:
-        for url in cls.start_urls:
-            await cls.crawl(url, cls.site + settings.START_TIME)
+        while True:
+            user_check = input(f'Ты уверен что хочешь запустить {cls.site}? Y/N:')
+            if user_check.lower() == 'y':
+                task_id = cls.site + settings.START_TIME
+
+                for url in cls.start_urls:
+                    await cls.crawl(url, task_id)
+                    print(f'url started: {url}')
+
+                print(f'\ntask_id: {task_id}')
+                return
+            elif user_check.lower() == 'n':
+                return
 
     @classmethod
     def run_sync(cls) -> None:
