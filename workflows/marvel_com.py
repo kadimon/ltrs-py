@@ -153,37 +153,37 @@ class MarvelComItem(BaseLivelibWorkflow):
                     })
 
             # serie_locator = page.locator('.list-values').filter(
-            #     has_text='Series:'
+            #     has_text=re.compile('Series:')
             # ).locator('*[aria-label="list-values"]')
             # if await serie_locator.count() > 0:
             #     book['series'] = [await serie_locator.text_content()]
 
             isbn_locator = page.locator('.ComicIssueMoreDetails__List li').filter(
-                 has_text='UPC:'
+                has_text=re.compile('UPC:')
              ).locator('span:nth-child(2)')
             if await isbn_locator.count() > 0:
                  book['isbn'] = await isbn_locator.text_content()
 
             age_rating_locator = page.locator('.ComicIssueMoreDetails__List li').filter(
-                 has_text='Rating:'
+                has_text=re.compile('Rating:')
              ).locator('span:nth-child(2)')
             if await age_rating_locator.count() > 0:
                  book['age_rating_str'] = await age_rating_locator.text_content()
 
             price_locator = page.locator('.ComicIssueMoreDetails__List li').filter(
-                 has_text='Price:'
+                has_text=re.compile('Price:')
              ).locator('span:nth-child(2)')
             if await price_locator.count() > 0:
                  metrics['price'] = await price_locator.text_content()
 
             pages_count_locator = page.locator('.ComicIssueMoreDetails__List li').filter(
-                 has_text='Page Count:'
+                has_text=re.compile('Page Count:')
              ).locator('span:nth-child(2)')
             if await pages_count_locator.count() > 0:
                  metrics['pages_count'] = await pages_count_locator.text_content()
 
             date_release_locator = page.locator('.ComicIssueMoreDetails__List li').filter(
-                 has_text='FOC Date:'
+                has_text=re.compile('FOC Date:')
              ).locator('span:nth-child(2)')
             if await date_release_locator.count() > 0:
                 release_date_str = await date_release_locator.text_content()
@@ -194,7 +194,7 @@ class MarvelComItem(BaseLivelibWorkflow):
                 book['annotation'] = await annotation_locator.text_content()
 
             if artwork_type := await page.locator('.ComicIssueMoreDetails__List li').filter(
-                 has_text='Format:'
+                 has_text=re.compile('Format:')
              ).locator('span:nth-child(2)').text_content():
                 book['artwork_type'] = artwork_type
 

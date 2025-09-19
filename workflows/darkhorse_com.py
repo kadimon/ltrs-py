@@ -161,7 +161,7 @@ class DarkhorseComItem(BaseLivelibWorkflow):
                  book['age_rating'] = re.search(r'\d+', await age_rating_locator.text_content())[0]
 
             date_release_locator = page.locator('.product-meta dt').filter(
-                 has_text='Publication Date:'
+                has_text=re.compile('Publication Date:')
              ).locator('+ dd')
             if await date_release_locator.count() > 0:
                  book['date_release'] = dateparser.parse(await date_release_locator.text_content())
@@ -170,7 +170,7 @@ class DarkhorseComItem(BaseLivelibWorkflow):
                 book['annotation'] = annotation
 
             isbn_locator = page.locator('.product-meta dt').filter(
-                 has_text='UPC:'
+                has_text=re.compile('UPC:')
             ).locator('+ dd')
             if await isbn_locator.count() > 0:
                 book['isbn'] = (await isbn_locator.text_content()).replace(' ', '')

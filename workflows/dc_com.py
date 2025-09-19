@@ -152,29 +152,29 @@ class DcComItem(BaseLivelibWorkflow):
                     persons_urls.append(absolute_url)
 
             serie_locator = page.locator('.list-values').filter(
-                has_text='Series:'
+                has_text=re.compile('Series:')
             ).locator('*[aria-label="list-values"]')
             if await serie_locator.count() > 0:
                 book['series'] = [await serie_locator.text_content()]
 
             price_locator = page.locator('.list-values').filter(
-                 has_text='U.S. Price:'
+                has_text=re.compile('U.S. Price:')
              ).locator('*[aria-label="list-values"]')
             if await price_locator.count() > 0:
                  metrics['price'] = await price_locator.text_content()
 
             if pages_count := await page.locator('.list-values').filter(
-                 has_text='Page Count:'
+                 has_text=re.compile('Page Count:')
              ).locator('*[aria-label="list-values"]').text_content():
                  metrics['pages_count'] = pages_count
 
             if age_rating := await page.locator('.list-values').filter(
-                 has_text='Rated:'
+                 has_text=re.compile('Rated:')
              ).locator('*[aria-label="list-values"]').text_content():
                  book['age_rating_str'] = age_rating
 
             if date_release := await page.locator('.list-values').filter(
-                 has_text='On Sale Date:'
+                 has_text=re.compile('On Sale Date:')
              ).locator('*[aria-label="list-values"]').text_content():
                  book['date_release'] = dateparser.parse(date_release)
 

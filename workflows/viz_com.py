@@ -22,6 +22,7 @@ class VizComListing(BaseLivelibWorkflow):
     execution_timeout_sec=300
 
     start_urls = [
+        'https://www.viz.com/manga-books',
         'https://www.viz.com/manga-books/genres',
         'https://www.viz.com/manga-books/series',
     ]
@@ -100,21 +101,21 @@ class VizComItem(BaseLivelibWorkflow):
                 await db.create_book(book)
 
             author_locator = page.locator('.mar-b-md:has(>strong)').filter(
-                has_text='Story by'
+                has_text=re.compile('Story by')
             )
             if await author_locator.count() > 0:
                 author = await author_locator.inner_text()
                 book['author'] = author.replace('Story by', '')
 
             artwork_type_locator = page.locator('.mar-b-md:has(>strong)').filter(
-                has_text='Category'
+                has_text=re.compile('Category')
             )
             if await artwork_type_locator.count() > 0:
                 artwork_type = await artwork_type_locator.inner_text()
                 book['artwork_type'] = artwork_type.replace('Category', '')
 
             serie_locator = page.locator('.mar-b-md:has(>strong)').filter(
-                has_text='Series'
+                has_text=re.compile('Series')
             ).locator('a')
             if await serie_locator.count() > 0:
                 book['series'] = [(await s.inner_text()).strip() for s in await serie_locator.all()]
@@ -123,12 +124,28 @@ class VizComItem(BaseLivelibWorkflow):
             if await genres_locator.count() > 0:
                 book['tags'] = [(await g.inner_text()).strip() for g in await genres_locator.all()]
 
+            isbn_locator = page.locator('.mar-b-md:has(>strong)').filter(
+                has_text=re.compile('Age Rating')
+            )
+            if await isbn_locator.count() > 0:
+                isbn = await isbn_locator.inner_text()
+                book['age_rating_str'] = isbn.replace('Age Rating', '')
+
+            isbn_locator = page.locator('.mar-b-md:has(>strong)').filter(
+                has_text=re.compile('ISBN')
+            )
+            if await isbn_locator.count() > 0:
+                isbn = await isbn_locator.inner_text()
+                for i in ('ISBN-13', 'ISBN-11', '-'):
+                    isbn = isbn.replace(i, '')
+                book['isbn'] = isbn
+
             annotation_locator = page.locator('hr + div')
             if await annotation_locator.count() > 0:
                 book['annotation'] = await annotation_locator.inner_text()
 
             date_release_locator = page.locator('.mar-b-md:has(>strong)').filter(
-                has_text='Release'
+                has_text=re.compile('Release')
             )
             if await date_release_locator.count() > 0:
                 date_release = await date_release_locator.inner_text()
