@@ -191,7 +191,7 @@ class MarvelComItem(BaseLivelibWorkflow):
 
             annotation_locator = page.locator('.ComicMasthead__Description')
             if await annotation_locator.count() > 0:
-                book['annotation'] = annotation_locator.text_content()
+                book['annotation'] = await annotation_locator.text_content()
 
             if artwork_type := await page.locator('.ComicIssueMoreDetails__List li').filter(
                  has_text='Format:'
