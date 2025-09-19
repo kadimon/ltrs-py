@@ -1,6 +1,7 @@
 import re
 from urllib.parse import urljoin
 
+from hatchet_sdk.clients.rest.models.worker import WorkerLabel
 from playwright.async_api import Page
 import dateparser
 
@@ -16,6 +17,8 @@ class VizComListing(BaseLivelibWorkflow):
     site='viz.com'
     input = InputLivelibBook
     output = Output
+
+    labels=WorkerLabels(ip='rs')
 
     concurrency=3
     execution_timeout_sec=300
@@ -68,6 +71,8 @@ class VizComItem(BaseLivelibWorkflow):
     site='viz.com'
     input = InputLivelibBook
     output = Output
+
+    labels=WorkerLabels(ip='rs')
 
     @classmethod
     async def task(cls, input: InputLivelibBook, page: Page) -> Output:

@@ -18,8 +18,6 @@ class DarkhorseComListing(BaseLivelibWorkflow):
     input = InputLivelibBook
     output = Output
 
-    labels = WorkerLabels(ip='rs')
-
     concurrency=3
     execution_timeout_sec=300
 
@@ -77,8 +75,6 @@ class DarkhorseComItem(BaseLivelibWorkflow):
     site='darkhorse.com'
     input = InputLivelibBook
     output = Output
-
-    labels = WorkerLabels(ip='rs')
 
     @classmethod
     async def task(cls, input: InputLivelibBook, page: Page) -> Output:
