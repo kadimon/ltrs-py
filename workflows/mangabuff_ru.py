@@ -107,6 +107,9 @@ class MangabuffRuItem(BaseLivelibWorkflow):
             if await titles_other_locator.count() > 0:
                 book['titles_other'] = [(await t.text_content()).strip() for t in await titles_other_locator.all()]
 
+            if artwork_type := await page.text_content('.manga__middle-link:nth-child(2)'):
+                book['artwork_type'] = artwork_type
+
             genres_locator = page.locator('.tags__item')
             if await genres_locator.count() > 0:
                 book['tags'] = [await g.text_content() for g in await genres_locator.all()]
