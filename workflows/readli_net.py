@@ -20,9 +20,6 @@ class ReadliNetListing(BaseLivelibWorkflow):
 
     concurrency=3
     execution_timeout_sec=300
-    retries=10
-    backoff_max_seconds=30
-    backoff_factor=2
 
     start_urls = [
         'https://readli.net/cat/proza-i-stihi/fanfik/',

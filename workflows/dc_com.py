@@ -20,9 +20,6 @@ class DcComListing(BaseLivelibWorkflow):
 
     concurrency=3
     execution_timeout_sec=600
-    retries=10
-    backoff_max_seconds=30
-    backoff_factor=2
 
     start_urls = [
         'https://www.dc.com/comics',
