@@ -110,11 +110,11 @@ class UnicomicsRuItem(BaseLivelibWorkflow):
             if await title_original_locator.count() > 0:
                 book['title_original'] = await title_original_locator.text_content()
 
-            owner_locator = page.locator('tr:has(.leftdescr)').filter(
+            publisher_locator = page.locator('tr:has(.leftdescr)').filter(
                 has_text=re.compile(r'Издательство:')
             ).locator('a')
-            if await owner_locator.count() > 0:
-                book['owner'] = await owner_locator.first.text_content()
+            if await publisher_locator.count() > 0:
+                book['publisher'] = await publisher_locator.first.text_content()
 
             serie_locator = page.locator('tr:has(.leftdescr)').filter(
                 has_text=re.compile('Серия:|Серии:')
