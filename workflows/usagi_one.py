@@ -236,7 +236,7 @@ class UsagiOneItem(BaseLivelibWorkflow):
             if await translation_status_loacator.count() > 0:
                 translation_status_str = await translation_status_loacator.text_content()
                 if translation_status := translation_statuses_match.get(translation_status_str.strip().lower()):
-                    metrics['status_translation'] = translation_status
+                    metrics['status_translate'] = translation_status
 
             await db.update_book(book)
             await db.create_metrics(metrics)
