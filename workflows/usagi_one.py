@@ -168,7 +168,7 @@ class UsagiOneItem(BaseLivelibWorkflow):
                 has_text=re.compile('Жанр:|Жанры:')
             ).locator('a')
             if await genres_locator.count() > 0:
-                book['genres'] = [await g.text_content() for g in await genres_locator.all()]
+                book['category'] = [await g.text_content() for g in await genres_locator.all()]
 
             tags_locator = page.locator('.elementList').filter(
                 has_text=re.compile('Тег:|Теги:')
