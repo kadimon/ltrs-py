@@ -123,7 +123,7 @@ class FanficsMeItem(BaseLivelibWorkflow):
                 has_text=re.compile(r'Жанр:')
             ).locator('.content')
             if await genres_locator.count() > 0:
-                book['category'] = (await genres_locator.inner_text()).split(', ')
+                book['category'] = (await genres_locator.first.inner_text()).split(', ')
 
             tags_locator = page.locator('.FicHead .tr').filter(
                 has_text=re.compile(r'События:|Фандом:|События:')
