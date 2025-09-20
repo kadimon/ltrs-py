@@ -178,7 +178,7 @@ class UsagiOneItem(BaseLivelibWorkflow):
 
             annotation_locator = page.locator('#tab-description .manga-description')
             if await annotation_locator.count() > 0:
-                book['annotation'] = await annotation_locator.text_content()
+                book['annotation'] = await annotation_locator.first.inner_text()
 
             date_release_locator = page.locator('.elementList').filter(
                 has_text=re.compile('Год выпуска:')
