@@ -22,7 +22,7 @@ class FicartRuListing(BaseLivelibWorkflow):
     execution_timeout_sec=300
 
     start_urls = [
-        'https://ficart.ru/fanfic/',
+        'https://ficart.ru/index.php',
     ]
 
     @classmethod
@@ -40,7 +40,6 @@ class FicartRuListing(BaseLivelibWorkflow):
         data = {
             'new-items-links': 0,
             'new-page-links': 0,
-            'new-series-links': 0
         }
 
         pages_locator = page.locator('.navigation a')
@@ -55,12 +54,8 @@ class FicartRuListing(BaseLivelibWorkflow):
         for i in items_links:
             item_href = await i.get_attribute('href')
             item_url = urljoin(page.url, item_href)
-            if '/series/' in item_url:
-                if await FicartRuListing.crawl(item_url, input.task_id):
-                    data['new-series-links'] += 1
-            elif '/issue/' in item_url:
-                if await FicartRuItem.crawl(item_url, input.task_id):
-                    data['new-items-links'] += 1
+            if await FicartRuItem.crawl(item_url, input.task_id):
+                data['new-items-links'] += 1
 
         if not items_links:
             raise Exception('ERROR: No Items')
@@ -90,7 +85,7 @@ class FicartRuItem(BaseLivelibWorkflow):
                 data={'status': resp.status},
             )
 
-        await page.wait_for_selector('h1')
+        await page.wait_for_selector('.maincont')
 
         async with DbSamizdatPrisma() as db:
             book = {
@@ -102,41 +97,43 @@ class FicartRuItem(BaseLivelibWorkflow):
                 'bookUrl': page.url,
             };
 
+            eval_text_follow = 'el => el.nextSibling?.textContent?.trim()'
+
             if not await db.check_book_exist(page.url):
-                book['title'] = await page.text_content('h1')
+                book['title'] = await page.locator('//b[contains(text(), "Название:")]').evaluate(
+                    eval_text_follow
+                )
                 await db.create_book(book)
 
-            title_original_locator = page.locator('.info h2')
-            if await title_original_locator.count() > 0:
-                book['title_original'] = await title_original_locator.text_content()
+            author_locator = page.locator('//b[contains(text(), "Автор:")]')
+            if await author_locator.count() > 0:
+                book['author'] = await author_locator.evaluate(eval_text_follow)
 
-            publisher_locator = page.locator('tr:has(.leftdescr)').filter(
-                has_text=re.compile(r'Издательство:')
-            ).locator('a')
-            if await publisher_locator.count() > 0:
-                book['publisher'] = await publisher_locator.first.text_content()
+            genres_locator = page.locator('//b[contains(text(), "Жанр:")]')
+            if await genres_locator.count() > 0:
+                book['category'] = [g.strip() for g in (await genres_locator.evaluate(eval_text_follow)).split(', ')]
 
-            serie_locator = page.locator('tr:has(.leftdescr)').filter(
-                has_text=re.compile('Серия:|Серии:')
-            ).locator('a')
-            if await serie_locator.count() > 0:
-                book['series'] = [await s.text_content() for s in await serie_locator.all()]
+            age_rating_locator = page.locator('//b[contains(text(), "Рейтинг:")]')
+            if await age_rating_locator.count() > 0:
+                book['age_rating_str'] = await age_rating_locator.evaluate(eval_text_follow)
+                book['age_rating'] = re.search(r'\d+', book['age_rating_str'])[0]
 
-            lang_locator = page.locator('tr:has(.leftdescr)').filter(
-                has_text=re.compile(r'Язык:')
-            ).locator('td:nth-child(2)')
-            if await lang_locator.count() > 0:
-                book['language'] = await lang_locator.first.text_content()
+            annotation_locator =  page.locator('//b[contains(text(), "Саммари:")]')
+            if await annotation_locator.count() > 0:
+                book['annotation'] = await annotation_locator.evaluate(eval_text_follow)
 
-            if not await db.check_book_have_cover(page.url):
-                if img_src := await page.get_attribute('.image_comics img', 'src', timeout=2_000):
-                    if img_name := await save_cover(page, img_src, timeout=10_000):
-                        book['coverImage'] = img_name
+            date_release_locator = page.locator('.baseinfo a:nth-of-type(2)')
+            if await date_release_locator.count() > 0:
+                release_date_str = await date_release_locator.text_content()
+                book['date_release'] = dateparser.parse(release_date_str)
 
-            likes_locator = page.frame_locator('#vkwidget2').locator('#stats_num')
-            await likes_locator.wait_for(state='visible')
-            if await likes_locator.count() > 0:
-                metrics['likes'] = await likes_locator.text_content()
+            views_locator = page.locator('.argviews')
+            if await views_locator.count() > 0:
+                metrics['views'] = await views_locator.text_content()
+
+            comments_locator = page.locator('.argcoms')
+            if await comments_locator.count() > 0:
+                metrics['comments'] = await comments_locator.text_content()
 
             await db.update_book(book)
             await db.create_metrics(metrics)
@@ -153,4 +150,4 @@ if __name__ == '__main__':
     FicartRuListing.run_sync()
 
     FicartRuListing.debug_sync(FicartRuListing.start_urls[0])
-    FicartRuItem.debug_sync('https://ficart.ru/comics/issue/avengers-2018-marvel-001')
+    FicartRuItem.debug_sync('https://ficart.ru/fanfic/drama/23-fanfik-bring-me-a-life-pg-15.html')
