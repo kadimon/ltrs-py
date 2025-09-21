@@ -116,7 +116,6 @@ class FicartRuItem(BaseLivelibWorkflow):
             age_rating_locator = page.locator('//b[contains(text(), "Рейтинг:")]')
             if await age_rating_locator.count() > 0:
                 book['age_rating_str'] = await age_rating_locator.evaluate(eval_text_follow)
-                book['age_rating'] = re.search(r'\d+', book['age_rating_str'])[0]
 
             annotation_locator =  page.locator('//b[contains(text(), "Саммари:")]')
             if await annotation_locator.count() > 0:
