@@ -43,7 +43,7 @@ class MantaNetListing(BaseLivelibWorkflow):
             initial_count = await items_links_loacator.count()
             await page.mouse.wheel(0, 1500)
             await page.wait_for_timeout(500)
-            await items_links_loacator.last.focus()
+            await items_links_loacator.last.scroll_into_view_if_needed()
             new_count = await items_links_loacator.count()
             if new_count == initial_count:
                 break
