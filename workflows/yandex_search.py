@@ -26,6 +26,8 @@ class YandexLtrs(BaseLtrsSeWorkflow):
     input = InputSeLtrs
     output = Output
 
+    concurrency=3
+
     sources = [
         'topliba.com',
         'knigavuhe.org',
@@ -55,6 +57,8 @@ class YandexLtrs(BaseLtrsSeWorkflow):
                 'text': await r.text_content(),
                 'url': await r_link.get_attribute('href'),
             })
+
+        await page.screenshot(path='screenshot.png', full_page=True)
 
         if not results:
             raise Exception('no results')

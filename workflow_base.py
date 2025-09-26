@@ -22,6 +22,7 @@ root_logger.setLevel(logging.WARNING)
 hatchet = Hatchet(
     debug=False,
     config=ClientConfig(
+        server_url='http://homeserver:8888',
         logger=root_logger,
     ),
 )
@@ -120,12 +121,13 @@ class BaseWorkflow(
 
         hash = task_id + hashlib.md5(f'{cls.event}{url}'.encode()).hexdigest()
         if await cls._not_dupe(hash, dedupe_hours):
+            payload = {
+                'url': url,
+                'task_id': task_id,
+            } | kwargs
             await hatchet.event.aio_push(
-                {
-                    'url': url,
-                    'task_id': task_id,
-                    **kwargs
-                },
+                cls.event,
+                payload,
                 options=PushEventOptions(
                     additional_metadata={
                         'customer': cls.customer,
