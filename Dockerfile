@@ -11,6 +11,7 @@ RUN pip install playwright \
     dateparser \
     pillow \
     furl \
+    pandas \
     && pip cache purge
 
 WORKDIR /app

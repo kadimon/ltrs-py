@@ -9,6 +9,8 @@ from datetime import datetime, timedelta, timezone
 from pydantic import BaseModel
 from playwright.async_api import async_playwright, Page
 from hatchet_sdk import Hatchet, ClientConfig, PushEventOptions, V1TaskStatus
+from pymongo import AsyncMongoClient
+import pandas as pd
 
 import interfaces
 import settings
@@ -51,6 +53,12 @@ class BaseWorkflow(
     backoff_max_seconds: int = 10
     backoff_factor: float = 1.5
 
+    @classmethod
+    async def task(cls, input: TInput, page: Page) -> TOutput:
+        return cls.output(
+            result='debug',
+            data=input.model_dump()
+        )
 
     @classmethod
     async def run(cls) -> None:
@@ -76,14 +84,7 @@ class BaseWorkflow(
         asyncio.run(cls.run())
 
     @classmethod
-    async def task(cls, input: TInput, page: Page) -> TOutput:
-        return cls.output(
-            result='debug',
-            data=input.model_dump()
-        )
-
-    @classmethod
-    async def debug(cls, url: str) -> None:
+    async def debug(cls, url: str, **kwargs) -> None:
         if settings.DEBUG:
             async with async_playwright() as p:
                 browser = await p.firefox.connect(settings.DEBUG_PW_SERVER)
@@ -94,8 +95,7 @@ class BaseWorkflow(
                 )
 
                 page = await context.new_page()
-
-                input = cls.input(url=url)
+                input = cls.input(url=url, **kwargs)
                 result = await cls.task(input, page)
 
                 await context.close()
@@ -104,8 +104,8 @@ class BaseWorkflow(
                 pp(result.model_dump())
 
     @classmethod
-    def debug_sync(cls, url: str) -> Optional[bool]:
-        return asyncio.run(cls.debug(url))
+    def debug_sync(cls, url: str, **kwargs) -> Optional[bool]:
+        return asyncio.run(cls.debug(url, **kwargs))
 
     @classmethod
     async def crawl(
@@ -113,6 +113,7 @@ class BaseWorkflow(
         url: str,
         task_id: str,
         dedupe_hours: int = 480,
+        **kwargs
     ) -> bool:
         if settings.DEBUG:
             return True
@@ -120,10 +121,10 @@ class BaseWorkflow(
         hash = task_id + hashlib.md5(f'{cls.event}{url}'.encode()).hexdigest()
         if await cls._not_dupe(hash, dedupe_hours):
             await hatchet.event.aio_push(
-                cls.event,
                 {
                     'url': url,
                     'task_id': task_id,
+                    **kwargs
                 },
                 options=PushEventOptions(
                     additional_metadata={
@@ -145,6 +146,7 @@ class BaseWorkflow(
         url: str,
         task_id: str,
         dedupe_hours: int = 480,
+        **kwargs
     ) -> bool:
         return asyncio.run(cls.crawl(url, task_id, dedupe_hours))
 
@@ -208,3 +210,68 @@ class BaseLivelibWorkflow(
             result='debug',
             data=input.model_dump()
         )
+
+@dataclass
+class BaseLtrsSeWorkflow(
+    BaseWorkflow[
+        interfaces.InputSeLtrs,
+        interfaces.Output,
+    ]
+):
+    input: Type[interfaces.InputSeLtrs]
+    output: Type[interfaces.Output]
+
+    customer = 'ltrs-partners'
+
+    sources: ClassVar[list[str]] = []
+    start_file = 'data_files/Топ-10.000.xlsx'
+
+
+    execution_timeout_sec = 15
+    schedule_timeout_hours = 240
+
+    retries=5
+    backoff_max_seconds=10
+    backoff_factor=2.0
+
+    @classmethod
+    async def task(cls, input: interfaces.InputSeLtrs, page: Page) -> interfaces.Output:
+        return interfaces.Output(
+            result='debug',
+            data=input.model_dump()
+        )
+
+    @classmethod
+    async def run(cls) -> None:
+        if settings.DEBUG:
+            return
+
+        while True:
+            user_check = input(f'Ты уверен что хочешь запустить {cls.site}? Y/N:')
+            task_id = input(f'Введи имя задачи:')
+            if user_check.lower() == 'y':
+                client = AsyncMongoClient(settings.MONGO_URI)
+                col = client['ltrs']['yandex']
+
+                df = pd.read_excel('data_files/Топ-10.000.xlsx')
+                for row in df.to_dict(orient='records'):
+                    for source in cls.sources:
+                        query = f'{row['Название арта']} {row['Авторы']}'
+                        if not await col.find_one({
+                            'book_id': int(row['ID арта']),
+                            'source': source,
+                        }):
+                            url = f'https://ya.ru/search/?text=site:{source}+{query}&lr=225'
+                            await cls.crawl(
+                                url,
+                                task_id,
+                                source=source,
+                                query = query,
+                                book_id=int(row['ID арта']),
+                            )
+                            print(f'url started: {url}')
+
+                print(f'\ntask_id: {task_id}')
+                return
+            elif user_check.lower() == 'n':
+                return

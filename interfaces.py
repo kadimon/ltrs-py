@@ -16,6 +16,11 @@ class InputLitresPartnersBook(InputBase):
 class InputLivelibBook(InputBase):
     pass
 
+class InputSeLtrs(InputBase):
+    source: str = ''
+    query: str = ''
+    book_id: int = 0
+
 class Output(BaseModel):
     result: Literal['done', 'error', 'empty', 'debug']
     data: dict[str, Any]
