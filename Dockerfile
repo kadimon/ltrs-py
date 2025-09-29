@@ -13,6 +13,7 @@ RUN pip install playwright \
     pillow \
     furl \
     pandas \
+    ultimate-sitemap-parser \
     && pip cache purge
 
 WORKDIR /app

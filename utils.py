@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from playwright.async_api import async_playwright, Page
 from hatchet_sdk import Hatchet, ClientConfig, PushEventOptions, V1TaskStatus
 from PIL import Image
+from usp.tree import sitemap_tree_for_homepage
 
 from workflow_base import BaseWorkflow
 import settings
@@ -133,3 +134,8 @@ async def save_cover(page: Page, cover_url: str, timeout: int = 10_000) -> str |
 
     except Exception:
         return None
+
+def sitemap(url: str) -> list[str]:
+    tree = sitemap_tree_for_homepage(url, use_robots=False)
+
+    return [page.url for page in tree.all_pages()]
