@@ -6,7 +6,7 @@ RUN apt-get update \
 
 RUN pip install playwright \
     patchright \
-    hatchet-sdk==1.18.1 \
+    hatchet-sdk==1.19.0 \
     prisma \
     pymongo \
     dateparser \
