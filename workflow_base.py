@@ -7,7 +7,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 
 from pydantic import BaseModel
-from playwright.async_api import async_playwright, Page
+from patchright.async_api import async_playwright, Page
 from hatchet_sdk import Hatchet, ClientConfig, PushEventOptions, V1TaskStatus
 from pymongo import AsyncMongoClient
 import pandas as pd
