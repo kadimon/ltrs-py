@@ -148,7 +148,9 @@ class FicbookGroupItem(BaseLivelibWorkflow):
                 metrics['comments'] = await likes_locator.last.text_content()
 
             if not await db.check_book_have_cover(page.url):
-                if img_src := await page.get_attribute('img.article-top__image:not([src$="nofanfic.jpg"])', 'src', timeout=2_000):
+                img_locator = page.locator('img.article-top__image:not([src$="nofanfic.jpg"])')
+                if await img_locator.count() > 0:
+                    img_src = await img_locator.get_attribute('src')
                     if img_name := await save_cover(page, img_src, timeout=10_000):
                         book['coverImage'] = img_name
 
