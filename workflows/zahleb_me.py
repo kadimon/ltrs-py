@@ -130,6 +130,6 @@ class ZahlebMeItem(BaseLivelibWorkflow):
             )
 
 if __name__ == '__main__':
-    # ZahlebMeItem.run_sync()
+    ZahlebMeItem.run_sync()
 
     ZahlebMeItem.debug_sync('https://zahleb.me/story/vashe-serdtse-vzlomano-qZJBA7XcMs')

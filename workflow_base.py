@@ -9,6 +9,7 @@ from datetime import datetime, timedelta, timezone
 from pydantic import BaseModel
 from patchright.async_api import async_playwright, Page
 from hatchet_sdk import Hatchet, ClientConfig, PushEventOptions, V1TaskStatus
+from hatchet_sdk.clients.events import BulkPushEventWithMetadata
 from pymongo import AsyncMongoClient
 import pandas as pd
 
@@ -71,9 +72,28 @@ class BaseWorkflow(
             if user_check.lower() == 'y':
                 task_id = cls.site + settings.START_TIME
 
+                events = []
                 for url in cls.start_urls:
-                    await cls.crawl(url, task_id)
-                    print(f'url started: {url}')
+                    events.append(
+                        BulkPushEventWithMetadata(
+                            key=cls.event,
+                            payload=cls.input(
+                                url=url,
+                                task_id=task_id
+                            ),
+                            additional_metadata={
+                                'customer': cls.customer,
+                                'site': cls.site,
+                                'url': url,
+                                'hash': cls._task_hash(task_id, url),
+                                'task_id': task_id,
+                            }
+                        )
+                    )
+
+                await hatchet.event.aio_bulk_push(
+                    events=events
+                )
 
                 print(f'\ntask_id: {task_id}')
                 return
@@ -119,7 +139,7 @@ class BaseWorkflow(
         if settings.DEBUG:
             return True
 
-        hash = task_id + hashlib.md5(f'{cls.event}{url}'.encode()).hexdigest()
+        hash = cls._task_hash(task_id, url)
         if await cls._not_dupe(hash, dedupe_hours):
             payload = {
                 'url': url,
@@ -175,6 +195,10 @@ class BaseWorkflow(
         else:
             return True
 
+    @classmethod
+    def _task_hash(cls, task_id: str, url: str):
+        return task_id + hashlib.md5(f'{cls.event}{url}'.encode()).hexdigest()
+
 
 @dataclass
 class BaseLitresPartnersWorkflow(
@@ -186,13 +210,73 @@ class BaseLitresPartnersWorkflow(
     input: Type[interfaces.InputLitresPartnersBook]
     output: Type[interfaces.Output]
 
-    customer = 'ltrs-partners'
+    customer: str = 'ltrs-partners'
 
-    async def task(self, input: interfaces.InputLitresPartnersBook, page: Page) -> interfaces.Output:
+    url_patern: str = r'.+'
+
+    @classmethod
+    async def task(cls, input: interfaces.InputLitresPartnersBook, page: Page) -> interfaces.Output:
         return interfaces.Output(
             result='debug',
             data=input.model_dump()
         )
+
+    @classmethod
+    async def run(cls) -> None:
+        if settings.DEBUG:
+            return
+
+        while True:
+            user_check = input(f'Ты уверен что хочешь запустить {cls.site}? Y/N:')
+            if user_check.lower() == 'y':
+                task_id = cls.site + settings.START_TIME
+
+                client = AsyncMongoClient(settings.MONGO_URI)
+                db = client['ltrs']
+                col_yandex = db['yandex']
+                col_books = db['books']
+
+                tasks = []
+                async for search_result in col_yandex.find({'site': site}):
+                    book_urls = [position['url'] for position in search_result['results']]
+                    book_urls = [url for url in book_urls if re.search(patern, url)]
+
+                    for url in book_urls[:3]:
+                        tasks.append({
+                            'url': url,
+                            'book_id': search_result['book_id'],
+                        })
+
+                events = []
+                for t in tasks:
+                    if not await col_books.find_one({'url': t['url']}):
+                        events.append(
+                            BulkPushEventWithMetadata(
+                                key=cls.event,
+                                payload=cls.input(
+                                    url=url,
+                                    task_id=task_id,
+                                    book_id=t['book_id']
+                                ),
+                                additional_metadata={
+                                    'customer': cls.customer,
+                                    'site': cls.site,
+                                    'url': t['url'],
+                                    'hash': cls._task_hash(task_id, t['url']),
+                                    'task_id': task_id,
+                                }
+                            )
+                        )
+
+                await hatchet.event.aio_bulk_push(
+                    events=events
+                )
+
+                print(f'\ntask_id: {task_id}')
+                return
+            elif user_check.lower() == 'n':
+                return
+
 
 @dataclass
 class BaseLivelibWorkflow(
