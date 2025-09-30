@@ -5,6 +5,7 @@ from pprint import pp
 import hashlib
 import logging
 from datetime import datetime, timedelta, timezone
+import re
 
 from pydantic import BaseModel
 from patchright.async_api import async_playwright, Page
@@ -237,9 +238,9 @@ class BaseLitresPartnersWorkflow(
                 col_books = db['books']
 
                 tasks = []
-                async for search_result in col_yandex.find({'site': site}):
+                async for search_result in col_yandex.find({'site': cls.site}):
                     book_urls = [position['url'] for position in search_result['results']]
-                    book_urls = [url for url in book_urls if re.search(patern, url)]
+                    book_urls = [url for url in book_urls if re.search(cls.url_patern, url)]
 
                     for url in book_urls[:3]:
                         tasks.append({

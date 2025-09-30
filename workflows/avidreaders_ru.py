@@ -8,6 +8,8 @@ from db import save_book_mongo
 class AvidreadersRu(BaseLitresPartnersWorkflow):
     name = 'ltrs-avidreaders-ru'
     event = 'ltrs:avidreaders-ru'
+    site='avidreaders.ru'
+    url_patern=r'^https:\/\/avidreaders\.ru\/book\/[\w-]+\.html$'
     input = InputLitresPartnersBook
     output = Output
 
