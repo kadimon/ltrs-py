@@ -3,7 +3,6 @@ from playwright.async_api import Page
 from workflow_base import BaseLitresPartnersWorkflow
 from interfaces import InputLitresPartnersBook, Output
 from db import save_book_mongo
-from utils import run_task_sync
 
 
 class AvidreadersRu(BaseLitresPartnersWorkflow):
