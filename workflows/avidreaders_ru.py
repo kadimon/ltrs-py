@@ -15,7 +15,8 @@ class AvidreadersRu(BaseLitresPartnersWorkflow):
 
     url_patern = r'^https:\/\/avidreaders\.ru\/book\/[\w-]+\.html$'
 
-    async def task(self, input: InputLitresPartnersBook, page: Page) -> Output:
+    @classmethod
+    async def task(cls, input: InputLitresPartnersBook, page: Page) -> Output:
         resp = await page.goto(
             input.url,
             wait_until='domcontentloaded',
@@ -42,7 +43,7 @@ class AvidreadersRu(BaseLitresPartnersWorkflow):
                     book['links-litres'] = [download.url]
                 await download.cancel()
 
-        await save_book_mongo(input, book)
+        await save_book_mongo(input, cls.site, book)
 
         return Output(
             result='done',

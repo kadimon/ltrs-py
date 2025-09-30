@@ -6,6 +6,7 @@ import hashlib
 import logging
 from datetime import datetime, timedelta, timezone
 import re
+from itertools import batched
 
 from pydantic import BaseModel
 from patchright.async_api import async_playwright, Page
@@ -73,28 +74,30 @@ class BaseWorkflow(
             if user_check.lower() == 'y':
                 task_id = cls.site + settings.START_TIME
 
-                events = []
-                for url in cls.start_urls:
-                    events.append(
-                        BulkPushEventWithMetadata(
-                            key=cls.event,
-                            payload=cls.input(
-                                url=url,
-                                task_id=task_id
-                            ),
-                            additional_metadata={
-                                'customer': cls.customer,
-                                'site': cls.site,
-                                'url': url,
-                                'hash': cls._task_hash(task_id, url),
-                                'task_id': task_id,
-                            }
-                        )
-                    )
 
-                await hatchet.event.aio_bulk_push(
-                    events=events
-                )
+                for batch_urls in batched(cls.start_urls, 1000):
+                    events = []
+                    for url in batch_urls:
+                        events.append(
+                            BulkPushEventWithMetadata(
+                                key=cls.event,
+                                payload=cls.input(
+                                    url=url,
+                                    task_id=task_id
+                                ).model_dump(),
+                                additional_metadata={
+                                    'customer': cls.customer,
+                                    'site': cls.site,
+                                    'url': url,
+                                    'hash': cls._task_hash(task_id, url),
+                                    'task_id': task_id,
+                                }
+                            )
+                        )
+
+                    await hatchet.event.aio_bulk_push(
+                        events=events
+                    )
 
                 print(f'\ntask_id: {task_id}')
                 return
@@ -238,7 +241,7 @@ class BaseLitresPartnersWorkflow(
                 col_books = db['books']
 
                 tasks = []
-                async for search_result in col_yandex.find({'site': cls.site}):
+                async for search_result in col_yandex.find({'source': cls.site}):
                     book_urls = [position['url'] for position in search_result['results']]
                     book_urls = [url for url in book_urls if re.search(cls.url_patern, url)]
 
@@ -248,30 +251,31 @@ class BaseLitresPartnersWorkflow(
                             'book_id': search_result['book_id'],
                         })
 
-                events = []
-                for t in tasks:
-                    if not await col_books.find_one({'url': t['url']}):
-                        events.append(
-                            BulkPushEventWithMetadata(
-                                key=cls.event,
-                                payload=cls.input(
-                                    url=url,
-                                    task_id=task_id,
-                                    book_id=t['book_id']
-                                ),
-                                additional_metadata={
-                                    'customer': cls.customer,
-                                    'site': cls.site,
-                                    'url': t['url'],
-                                    'hash': cls._task_hash(task_id, t['url']),
-                                    'task_id': task_id,
-                                }
+                for batch in batched(tasks, 1000):
+                    events = []
+                    for t in batch:
+                        if not await col_books.find_one({'url': t['url']}):
+                            events.append(
+                                BulkPushEventWithMetadata(
+                                    key=cls.event,
+                                    payload=cls.input(
+                                        url=t['url'],
+                                        task_id=task_id,
+                                        book_id=t['book_id']
+                                    ).model_dump(),
+                                    additional_metadata={
+                                        'customer': cls.customer,
+                                        'site': cls.site,
+                                        'url': t['url'],
+                                        'hash': cls._task_hash(task_id, t['url']),
+                                        'task_id': task_id,
+                                    }
+                                )
                             )
-                        )
 
-                await hatchet.event.aio_bulk_push(
-                    events=events
-                )
+                    await hatchet.event.aio_bulk_push(
+                        events=events
+                    )
 
                 print(f'\ntask_id: {task_id}')
                 return

@@ -10,7 +10,7 @@ from interfaces import InputLitresPartnersBook
 import settings
 
 
-async def save_book_mongo(input: InputLitresPartnersBook, book: dict[str, Any]):
+async def save_book_mongo(input: InputLitresPartnersBook, site:str, book: dict[str, Any]):
     if settings.DEBUG:
         return
 
@@ -19,7 +19,7 @@ async def save_book_mongo(input: InputLitresPartnersBook, book: dict[str, Any]):
 
     unique_key = {
         'book_id': input.book_id,
-        'site': input.site,
+        'site': site,
         'url': input.url
     }
 
