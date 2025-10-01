@@ -14,6 +14,8 @@ class AvidreadersRu(BaseLitresPartnersWorkflow):
     input = InputLitresPartnersBook
     output = Output
 
+    execution_timeout_sec=60
+
     url_patern = r'^https:\/\/avidreaders\.ru\/book\/[\w-]+\.html$'
 
     @classmethod
