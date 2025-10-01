@@ -89,7 +89,9 @@ class ZahlebMeItem(BaseLivelibWorkflow):
                 book['annotation'] = annotation
 
             if not await db.check_book_have_cover(page.url):
-                if img_src := await page.get_attribute('img[class^="StoryInfoCoverImage_storyCoverImageMain"]', 'src', timeout=2_000):
+                img_cover_locator = page.locator('img[class^="StoryInfoCoverImage_storyCoverImageMain"]')
+                if await img_cover_locator.count() > 0:
+                    img_src = await img_cover_locator.get_attribute('src', timeout=2_000)
                     if img_name := await save_cover(page, img_src, timeout=10_000):
                         book['coverImage'] = img_name
 
