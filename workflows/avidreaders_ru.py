@@ -19,7 +19,7 @@ class AvidreadersRu(BaseLitresPartnersWorkflow):
     async def task(cls, input: InputLitresPartnersBook, page: Page) -> Output:
         resp = await page.goto(
             input.url,
-            wait_until='domcontentloaded',
+            wait_until='networkidle',
         )
 
         if not (200 <= resp.status < 400):
@@ -27,6 +27,10 @@ class AvidreadersRu(BaseLitresPartnersWorkflow):
                 result='error',
                 data={'status': resp.status},
             )
+
+        recaptcha_locator = page.frame_locator('[title="reCAPTCHA"]').locator('.rc-anchor-center-item')
+        if await recaptcha_locator.count() > 0:
+            await recaptcha_locator.click()
 
         await page.wait_for_selector('h1')
 
@@ -51,6 +55,6 @@ class AvidreadersRu(BaseLitresPartnersWorkflow):
         )
 
 if __name__ == '__main__':
-    AvidreadersRu.run_sync()
+    # AvidreadersRu.run_sync()
 
     AvidreadersRu.debug_sync('https://avidreaders.ru/book/predel-pogruzheniya.html')
