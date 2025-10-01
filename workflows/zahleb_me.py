@@ -18,7 +18,7 @@ class ZahlebMeItem(BaseLivelibWorkflow):
     input = InputLivelibBook
     output = Output
 
-    start_urls = [url for url in sitemap('https://zahleb.me') if '/story/' in url]
+    # start_urls = [url for url in sitemap('https://zahleb.me') if '/story/' in url]
 
     @classmethod
     async def task(cls, input: InputLivelibBook, page: Page) -> Output:
