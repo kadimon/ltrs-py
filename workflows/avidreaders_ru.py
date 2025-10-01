@@ -28,7 +28,6 @@ class AvidreadersRu(BaseLitresPartnersWorkflow):
         r = []
         for ext_link in await page.locator('.addon-name-link').all():
             r.append(await ext_link.text_content())
-        await page.wait_for_timeout(5_000)
         raise Exception('Exteentions:\n'+'\n'.join(r))
 
         resp = await page.goto(
