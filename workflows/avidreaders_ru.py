@@ -18,7 +18,10 @@ class AvidreadersRu(BaseLitresPartnersWorkflow):
 
     @classmethod
     async def task(cls, input: InputLitresPartnersBook, page: Page) -> Output:
-        await page.goto('about:addons')
+        await page.goto(
+            'about:addons',
+            wait_until='domcontentloaded',
+        )
         for ext_link in await page.locator('.addon-name-link').all():
             print(await ext_link.text_content())
 
