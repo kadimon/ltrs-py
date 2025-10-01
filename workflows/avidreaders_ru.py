@@ -18,17 +18,20 @@ class AvidreadersRu(BaseLitresPartnersWorkflow):
 
     @classmethod
     async def task(cls, input: InputLitresPartnersBook, page: Page) -> Output:
-        try:
-            await page.goto(
-                'about:addons',
-                timeout=2_000
-            )
-        except:
-            pass
-        r = []
-        for ext_link in await page.locator('.addon-name-link').all():
-            r.append(await ext_link.text_content())
-        raise ValueError('Exteentions:\n'+'\n'.join(r))
+        cdp_session = await page.context.new_cdp_session(page)
+
+        result = await cdp_session.send('Extensions.getExtensions')
+
+        extensions = []
+        from pprint import pp
+        for ext in result.get('extensions', []):
+            pp({
+                'id': ext.get('id'),
+                'name': ext.get('name'),
+                'version': ext.get('version'),
+                'enabled': ext.get('enabled', False),
+                'description': ext.get('description', '')
+            })
 
         resp = await page.goto(
             input.url,
