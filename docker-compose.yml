@@ -9,7 +9,7 @@ services:
 
     volumes:
       - /home/dima/scrape_sessions/${SERVER}_${SESSION}:/app/profileDir
-      - /home/dima/extentions:/app/profileDir/extentions
+      - /home/dima/extensions:/app/profileDir/extensions
       - ${COVERS_DIR}:/app/data_files/covers
 
     environment:

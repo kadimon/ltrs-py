@@ -18,21 +18,6 @@ class AvidreadersRu(BaseLitresPartnersWorkflow):
 
     @classmethod
     async def task(cls, input: InputLitresPartnersBook, page: Page) -> Output:
-        cdp_session = await page.context.new_cdp_session(page)
-
-        result = await cdp_session.send('Extensions.getExtensions')
-
-        extensions = []
-        from pprint import pp
-        for ext in result.get('extensions', []):
-            pp({
-                'id': ext.get('id'),
-                'name': ext.get('name'),
-                'version': ext.get('version'),
-                'enabled': ext.get('enabled', False),
-                'description': ext.get('description', '')
-            })
-
         resp = await page.goto(
             input.url,
             wait_until='domcontentloaded',
