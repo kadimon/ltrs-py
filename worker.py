@@ -73,10 +73,9 @@ def create_task_for_class(wf: BaseLitresPartnersWorkflow) -> Workflow:
                     'xpinstall.signatures.required': False,
                     'extensions.autoDisableScopes': 0,
                     'extensions.enabledScopes': 15,
-                },
-                args=[
-                    '--allow-unsupported-addons'
-                ],
+                    'extensions.update.enabled': False,  # Отключить авто-обновление
+                    'extensions.update.autoUpdateDefault': False,
+                }
             )
 
             page = context.pages[0] if context.pages else await context.new_page()
