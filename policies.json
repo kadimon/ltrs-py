@@ -1,0 +1,10 @@
+{
+  "policies": {
+    "ExtensionSettings": {
+      "capmonser-cloud-ext-fire@zennolab.com": {
+        "installation_mode": "force_installed",
+        "install_url": "file:///app/extensions/capmonster_cloud-1.3.3.xpi"
+      }
+    }
+  }
+}

@@ -69,13 +69,13 @@ def create_task_for_class(wf: BaseLitresPartnersWorkflow) -> Workflow:
                 headless=False,
                 viewport={'width': 1920, 'height': 1080},
                 timeout=10_000,
-                firefox_user_prefs={
-                    'xpinstall.signatures.required': False,
-                    'extensions.autoDisableScopes': 0,
-                    'extensions.enabledScopes': 15,
-                    'extensions.update.enabled': False,  # Отключить авто-обновление
-                    'extensions.update.autoUpdateDefault': False,
-                }
+                # firefox_user_prefs={
+                #     'xpinstall.signatures.required': False,
+                #     'extensions.autoDisableScopes': 0,
+                #     'extensions.enabledScopes': 15,
+                #     'extensions.update.enabled': False,
+                #     'extensions.update.autoUpdateDefault': False,
+                # }
             )
 
             page = context.pages[0] if context.pages else await context.new_page()

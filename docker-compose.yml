@@ -13,6 +13,7 @@ services:
       - ${COVERS_DIR}:/app/data_files/covers
 
     environment:
+      - PLAYWRIGHT_FIREFOX_POLICIES_JSON=/app/policies.json
       - LABELS=${LABELS}
       - PRISMA_URI=${PRISMA_URI}
       - SESSION=${SESSION}

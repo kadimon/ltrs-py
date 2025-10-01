@@ -22,7 +22,8 @@ COPY ./schema.prisma ./
 RUN prisma generate --generator client-py
 
 COPY ./workflows/ ./workflows/
-COPY ./worker.py \
+COPY ./policies.json \
+    ./worker.py \
     ./settings.py \
     ./db.py \
     ./interfaces.py \
