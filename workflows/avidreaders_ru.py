@@ -28,7 +28,7 @@ class AvidreadersRu(BaseLitresPartnersWorkflow):
                 data={'status': resp.status},
             )
 
-        recaptcha_locator = page.frame_locator('[title="reCAPTCHA"]').locator('.rc-anchor-center-item')
+        recaptcha_locator = page.frame_locator('[title="reCAPTCHA"]').locator('.recaptcha-checkbox-border')
         if await recaptcha_locator.count() > 0:
             await recaptcha_locator.click()
 
