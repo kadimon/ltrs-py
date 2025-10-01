@@ -112,7 +112,7 @@ class BaseWorkflow(
     async def debug(cls, url: str, **kwargs) -> None:
         if settings.DEBUG:
             async with async_playwright() as p:
-                browser = await p.firefox.connect(settings.DEBUG_PW_SERVER)
+                browser = await p.chromium.connect(settings.DEBUG_PW_SERVER)
 
                 context = await browser.new_context(
                     proxy={'server': settings.PROXY_URI} if cls.proxy_enable else None,

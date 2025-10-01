@@ -63,14 +63,15 @@ def create_task_for_class(wf: BaseLitresPartnersWorkflow) -> Workflow:
     async def task_function(input: wf.input, ctx: Context) -> wf.output:
 
         async with async_playwright() as p:
-            context = await p.firefox.launch_persistent_context(
+            context = await p.chromium.launch_persistent_context(
                 './profileDir',
                 proxy={'server': settings.PROXY_URI} if wf.proxy_enable else None,
                 headless=False,
                 viewport={'width': 1920, 'height': 1080},
                 timeout=10_000,
                 args=[
-                    f'--load-extension=/extensions/capmonster'  # Путь к распакованному расширению
+                    '--disable-extensions-except=/extensions/capmonster',
+                    '--load-extension=/extensions/capmonster',
                 ]
             )
 
