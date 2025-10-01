@@ -25,8 +25,11 @@ class AvidreadersRu(BaseLitresPartnersWorkflow):
             )
         except:
             pass
+        r = []
         for ext_link in await page.locator('.addon-name-link').all():
-            print(await ext_link.text_content())
+            r.append(await ext_link.text_content())
+        await page.wait_for_timeout(10_000)
+        raise Exception('\n'.join(r))
 
         resp = await page.goto(
             input.url,
