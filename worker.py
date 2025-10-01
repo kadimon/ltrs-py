@@ -70,8 +70,8 @@ def create_task_for_class(wf: BaseLitresPartnersWorkflow) -> Workflow:
                 viewport={'width': 1920, 'height': 1080},
                 timeout=10_000,
                 args=[
-                    '--disable-extensions-except=/extensions/capmonster',
-                    '--load-extension=/extensions/capmonster',
+                    '--disable-extensions-except=/app/extensions/capmonster',
+                    '--load-extension=/app/extensions/capmonster',
                 ]
             )
 
