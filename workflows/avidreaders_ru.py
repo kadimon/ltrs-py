@@ -19,7 +19,7 @@ class AvidreadersRu(BaseLitresPartnersWorkflow):
     async def task(cls, input: InputLitresPartnersBook, page: Page) -> Output:
         resp = await page.goto(
             input.url,
-            wait_until='networkidle',
+            wait_until='domcontentloaded',
         )
 
         if not (200 <= resp.status < 400):
