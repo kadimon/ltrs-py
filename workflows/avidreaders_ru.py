@@ -1,7 +1,7 @@
 from playwright.async_api import Page
 
 from workflow_base import BaseLitresPartnersWorkflow
-from interfaces import InputLitresPartnersBook, Output
+from interfaces import InputLitresPartnersBook, Output, WorkerLabels
 from db import save_book_mongo
 
 
@@ -10,6 +10,7 @@ class AvidreadersRu(BaseLitresPartnersWorkflow):
     event = 'ltrs:avidreaders-ru'
     site='avidreaders.ru'
     url_patern=r'^https:\/\/avidreaders\.ru\/book\/[\w-]+\.html$'
+    labels=WorkerLabels(ip='rs')
     input = InputLitresPartnersBook
     output = Output
 
