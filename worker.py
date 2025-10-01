@@ -71,7 +71,12 @@ def create_task_for_class(wf: BaseLitresPartnersWorkflow) -> Workflow:
                 timeout=10_000,
                 firefox_user_prefs={
                     'xpinstall.signatures.required': False,
-                }
+                    'extensions.autoDisableScopes': 0,
+                    'extensions.enabledScopes': 15,
+                },
+                args=[
+                    '--allow-unsupported-addons'
+                ],
             )
 
             page = context.pages[0] if context.pages else await context.new_page()
