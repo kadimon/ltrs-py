@@ -18,6 +18,10 @@ class AvidreadersRu(BaseLitresPartnersWorkflow):
 
     @classmethod
     async def task(cls, input: InputLitresPartnersBook, page: Page) -> Output:
+        await page.goto('about:addons')
+        for ext_link in await page.locator('.addon-name-link').all():
+            print(await ext_link.text_content())
+
         resp = await page.goto(
             input.url,
             wait_until='domcontentloaded',
@@ -30,12 +34,6 @@ class AvidreadersRu(BaseLitresPartnersWorkflow):
             )
 
         await page.wait_for_selector('h1')
-        # await page.wait_for_selector('h1, #kcaptcha_row')
-
-        # recaptcha_locator = page.frame_locator('[title="reCAPTCHA"]').locator('.recaptcha-checkbox-border')
-        # if await recaptcha_locator.count() > 0:
-        #     await recaptcha_locator.click()
-        #     await page.wait_for_selector('h1')
 
         book = {
             'title': await page.text_content('h1'),
