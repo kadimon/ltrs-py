@@ -44,6 +44,6 @@ class KnigavuheOrg(BaseLitresPartnersWorkflow):
         )
 
 if __name__ == '__main__':
-    # KnigavuheOrg.run_sync()
+    KnigavuheOrg.run_sync()
 
     KnigavuheOrg.debug_sync('https://knigavuhe.org/book/13-neschastijj-gerakla/')

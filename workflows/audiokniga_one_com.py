@@ -9,7 +9,7 @@ from db import save_book_mongo
 
 class AudioknigaOneCom(BaseLitresPartnersWorkflow):
     name = 'ltrs-audiokniga-one-com'
-    event = 'ltrs:audiokniga-one.com'
+    event = 'ltrs:audiokniga-one-com'
     site='audiokniga-one.com'
     url_patern=r'^https:\/\/audiokniga-one\.com\/\d+-[\w-]+\.html$'
     input = InputLitresPartnersBook

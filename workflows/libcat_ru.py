@@ -11,7 +11,7 @@ class LibcatRu(BaseLitresPartnersWorkflow):
     name = 'ltrs-libcat-ru'
     event = 'ltrs:libcat-ru'
     site = 'libcat.ru'
-    event = r'^https://libcat\.ru/knigi/[\w-]+/[\w-]+/\d+-[\w-]+\.html$'
+    url_patern = r'^https:\/\/libcat\.ru\/knigi\/[\w-]+\/[\w-]+\/\d+-[\w-]+\.html$'
     input = InputLitresPartnersBook
     output = Output
 
