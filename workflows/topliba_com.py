@@ -11,7 +11,7 @@ class ToplibaCom(BaseLitresPartnersWorkflow):
     name = 'ltrs-topliba-com'
     event = 'ltrs:topliba-com'
     site = 'topliba.com'
-    url_patern=r'^https://topliba\.com/books/\d+$'
+    url_patern = r'^https://topliba\.com/books/\d+$'
     input = InputLitresPartnersBook
     output = Output
 
