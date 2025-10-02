@@ -244,6 +244,7 @@ class BaseLitresPartnersWorkflow(
                 async for search_result in col_yandex.find({'source': cls.site}):
                     book_urls = [position['url'] for position in search_result['results']]
                     book_urls = [url for url in book_urls if re.search(cls.url_patern, url)]
+                    print(book_urls)
 
                     for url in book_urls[:3]:
                         tasks.append({
