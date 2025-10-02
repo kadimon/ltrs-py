@@ -1,3 +1,5 @@
+from urllib.parse import urljoin
+
 from playwright.async_api import Page
 
 from workflow_base import BaseLitresPartnersWorkflow
@@ -28,7 +30,10 @@ class ToplibaCom(BaseLitresPartnersWorkflow):
         }
 
         if links_download := await page.query_selector_all('a.download-btn'):
-            links_download = [await l.get_attribute('href') for l in links_download]
+            links_download = [
+                urljoin(page.url, await l.get_attribute('href'))
+                for l in links_download
+            ]
             book['links-download'] = [l for l in links_download if '/trial/' not in l]
             book['links-litres'] = [l for l in links_download if '/trial/' in l]
 
@@ -52,6 +57,6 @@ class ToplibaCom(BaseLitresPartnersWorkflow):
         )
 
 if __name__ == '__main__':
-    # ToplibaCom.run_sync()
+    ToplibaCom.run_sync()
 
     ToplibaCom.debug_sync('https://topliba.com/books/448594')
