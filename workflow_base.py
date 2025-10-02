@@ -250,7 +250,7 @@ class BaseLitresPartnersWorkflow(
                             'url': url,
                             'book_id': search_result['book_id'],
                         })
-                print(tasks)
+
                 for batch in batched(tasks, 1000):
                     events = []
                     for t in batch:
