@@ -16,8 +16,6 @@ class AvidreadersRu(BaseLitresPartnersWorkflow):
 
     execution_timeout_sec=60
 
-    url_patern = r'^https:\/\/avidreaders\.ru\/book\/[\w-]+\.html$'
-
     @classmethod
     async def task(cls, input: InputLitresPartnersBook, page: Page) -> Output:
         resp = await page.goto(
