@@ -10,7 +10,7 @@ class AvidreadersRu(BaseLitresPartnersWorkflow):
     event = 'ltrs:avidreaders-ru'
     site='avidreaders.ru'
     url_patern=r'^https:\/\/avidreaders\.ru\/book\/[\w-]+\.html$'
-    labels=WorkerLabels(ip='rs')
+    # labels=WorkerLabels(ip='rs')
     input = InputLitresPartnersBook
     output = Output
 
