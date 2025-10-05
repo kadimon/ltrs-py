@@ -137,8 +137,9 @@ async def save_cover(page: Page, cover_url: str, timeout: int = 10_000) -> str |
 
 def sitemap(url: str) -> list[str]:
     tree = sitemap_tree_for_homepage(url, use_robots=False)
+    all_pages = [page.url for page in tree.all_pages()]
 
-    return [page.url for page in tree.all_pages()]
+    return list(set(all_pages))
 
 async def detect_new_tab_url(page: Page, timeout: int = 5000):
     try:

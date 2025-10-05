@@ -32,12 +32,15 @@ class AvidreadersRu(BaseLitresPartnersWorkflow):
                 data={'status': resp.status},
             )
 
-        await page.wait_for_selector('h1')
+        await page.wait_for_selector('h1[itemprop="name"]')
 
         book = {
             'title': await page.text_content('h1'),
-            'author': await page.text_content('.author_wrapper div[itemprop="author"] *[itemprop="name"]'),
         }
+
+        author_locator = page.locator('.author_wrapper div[itemprop="author"] *[itemprop="name"]')
+        if await author_locator.count() > 0:
+            book['author'] = ', '.join([await a.text_content() for a in await author_locator.all()])
 
         download_button_locator = page.locator('.format_download a')
         if await download_button_locator.count() > 0:
