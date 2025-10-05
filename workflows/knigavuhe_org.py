@@ -29,8 +29,11 @@ class KnigavuheOrg(BaseLitresPartnersWorkflow):
 
         book = {
             'title': await page.text_content('h1 span[itemprop="name"]'),
-            'author': await page.text_content('h1 span[itemprop="author"] a'),
         }
+
+        author_locator = page.locator('h1 span[itemprop="author"] a')
+        if await author_locator.count() > 0:
+            book['author'] = ', '.join([await a.text_content() for a in await author_locator.all()])
 
         litres_buton_locator = page.locator('.book_buy_wrap a')
         if await litres_buton_locator.is_visible():
@@ -46,4 +49,4 @@ class KnigavuheOrg(BaseLitresPartnersWorkflow):
 if __name__ == '__main__':
     KnigavuheOrg.run_sync()
 
-    KnigavuheOrg.debug_sync('https://knigavuhe.org/book/13-neschastijj-gerakla/')
+    KnigavuheOrg.debug_sync('https://knigavuhe.org/book/istorii-ot-serjogi-22/')
