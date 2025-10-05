@@ -39,10 +39,15 @@ class AvidreadersRu(BaseLitresPartnersWorkflow):
         download_button_locator = page.locator('.format_download a')
         if await download_button_locator.count() > 0:
             await download_button_locator.first.click()
-            if download := await page.wait_for_event('download', timeout=10_000):
-                if 'litres.ru' in download.url:
-                    book['links-litres'] = [download.url]
-                await download.cancel()
+            download_waiter = page.wait_for_event('download', timeout=10_000)
+            await page.click('.dnld-info')
+            try:
+                if download := await download_waiter:
+                    if 'litres.ru' in download.url:
+                        book['links-litres'] = [download.url]
+                    await download.cancel()
+            except:
+                pass
 
         await save_book_mongo(input, cls.site, book)
 
@@ -54,4 +59,4 @@ class AvidreadersRu(BaseLitresPartnersWorkflow):
 if __name__ == '__main__':
     # AvidreadersRu.run_sync()
 
-    AvidreadersRu.debug_sync('https://avidreaders.ru/book/predel-pogruzheniya.html')
+    AvidreadersRu.debug_sync('https://avidreaders.ru/book/taksi-do-lesa-berendeya.html')
