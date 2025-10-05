@@ -25,7 +25,7 @@ class ReadliNet(BaseLitresPartnersWorkflow):
 
         book = {
             'title': await page.text_content('h1'),
-            'author': await page.text_content('h1~a[href^="/avtor/"]'),
+            'author': await page.text_content('h1~a'),
         }
 
         if links_download := await page.query_selector_all('.download a.download__link[href^="/download.php"]'):
@@ -51,4 +51,4 @@ class ReadliNet(BaseLitresPartnersWorkflow):
 if __name__ == '__main__':
     ReadliNet.run_sync()
 
-    ReadliNet.debug_sync('https://readli.net/neprikayannyiy-2-3/')
+    ReadliNet.debug_sync('https://readli.net/kak-myi-s-vovkoy-istoriya-odnogo-leta/')

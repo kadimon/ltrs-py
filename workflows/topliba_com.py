@@ -26,7 +26,6 @@ class ToplibaCom(BaseLitresPartnersWorkflow):
 
         book = {
             'title': await page.text_content('h1'),
-            'author': await page.text_content('h2.book-author'),
         }
 
         if links_download := await page.query_selector_all('a.download-btn'):
@@ -59,4 +58,4 @@ class ToplibaCom(BaseLitresPartnersWorkflow):
 if __name__ == '__main__':
     ToplibaCom.run_sync()
 
-    ToplibaCom.debug_sync('https://topliba.com/books/448594')
+    ToplibaCom.debug_sync('https://topliba.com/books/652983')

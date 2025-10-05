@@ -74,6 +74,6 @@ class AvidreadersRu(BaseLitresPartnersWorkflow):
         )
 
 if __name__ == '__main__':
-    # AvidreadersRu.run_sync()
+    AvidreadersRu.run_sync()
 
-    AvidreadersRu.debug_sync('https://avidreaders.ru/book/goryaschie-serdca-sbornik-stihotvoreniy.html')
+    AvidreadersRu.debug_sync('https://avidreaders.ru/book/put-hudozhnika.html')
