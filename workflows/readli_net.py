@@ -25,8 +25,11 @@ class ReadliNet(BaseLitresPartnersWorkflow):
 
         book = {
             'title': await page.text_content('h1'),
-            'author': await page.text_content('h1~a'),
         }
+
+        author_locator = page.locator('h1~a')
+        if await author_locator.count() > 0:
+            book['author'] = ', '.join([await a.text_content() for a in await author_locator.all()])
 
         if links_download := await page.query_selector_all('.download a.download__link[href^="/download.php"]'):
             book['links-download'] = [
@@ -51,4 +54,4 @@ class ReadliNet(BaseLitresPartnersWorkflow):
 if __name__ == '__main__':
     ReadliNet.run_sync()
 
-    ReadliNet.debug_sync('https://readli.net/kak-myi-s-vovkoy-istoriya-odnogo-leta/')
+    ReadliNet.debug_sync('https://readli.net/kogda-nitsshe-plakal/')
