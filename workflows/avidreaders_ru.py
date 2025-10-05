@@ -1,8 +1,11 @@
+import asyncio
+
 from playwright.async_api import Page
 
 from workflow_base import BaseLitresPartnersWorkflow
 from interfaces import InputLitresPartnersBook, Output, WorkerLabels
 from db import save_book_mongo
+from utils import detect_new_tab_url
 
 
 class AvidreadersRu(BaseLitresPartnersWorkflow):
@@ -38,16 +41,30 @@ class AvidreadersRu(BaseLitresPartnersWorkflow):
 
         download_button_locator = page.locator('.format_download a')
         if await download_button_locator.count() > 0:
-            await download_button_locator.first.click()
+            new_tab_url_waiter = detect_new_tab_url(page)
             download_waiter = page.wait_for_event('download', timeout=10_000)
-            await page.click('.dnld-info')
+
+            await download_button_locator.first.click()
+
+            new_tab_url = None
+            download = None
             try:
-                if download := await download_waiter:
-                    if 'litres.ru' in download.url:
-                        book['links-litres'] = [download.url]
-                    await download.cancel()
-            except:
+                new_tab_url, download = await asyncio.gather(
+                    new_tab_url_waiter,
+                    download_waiter,
+                    return_exceptions=True
+                )
+            except Exception:
                 pass
+
+            if isinstance(new_tab_url, str) and 'litres.ru' in new_tab_url:
+                book['links-litres'] = [new_tab_url]
+            elif hasattr(download, 'url') and 'litres.ru' in download.url:
+                book['links-litres'] = [download.url]
+                try:
+                    await download.cancel()
+                except Exception:
+                    pass
 
         await save_book_mongo(input, cls.site, book)
 
@@ -59,4 +76,4 @@ class AvidreadersRu(BaseLitresPartnersWorkflow):
 if __name__ == '__main__':
     # AvidreadersRu.run_sync()
 
-    AvidreadersRu.debug_sync('https://avidreaders.ru/book/taksi-do-lesa-berendeya.html')
+    AvidreadersRu.debug_sync('https://avidreaders.ru/book/goryaschie-serdca-sbornik-stihotvoreniy.html')

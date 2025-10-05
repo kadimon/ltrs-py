@@ -139,3 +139,12 @@ def sitemap(url: str) -> list[str]:
     tree = sitemap_tree_for_homepage(url, use_robots=False)
 
     return [page.url for page in tree.all_pages()]
+
+async def detect_new_tab_url(page: Page, timeout: int = 5000):
+    try:
+        new_page = await page.context.wait_for_event('page', timeout=timeout)
+        # ждём, пока вкладка завершит навигацию (все редиректы)
+        await new_page.wait_for_event('framenavigated', timeout=timeout)
+        return new_page.url
+    except Exception:
+        return None
