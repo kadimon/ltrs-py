@@ -17,6 +17,7 @@ import pandas as pd
 
 import interfaces
 import settings
+from db import DbSamizdatPrisma
 
 
 root_logger = logging.getLogger('hatchet')
@@ -293,6 +294,8 @@ class BaseLivelibWorkflow(
     input: Type[interfaces.InputLivelibBook]
     output: Type[interfaces.Output]
 
+    item_wf: Optional[Type["BaseLivelibWorkflow"]]
+
     customer = 'livelib'
 
     @classmethod
@@ -301,6 +304,17 @@ class BaseLivelibWorkflow(
             result='debug',
             data=input.model_dump()
         )
+
+    @classmethod
+    async def run(cls) -> None:
+        if settings.DEBUG:
+            return
+
+        if cls.item_wf:
+            async with DbSamizdatPrisma() as db:
+                cls.start_urls = await db.get_all_books_urls(cls.item_wf.site) + cls.start_urls
+
+        await super().run()
 
 @dataclass
 class BaseLtrsSeWorkflow(

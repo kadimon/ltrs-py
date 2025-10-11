@@ -44,7 +44,7 @@ class ToplibaCom(BaseLitresPartnersWorkflow):
             reader_litres_locator = page.locator('div.litres_fragment_body iframe')
             await reader_litres_locator.wait_for(state='attached', timeout=10_000)
             if iframe_src := await reader_litres_locator.get_attribute('src'):
-                book['reader-litres'] = 'https:' + iframe_src if iframe_src.startswith('//') else iframe_src
+                book['reader-litres'] = ['https:' + iframe_src if iframe_src.startswith('//') else iframe_src]
         except:
             pass
 
