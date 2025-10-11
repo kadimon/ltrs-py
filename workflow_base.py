@@ -294,7 +294,7 @@ class BaseLivelibWorkflow(
     input: Type[interfaces.InputLivelibBook]
     output: Type[interfaces.Output]
 
-    item_wf: Optional[Type["BaseLivelibWorkflow"]]
+    item_wf: Optional[Type["BaseLivelibWorkflow"]] = None
 
     customer = 'livelib'
 
