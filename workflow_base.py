@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Type, TypeVar, ClassVar, Generic, Optional
+from typing import Type, TypeVar, ClassVar, Generic, Optional, Literal
 import asyncio
 from pprint import pp
 import hashlib
@@ -66,12 +66,14 @@ class BaseWorkflow(
         )
 
     @classmethod
-    async def run(cls) -> None:
+    async def run(cls, user_check: Literal['y', 'n'] | None = None) -> None:
         if settings.DEBUG:
             return
 
         while True:
-            user_check = input(f'Ты уверен что хочешь запустить {cls.site}? Y/N:')
+            if not user_check:
+                user_check = input(f'Ты уверен что хочешь запустить {cls.site}? Y/N:')
+
             if user_check.lower() == 'y':
                 task_id = cls.site + settings.START_TIME
 
@@ -227,12 +229,13 @@ class BaseLitresPartnersWorkflow(
         )
 
     @classmethod
-    async def run(cls) -> None:
+    async def run(cls, user_check: Literal['y', 'n'] | None = None) -> None:
         if settings.DEBUG:
             return
 
         while True:
-            user_check = input(f'Ты уверен что хочешь запустить {cls.site}? Y/N:')
+            if not user_check:
+                user_check = input(f'Ты уверен что хочешь запустить {cls.site}? Y/N:')
             if user_check.lower() == 'y':
                 task_id = cls.site + settings.START_TIME
 
@@ -306,17 +309,20 @@ class BaseLivelibWorkflow(
         )
 
     @classmethod
-    async def run(cls) -> None:
+    async def run(cls, user_check: Literal['y', 'n'] | None = None) -> None:
         if settings.DEBUG:
             return
+
+        if not user_check:
+            user_check = input(f'Ты уверен что хочешь запустить {cls.site}? Y/N:')
 
         if cls.item_wf:
             async with DbSamizdatPrisma() as db:
                 cls.item_wf.start_urls = await db.get_all_books_urls(cls.item_wf.site)
 
-            await cls.item_wf.run()
+            await cls.item_wf.run(user_check)
 
-        await super().run()
+        await super().run(user_check)
 
 @dataclass
 class BaseLtrsSeWorkflow(
@@ -349,12 +355,13 @@ class BaseLtrsSeWorkflow(
         )
 
     @classmethod
-    async def run(cls) -> None:
+    async def run(cls, user_check: Literal['y', 'n'] | None = None) -> None:
         if settings.DEBUG:
             return
 
         while True:
-            user_check = input(f'Ты уверен что хочешь запустить {cls.site}? Y/N:')
+            if not user_check:
+                user_check = input(f'Ты уверен что хочешь запустить {cls.site}? Y/N:')
             task_id = input(f'Введи имя задачи:')
             if user_check.lower() == 'y':
                 client = AsyncMongoClient(settings.MONGO_URI)
