@@ -24,7 +24,8 @@ class RemangaOrgItem(BaseLivelibWorkflow):
         resp = await page.goto(input.url, wait_until='domcontentloaded')
 
         async with DbSamizdatPrisma() as db:
-            if resp.status == 404:
+            error_title_locator = page.locator("div.message-info__title")
+            if resp.status == 404 or await error_title_locator.count() > 0:
                 await db.mark_book_deleted(page.url, cls.site)
                 return Output(result='error', data={'status': resp.status})
 
@@ -292,6 +293,6 @@ class RemangaOrgListing(BaseLivelibWorkflow):
         return Output(result='done', data=stats)
 
 if __name__ == '__main__':
-    # RemangaOrgListing.run_sync() # Запуск листинга требует обработки JSON, а не веб-страниц
+    RemangaOrgListing.run_sync()
     RemangaOrgListing.debug_sync(RemangaOrgListing.start_urls[0])
     RemangaOrgItem.debug_sync('https://remanga.org/manga/enten/main')

@@ -383,7 +383,6 @@ class BaseLtrsSeWorkflow(
                                 query = query,
                                 book_id=int(row['ID арта']),
                             )
-                            print(f'url started: {url}')
 
                 print(f'\ntask_id: {task_id}')
                 return
