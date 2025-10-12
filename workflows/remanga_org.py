@@ -243,7 +243,7 @@ class RemangaOrgListing(BaseLivelibWorkflow):
     item_wf = RemangaOrgItem
 
     concurrency=3
-    execution_timeout_sec=300
+    execution_timeout_sec=1800
     backoff_max_seconds=30
     backoff_factor=2
 
