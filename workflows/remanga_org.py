@@ -184,6 +184,8 @@ class RemangaOrgItem(BaseLivelibWorkflow):
 
             chapters_count_locator = tab_metrics_locator.filter(
                 has_text=re.compile(r'Главы')
+            ).filter(
+                has_text=re.compile(r'\d+')
             )
             if await chapters_count_locator.count() > 0:
                 chapters_match = re.search(r'\d+', await chapters_count_locator.text_content())
@@ -191,6 +193,8 @@ class RemangaOrgItem(BaseLivelibWorkflow):
 
             comments_count_locator = tab_metrics_locator.filter(
                 has_text=re.compile(r'Обсуждения')
+            ).filter(
+                has_text=re.compile(r'\d+')
             )
             if await comments_count_locator.count() > 0:
                 comments_match = re.search(r'\d+', await comments_count_locator.text_content())
