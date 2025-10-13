@@ -218,13 +218,13 @@ class GlobalcomixComListing(BaseLivelibWorkflow):
                     stats['new-page-links'] += 1
 
         for item in data['payload']['results']:
-            if await cls.item_wf.crawl(item['url'], input.task_id):
+            if await GlobalcomixComItem.crawl(item['url'], input.task_id):
                 stats['new-items-links'] += 1
 
         return Output(result='done', data=stats)
 
 if __name__ == '__main__':
     GlobalcomixComListing.run_sync()
-    # GlobalcomixComListing.debug_sync(GlobalcomixComListing.start_urls[0])
+    GlobalcomixComListing.debug_sync(GlobalcomixComListing.start_urls[0])
     # GlobalcomixComItem.debug_sync('https://globalcomix.com/c/absolute-batman-2024-')
-    GlobalcomixComItem.debug_sync('https://globalcomix.com/c/batman-superman-world-s-finest-2022-')
+    # GlobalcomixComItem.debug_sync('https://globalcomix.com/c/batman-superman-world-s-finest-2022-')
