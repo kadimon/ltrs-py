@@ -274,7 +274,7 @@ class RemangaOrgListing(BaseLivelibWorkflow):
         stats = {'new-page-links': 0, 'new-items-links': 0}
 
         # Обработка пагинации как в JS файле
-        if '&page=1' in page.url:
+        if page.url.endswith('&page=1'):
             for page_num in range(2, 1001): # Страницы со 2 по 1000
                 next_page_url = page.url.replace('&page=1', f'&page={page_num}')
                 if await cls.crawl(next_page_url, input.task_id):
