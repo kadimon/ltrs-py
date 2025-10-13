@@ -87,7 +87,7 @@ class GlobalcomixComItem(BaseLivelibWorkflow):
 
             age_rating_locator = page.locator('.sidebar-title').filter(
                 has_text=re.compile(r'Audience')
-            ).locator('.label').filter(
+            ).locator('+ .label').filter(
                 has_text=re.compile(r'\d+')
             )
             if await age_rating_locator.count() > 0:
@@ -222,6 +222,6 @@ class GlobalcomixComListing(BaseLivelibWorkflow):
 
 if __name__ == '__main__':
     GlobalcomixComListing.run_sync()
-    GlobalcomixComListing.debug_sync(GlobalcomixComListing.start_urls[0])
-    GlobalcomixComItem.debug_sync('https://globalcomix.com/c/absolute-batman-2024-')
-    GlobalcomixComItem.debug_sync('https://globalcomix.com/c/moonstone-')
+    # GlobalcomixComListing.debug_sync(GlobalcomixComListing.start_urls[0])
+    # GlobalcomixComItem.debug_sync('https://globalcomix.com/c/absolute-batman-2024-')
+    GlobalcomixComItem.debug_sync('https://globalcomix.com/c/boobs')
