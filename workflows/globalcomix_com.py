@@ -19,7 +19,7 @@ class GlobalcomixComItem(BaseLivelibWorkflow):
     input = InputLivelibBook
     output = Output
 
-    execution_timeout_sec = 60
+    execution_timeout_sec = 240
 
     @classmethod
     async def task(cls, input: InputLivelibBook, page: Page) -> Output:
@@ -31,6 +31,7 @@ class GlobalcomixComItem(BaseLivelibWorkflow):
                 return Output(result='error', data={'status': resp.status})
 
             await page.wait_for_selector('h1.title')
+
 
             serie = {
                 'series': [await page.text_content('h1.title')],
@@ -183,7 +184,7 @@ class GlobalcomixComListing(BaseLivelibWorkflow):
     # item_wf = GlobalcomixComItem
 
     concurrency=3
-    execution_timeout_sec=1800
+    execution_timeout_sec=3600
     backoff_max_seconds=30
     backoff_factor=2
 
