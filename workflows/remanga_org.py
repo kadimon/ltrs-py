@@ -276,7 +276,7 @@ class RemangaOrgListing(BaseLivelibWorkflow):
 
         # Обработка пагинации как в JS файле
         url_data = furl(page.url)
-        if url_data.args['page'] == 1:
+        if url_data.args['page'] == '1':
             for page_num in range(2, 1001): # Страницы со 2 по 1000
                 url_data.args['page'] = page_num
                 if await cls.crawl(url_data.url, input.task_id):

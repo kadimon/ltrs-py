@@ -178,7 +178,7 @@ class GlobalcomixComListing(BaseLivelibWorkflow):
 
     input = InputLivelibBook
     output = Output
-    item_wf = GlobalcomixComItem
+    # item_wf = GlobalcomixComItem
 
     concurrency=3
     execution_timeout_sec=1800
