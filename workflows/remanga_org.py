@@ -24,7 +24,7 @@ class RemangaOrgItem(BaseLivelibWorkflow):
         resp = await page.goto(input.url, wait_until='domcontentloaded')
 
         async with DbSamizdatPrisma() as db:
-            error_title_locator = page.locator("div.message-info__title")
+            error_title_locator = page.locator('[data-sentry-element="ReText"]')
             if resp.status == 404 or await error_title_locator.count() > 0:
                 await db.mark_book_deleted(page.url, cls.site)
                 return Output(result='error', data={'status': resp.status})
