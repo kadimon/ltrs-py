@@ -1,11 +1,10 @@
 import re
 from urllib.parse import urljoin
 from datetime import datetime
-import asyncio
 
-from playwright.async_api import Page, Locator
+from playwright.async_api import Page
+from furl import furl
 
-# Эти импорты оставлены как в примере, предполагается, что они существуют в вашем проекте
 from workflow_base import BaseLivelibWorkflow
 from interfaces import InputLivelibBook, Output
 from db import DbSamizdatPrisma
@@ -43,9 +42,7 @@ class RemangaOrgItem(BaseLivelibWorkflow):
             metrics = {'bookUrl': page.url}
 
             if not await db.check_book_exist(page.url):
-                title_locator = page.locator("p.cs-layout-title-text")
-                if await title_locator.count() > 0:
-                    book['title'] = await title_locator.text_content()
+                book['title'] = await page.text_content('p.cs-layout-title-text')
                 await db.create_book(book)
 
             titles_other_locator = page.locator('p[data-testid="title-alt-name-item"]')
@@ -154,7 +151,7 @@ class RemangaOrgItem(BaseLivelibWorkflow):
                 votes_match = re.search(votes_regex, await votes_locator.text_content())
                 metrics['votes'] = votes_match.group(1)
 
-            badge_metrics_regex = r'\d+(M|K)?'
+            badge_metrics_regex = r'[\d\.\,]+(M|K)?'
             badge_metrics_locator = page.locator('div[data-slot="badge"] p').filter(
                 has_text=re.compile(badge_metrics_regex)
             )
@@ -278,21 +275,18 @@ class RemangaOrgListing(BaseLivelibWorkflow):
         stats = {'new-page-links': 0, 'new-items-links': 0}
 
         # Обработка пагинации как в JS файле
-        if page.url.endswith('&page=1'):
+        url_data = furl(page.url)
+        if url_data.args['page'] == 1:
             for page_num in range(2, 1001): # Страницы со 2 по 1000
-                next_page_url = page.url.replace('&page=1', f'&page={page_num}')
-                if await cls.crawl(next_page_url, input.task_id):
+                url_data.args['page'] = page_num
+                if await cls.crawl(url_data.url, input.task_id):
                     stats['new-page-links'] += 1
 
-        # Обработка ссылок на произведения
-        content = data.get('content', [])
-        if content:
-            for item in content:
-                if 'dir' in item:
-                    book_url = f"https://remanga.org/manga/{item['dir']}/main"
-                    # Ставим в очередь задачу для RemangaOrgItem
-                    if await cls.item_wf.crawl(book_url, input.task_id):
-                        stats['new-items-links'] += 1
+            for item in data['content']:
+                book_url = f"https://remanga.org/manga/{item['dir']}/main"
+                # Ставим в очередь задачу для RemangaOrgItem
+                if await cls.item_wf.crawl(book_url, input.task_id):
+                    stats['new-items-links'] += 1
 
         return Output(result='done', data=stats)
 

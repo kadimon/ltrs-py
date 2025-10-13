@@ -102,11 +102,11 @@ class DcComItem(BaseLivelibWorkflow):
             book = {
                 'url': page.url,
                 'source': cls.site,
-            };
+            }
 
             metrics = {
                 'bookUrl': page.url,
-            };
+            }
 
             if not await db.check_book_exist(page.url):
                 book['title'] = await page.text_content('h1')
@@ -118,7 +118,7 @@ class DcComItem(BaseLivelibWorkflow):
                 has_text=re.compile(r'Writer:|Written by:')
             ).locator('a')
             if await authors_locator.count() > 0:
-                book['author'] = await authors_locator.first.text_content()
+                book['author'] = ', '.join([await a.text_content() for a in await authors_locator.all()])
                 # Все авторы с текстом и ссылками
                 book['authors_data'] = []
                 for a in await authors_locator.all():
