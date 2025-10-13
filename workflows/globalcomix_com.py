@@ -19,6 +19,8 @@ class GlobalcomixComItem(BaseLivelibWorkflow):
     input = InputLivelibBook
     output = Output
 
+    execution_timeout_sec = 60
+
     @classmethod
     async def task(cls, input: InputLivelibBook, page: Page) -> Output:
         resp = await page.goto(input.url, wait_until='domcontentloaded')
@@ -224,4 +226,4 @@ if __name__ == '__main__':
     GlobalcomixComListing.run_sync()
     # GlobalcomixComListing.debug_sync(GlobalcomixComListing.start_urls[0])
     # GlobalcomixComItem.debug_sync('https://globalcomix.com/c/absolute-batman-2024-')
-    GlobalcomixComItem.debug_sync('https://globalcomix.com/c/boobs')
+    GlobalcomixComItem.debug_sync('https://globalcomix.com/c/batman-superman-world-s-finest-2022-')
