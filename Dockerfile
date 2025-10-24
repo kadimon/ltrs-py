@@ -11,6 +11,8 @@ RUN pip install playwright \
     pymongo \
     dateparser \
     pillow \
+    puremagic \
+    aiobotocore \
     furl \
     pandas \
     ultimate-sitemap-parser \

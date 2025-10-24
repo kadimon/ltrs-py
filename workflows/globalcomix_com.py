@@ -189,7 +189,14 @@ class GlobalcomixComListing(BaseLivelibWorkflow):
     backoff_factor=2
 
     start_urls = [
-        'https://api.globalcomix.com/v1/comics?p=1'
+        'https://api.globalcomix.com/v1/comics?p=1',
+        'https://api.globalcomix.com/v1/comics?sd=7&p=1',
+        'https://api.globalcomix.com/v1/comics?sd=90&p=1',
+        'https://api.globalcomix.com/v1/comics?sd=365&p=1',
+        'https://api.globalcomix.com/v1/comics?comic_type_id=1&p=1',
+        'https://api.globalcomix.com/v1/comics?comic_type_id=2&p=1',
+        'https://api.globalcomix.com/v1/comics?comic_type_id=3&p=1',
+        'https://api.globalcomix.com/v1/comics?comic_type_id=4&p=1',
     ]
 
     @classmethod
@@ -208,7 +215,10 @@ class GlobalcomixComListing(BaseLivelibWorkflow):
 
         stats = {'new-page-links': 0, 'new-items-links': 0}
 
-        # Обработка пагинации как в JS файле
+        for item in data['payload']['results']:
+            if await GlobalcomixComItem.crawl(item['url'], input.task_id):
+                stats['new-items-links'] += 1
+
         url_data = furl(input.url)
         if url_data.args['p'] == '1':
             total_pages = int(data['payload']['pagination']['total_pages'])
@@ -216,10 +226,6 @@ class GlobalcomixComListing(BaseLivelibWorkflow):
                 url_data.args['p'] = page_num
                 if await cls.crawl(url_data.url, input.task_id):
                     stats['new-page-links'] += 1
-
-        for item in data['payload']['results']:
-            if await GlobalcomixComItem.crawl(item['url'], input.task_id):
-                stats['new-items-links'] += 1
 
         return Output(result='done', data=stats)
 

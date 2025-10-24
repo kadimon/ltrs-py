@@ -1,110 +1,17 @@
-import asyncio
-from pprint import pp
-import logging
 from urllib.parse import urljoin
 from pathlib import Path
 import hashlib
-from datetime import datetime, timedelta, timezone
+from io import BytesIO
 
-from pydantic import BaseModel
-from playwright.async_api import async_playwright, Page
-from hatchet_sdk import Hatchet, ClientConfig, PushEventOptions, V1TaskStatus
+from playwright.async_api import Page
 from PIL import Image
+import puremagic
+from furl import furl
+from aiobotocore.session import get_session
 from usp.tree import sitemap_tree_for_homepage
 
-from workflow_base import BaseWorkflow
 import settings
 
-root_logger = logging.getLogger('hatchet')
-root_logger.setLevel(logging.WARNING)
-
-hatchet = Hatchet(
-    debug=False,
-    config=ClientConfig(
-        logger=root_logger,
-    ),
-)
-
-# async def run_task(wf: BaseWorkflow, input: BaseModel):
-#     async with async_playwright() as p:
-#         browser = await p.firefox.connect(settings.DEBUG_PW_SERVER)
-
-#         context = await browser.new_context(
-#             proxy={'server': settings.PROXY_URI} if wf.proxy_enable else None,
-#             viewport={'width': 1920, 'height': 1080},
-#         )
-
-#         page = await context.new_page()
-
-#         instance = wf(
-#             name=wf.name,
-#             event=wf.event,
-#             site=wf.site,
-#             input=wf.input,
-#             output=wf.output,
-#         )
-#         result = await instance.task(input, page)
-
-#         await context.close()
-#         await browser.close()
-
-#         pp(result.model_dump())
-
-# def run_task_sync(wf: BaseWorkflow, input: BaseModel):
-#     if settings.DEBUG:
-#         asyncio.run(run_task(wf, input))
-
-
-# async def set_task(input: InputEvent) -> bool:
-#     if settings.DEBUG:
-#         return False
-
-#     hash = hashlib.md5(f'{input.event}{input.url}'.encode()).hexdigest()
-#     if await not_dupe(hash, input.dedupe_hours):
-#         await hatchet.event.aio_push(
-#             input.event,
-#             {
-#                 'url': input.url,
-#                 'site': input.site,
-#             },
-#             options=PushEventOptions(
-#                 additional_metadata={
-#                     'customer': input.customer,
-#                     'site': input.site,
-#                     'url': input.url,
-#                     'hash': hash,
-#                 }
-#             )
-#         )
-#         return True
-#     else:
-#         return False
-
-# def set_task_sync(input: InputEvent):
-#     if settings.RUN:
-#         asyncio.run(set_task(input))
-
-# async def not_dupe(hash: str, hours: int) -> bool:
-#     runs_list = await hatchet.runs.aio_list_with_pagination(
-#         since=datetime.now(timezone.utc) - timedelta(hours=hours),
-#         additional_metadata={
-#             'hash': hash,
-#         },
-#         statuses=[
-#             V1TaskStatus.RUNNING,
-#             V1TaskStatus.QUEUED,
-#             V1TaskStatus.COMPLETED,
-#         ],
-#         limit=1,
-#         # only_tasks=True,
-#     )
-#     # for t in runs_list:
-#     #     print(t.additional_metadata)
-
-#     if runs_list:
-#         return False
-#     else:
-#         return True
 
 async def save_cover(page: Page, cover_url: str, timeout: int = 10_000) -> str | None:
     page_url = page.url
@@ -120,15 +27,31 @@ async def save_cover(page: Page, cover_url: str, timeout: int = 10_000) -> str |
         if not img_resp.ok:
             return None
 
-        content_type = img_resp.headers.get('content-type', 'image/jpeg')
-        extension = content_type.split('/')[-1].lower()
+        img_bytes = await img_resp.body()
 
-        cover_name = f'{hashlib.md5(cover_url.encode()).hexdigest()}.{extension}'
-        cover_path = f'{settings.COVERS_DIR}/{cover_name}'
+        with Image.open(BytesIO(img_bytes)) as _:
+            pass
 
-        Path(cover_path).write_bytes(await img_resp.body())
+        cover_url_data = furl(cover_url)
+        file_check = puremagic.magic_string(img_bytes, cover_url_data.pathstr)[0]
+        extension = file_check.extension
+        mime_type = file_check.mime_type
 
-        Image.open(cover_path)
+        cover_name = hashlib.md5(cover_url.encode()).hexdigest() + extension
+
+        session = get_session()
+        async with session.create_client(
+                's3',
+                endpoint_url=settings.AWS_ENDPOINT_URL,
+                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
+            ) as client:
+                r = await client.put_object(
+                    Bucket=settings.AWS_COVERS_BUCKET,
+                    Key=f'{settings.AWS_COVERS_DIR}/{cover_name}',
+                    Body=img_bytes,
+                    ContentType=mime_type,
+                )
 
         return cover_name
 

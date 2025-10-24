@@ -11,64 +11,6 @@ from db import DbSamizdatPrisma
 from utils import save_cover
 
 
-class DarkhorseComListing(BaseLivelibWorkflow):
-    name = 'livelib-darkhorse-com-listing'
-    event = 'livelib:darkhorse-com-listing'
-    site='darkhorse.com'
-    input = InputLivelibBook
-    output = Output
-
-    concurrency=3
-    execution_timeout_sec=300
-
-    start_urls = [
-        'https://www.darkhorse.com/Comics/Browse/January+1986-December+2026---0-Z/P5wfwkt8',
-    ]
-
-    @classmethod
-    async def task(cls, input: InputLivelibBook, page: Page) -> Output:
-        resp = await page.goto(
-            input.url,
-            wait_until='domcontentloaded',
-        )
-        if not (200 <= resp.status < 400):
-            return Output(
-                result='error',
-                data={'status': resp.status},
-            )
-
-        data = {
-            'new-items-links': 0,
-            'new-page-links': 0,
-        }
-
-        if page.url in cls.start_urls:
-            url_data = furl(page.url)
-
-            last_page_num = await page.locator(
-                    '[id^="go_to_page"] option'
-                ).last.text_content()
-
-            for page_num in range(2, int(last_page_num.strip())+1):
-                url_data.args['page'] = page_num
-                if await cls.crawl(url_data.url, input.task_id):
-                    data['new-page-links'] += 1
-
-        items_links = await page.query_selector_all('.list_items_container a.product_link:nth-child(1)')
-        for i in items_links:
-            item_href = await i.get_attribute('href')
-            item_url = urljoin(page.url, item_href)
-            if await DarkhorseComItem.crawl(item_url, input.task_id):
-                data['new-items-links'] += 1
-
-        if not items_links:
-            raise Exception('ERROR: No Items')
-
-        return Output(
-            result='done',
-            data=data,
-        )
-
 class DarkhorseComItem(BaseLivelibWorkflow):
     name = 'livelib-darkhorse-com-item'
     event = 'livelib:darkhorse-com-item'
@@ -89,17 +31,21 @@ class DarkhorseComItem(BaseLivelibWorkflow):
                 data={'status': resp.status},
             )
 
-        await page.wait_for_selector('h2.title')
-
         async with DbSamizdatPrisma() as db:
+            if resp.status == 404:
+                await db.mark_book_deleted(page.url, cls.site)
+                return Output(result='error', data={'status': resp.status})
+
+            await page.wait_for_selector('h2.title')
+
             book = {
                 'url': page.url,
                 'source': cls.site,
-            };
+            }
 
             metrics = {
                 'bookUrl': page.url,
-            };
+            }
 
             if not await db.check_book_exist(page.url):
                 book['title'] = await page.text_content('h2.title')
@@ -109,7 +55,7 @@ class DarkhorseComItem(BaseLivelibWorkflow):
                 has_text=re.compile(r'Writer:')
             ).locator('+ dd > a')
             if await authors_locator.count() > 0:
-                book['author'] = await authors_locator.first.text_content()
+                book['author'] = ', '.join([await a.text_content() for a in await authors_locator.all()])
                 # Все авторы с текстом и ссылками
                 book['authors_data'] = []
                 for a in await authors_locator.all():
@@ -191,8 +137,68 @@ class DarkhorseComItem(BaseLivelibWorkflow):
                 },
             )
 
+class DarkhorseComListing(BaseLivelibWorkflow):
+    name = 'livelib-darkhorse-com-listing'
+    event = 'livelib:darkhorse-com-listing'
+    site='darkhorse.com'
+    input = InputLivelibBook
+    output = Output
+
+    concurrency=3
+    execution_timeout_sec=300
+    item_wf=DarkhorseComItem
+
+    start_urls = [
+        'https://www.darkhorse.com/Comics/Browse/January+1986-December+2026---0-Z/P5wfwkt8',
+    ]
+
+    @classmethod
+    async def task(cls, input: InputLivelibBook, page: Page) -> Output:
+        resp = await page.goto(
+            input.url,
+            wait_until='domcontentloaded',
+        )
+        if not (200 <= resp.status < 400):
+            return Output(
+                result='error',
+                data={'status': resp.status},
+            )
+
+        data = {
+            'new-items-links': 0,
+            'new-page-links': 0,
+        }
+
+        if page.url in cls.start_urls:
+            url_data = furl(page.url)
+
+            last_page_num = await page.locator(
+                    '[id^="go_to_page"] option'
+                ).last.text_content()
+
+            for page_num in range(2, int(last_page_num.strip())+1):
+                url_data.args['page'] = page_num
+                if await cls.crawl(url_data.url, input.task_id):
+                    data['new-page-links'] += 1
+
+        items_links = await page.query_selector_all('.list_items_container a.product_link:nth-child(1)')
+        for i in items_links:
+            item_href = await i.get_attribute('href')
+            item_url = urljoin(page.url, item_href)
+            if await DarkhorseComItem.crawl(item_url, input.task_id):
+                data['new-items-links'] += 1
+
+        if not items_links:
+            raise Exception('ERROR: No Items')
+
+        return Output(
+            result='done',
+            data=data,
+        )
+
+
 if __name__ == '__main__':
     DarkhorseComListing.run_sync()
 
-    DarkhorseComListing.debug_sync(DarkhorseComListing.start_urls[0])
-    DarkhorseComItem.debug_sync('https://www.darkhorse.com/Comics/3016-672/Dungeons-Dragons-The-Fallbacks-Series-1-3-Uzuri-Variant-Cover')
+    # DarkhorseComListing.debug_sync(DarkhorseComListing.start_urls[0])
+    DarkhorseComItem.debug_sync('https://www.darkhorse.com/Comics/3016-406/Captain-Henry-and-the-Graveyard-of-Time-1')

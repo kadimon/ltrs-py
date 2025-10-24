@@ -10,7 +10,6 @@ services:
     volumes:
       - /home/dima/scrape_sessions/${SERVER}_${SESSION}:/app/profileDir
       - /home/dima/extensions:/app/extensions:ro
-      - ${COVERS_DIR}:/app/data_files/covers
 
     environment:
       - PLAYWRIGHT_FIREFOX_POLICIES_JSON=/app/policies.json
@@ -19,12 +18,14 @@ services:
       - SESSION=${SESSION}
       - PROXY_URI=${PROXY_URI}
       - MONGO_URI=${MONGO_URI}
-      - TZ=${TZ}
-      - SERVER=${SERVER}
       - HATCHET_CLIENT_TOKEN=${HATCHET_CLIENT_TOKEN}
       - HATCHET_CLIENT_TLS_STRATEGY=${HATCHET_CLIENT_TLS_STRATEGY}
-      - PREFECT_API_URL=${PREFECT_API_URL}
-      - COVERS_DIR=/app/data_files/covers
+      - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL}
+      - AWS_COVERS_BUCKET=${AWS_COVERS_BUCKET}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - TZ=${TZ}
+      - SERVER=${SERVER}
 
     logging:
       driver: gelf
