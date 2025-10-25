@@ -89,7 +89,7 @@ class DarkhorseComItem(BaseLivelibWorkflow):
                 book['tags'] = [await g.text_content() for g in await genres_locator.all()]
 
             price_locator = page.locator('.product-meta dd').filter(
-                has_text=re.compile(r'\$[\d+\.]+')
+                has_text=re.compile(r'Price:\s+\$[\d+\.]+')
             )
             if await price_locator.count() > 0:
                 metrics['price'] = re.search(r'[\d+\.]+', await price_locator.text_content())[0]
