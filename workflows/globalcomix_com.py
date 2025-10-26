@@ -75,9 +75,7 @@ class GlobalcomixComItem(BaseLivelibWorkflow):
                         'url': absolute_url
                     })
 
-            publisher_locator = page.locator('.sidebar-credit a.is-block').filter(
-                has_text=re.compile(r'Паблишер')
-            ).locator('a')
+            publisher_locator = page.locator('.sidebar-credit a.is-block')
             if await publisher_locator.count() > 0:
                 name = (await publisher_locator.first.text_content()).strip()
                 url = await publisher_locator.first.get_attribute('href')
@@ -232,5 +230,5 @@ class GlobalcomixComListing(BaseLivelibWorkflow):
 if __name__ == '__main__':
     GlobalcomixComListing.run_sync()
     GlobalcomixComListing.debug_sync(GlobalcomixComListing.start_urls[0])
-    GlobalcomixComItem.debug_sync('https://globalcomix.com/c/absolute-batman-2024-')
-    GlobalcomixComItem.debug_sync('https://globalcomix.com/c/batman-superman-world-s-finest-2022-')
+    GlobalcomixComItem.debug_sync('https://globalcomix.com/c/sonic-the-hedgehog')
+    GlobalcomixComItem.debug_sync('https://globalcomix.com/c/pirates-of-the-hard-nox')
