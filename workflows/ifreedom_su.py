@@ -11,60 +11,6 @@ from db import DbSamizdatPrisma
 from utils import save_cover
 
 
-class IfreedomSuListing(BaseLivelibWorkflow):
-    name = 'livelib-ifreedom-su-listing'
-    event = 'livelib:ifreedom-su-listing'
-    site='ifreedom.su'
-    input = InputLivelibBook
-    output = Output
-
-    concurrency=3
-    execution_timeout_sec=300
-
-    start_urls = [
-        'https://ifreedom.su/vse-knigi/',
-    ]
-
-    @classmethod
-    async def task(cls, input: InputLivelibBook, page: Page) -> Output:
-        resp = await page.goto(
-            input.url,
-            wait_until='domcontentloaded',
-        )
-        if not (200 <= resp.status < 400):
-            return Output(
-                result='error',
-                data={'status': resp.status},
-            )
-
-        data = {
-            'new-items-links': 0,
-            'new-page-links': 0,
-        }
-
-        pages_locator = page.locator('.pagi-block a')
-        for page_locator in await pages_locator.all():
-            if await cls.crawl(
-                urljoin(page.url, await page_locator.get_attribute('href')),
-                input.task_id,
-            ):
-                data['new-page-links'] += 1
-
-        items_links = await page.query_selector_all('.title-home a')
-        for i in items_links:
-            item_href = await i.get_attribute('href')
-            item_url = urljoin(page.url, item_href)
-            if await IfreedomSuItem.crawl(item_url, input.task_id):
-                data['new-items-links'] += 1
-
-        if not items_links:
-            raise Exception('ERROR: No Items')
-
-        return Output(
-            result='done',
-            data=data,
-        )
-
 class IfreedomSuItem(BaseLivelibWorkflow):
     name = 'livelib-ifreedom-su-item'
     event = 'livelib:ifreedom-su-item'
@@ -103,7 +49,9 @@ class IfreedomSuItem(BaseLivelibWorkflow):
 
             authors_str_locator = page.locator('.data-ranobe').filter(
                 has_text=re.compile('Автор')
-            ).locator('.data-value')
+            ).locator('.data-value').filter(
+                has_not_text=re.compile(r'Не указан')
+            )
             if await authors_str_locator.count() > 0:
                 book['author'] = await authors_str_locator.text_content()
 
@@ -124,7 +72,9 @@ class IfreedomSuItem(BaseLivelibWorkflow):
 
             translators_locator = page.locator('.data-ranobe').filter(
                 has_text=re.compile('Переводчик')
-            ).locator('.data-value a')
+            ).locator('.data-value a').filter(
+                has_not_text=re.compile(r'Абонемент на')
+            )
             if await translators_locator.count() > 0:
                 book['translators_data'] = []
                 for a in await translators_locator.all():
@@ -220,8 +170,66 @@ class IfreedomSuItem(BaseLivelibWorkflow):
                 },
             )
 
+
+class IfreedomSuListing(BaseLivelibWorkflow):
+    name = 'livelib-ifreedom-su-listing'
+    event = 'livelib:ifreedom-su-listing'
+    site ='ifreedom.su'
+
+    input = InputLivelibBook
+    output = Output
+    item_wf = IfreedomSuItem
+
+    concurrency=3
+    execution_timeout_sec=300
+
+    start_urls = [
+        'https://ifreedom.su/vse-knigi/',
+    ]
+
+    @classmethod
+    async def task(cls, input: InputLivelibBook, page: Page) -> Output:
+        resp = await page.goto(
+            input.url,
+            wait_until='domcontentloaded',
+        )
+        if not (200 <= resp.status < 400):
+            return Output(
+                result='error',
+                data={'status': resp.status},
+            )
+
+        data = {
+            'new-items-links': 0,
+            'new-page-links': 0,
+        }
+
+        pages_locator = page.locator('.pagi-block a')
+        for page_locator in await pages_locator.all():
+            if await cls.crawl(
+                urljoin(page.url, await page_locator.get_attribute('href')),
+                input.task_id,
+            ):
+                data['new-page-links'] += 1
+
+        items_links = await page.query_selector_all('.title-home a')
+        for i in items_links:
+            item_href = await i.get_attribute('href')
+            item_url = urljoin(page.url, item_href)
+            if await IfreedomSuItem.crawl(item_url, input.task_id):
+                data['new-items-links'] += 1
+
+        if not items_links:
+            raise Exception('ERROR: No Items')
+
+        return Output(
+            result='done',
+            data=data,
+        )
+
+
 if __name__ == '__main__':
     IfreedomSuListing.run_sync()
 
-    IfreedomSuListing.debug_sync(IfreedomSuListing.start_urls[0])
-    IfreedomSuItem.debug_sync('https://ifreedom.su/ranobe/ya-stala-preziraemoj-vnuchkoj-klana-murim/')
+    # IfreedomSuListing.debug_sync(IfreedomSuListing.start_urls[0])
+    IfreedomSuItem.debug_sync('https://ifreedom.su/ranobe/warhammer-40k-fulgrim-moya-nevesta/')
