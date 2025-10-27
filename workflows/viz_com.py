@@ -11,59 +11,6 @@ from db import DbSamizdatPrisma
 from utils import save_cover
 
 
-class VizComListing(BaseLivelibWorkflow):
-    name = 'livelib-viz-com-listing'
-    event = 'livelib:viz-com-listing'
-    site='viz.com'
-    input = InputLivelibBook
-    output = Output
-
-    concurrency=3
-    execution_timeout_sec=300
-
-    start_urls = [
-        'https://www.viz.com/manga-books',
-        'https://www.viz.com/manga-books/genres',
-        'https://www.viz.com/manga-books/series',
-    ]
-
-    @classmethod
-    async def task(cls, input: InputLivelibBook, page: Page) -> Output:
-        resp = await page.goto(
-            input.url,
-            wait_until='domcontentloaded',
-        )
-        if not (200 <= resp.status < 400):
-            return Output(
-                result='error',
-                data={'status': resp.status},
-            )
-
-        data = {
-            'new-items-links': 0,
-            'new-nav-links': 0,
-        }
-
-        nav_link_locator = page.locator('.section_genres a, .section_see_all a, a[href$="all"], .p-cs-tile a ')
-        for gen_locator in await nav_link_locator.all():
-            if await cls.crawl(
-                urljoin(page.url, await gen_locator.get_attribute('href')),
-                input.task_id,
-            ):
-                data['new-nav-links'] += 1
-
-        items_links = await page.query_selector_all('article a[role="presentation"]')
-        for i in items_links:
-            item_href = await i.get_attribute('href')
-            item_url = urljoin(page.url, item_href)
-            if await VizComItem.crawl(item_url, input.task_id):
-                data['new-items-links'] += 1
-
-        return Output(
-            result='done',
-            data=data,
-        )
-
 class VizComItem(BaseLivelibWorkflow):
     name = 'livelib-viz-com-item'
     event = 'livelib:viz-com-item'
@@ -90,22 +37,29 @@ class VizComItem(BaseLivelibWorkflow):
             book = {
                 'url': page.url,
                 'source': cls.site,
-            };
+            }
 
             metrics = {
                 'bookUrl': page.url,
-            };
+            }
 
             if not await db.check_book_exist(page.url):
                 book['title'] = await page.text_content('#purchase_links_block h2')
                 await db.create_book(book)
 
             author_locator = page.locator('.mar-b-md:has(>strong)').filter(
-                has_text=re.compile('Story by')
+                has_text=re.compile(r'Story by|Story and Art by')
             )
             if await author_locator.count() > 0:
-                author = await author_locator.inner_text()
-                book['author'] = author.replace('Story by', '')
+                author = await author_locator.inner_html()
+                book['author'] = author.rsplit('</strong>', 1)[-1]
+
+            artist_locator = page.locator('.mar-b-md:has(>strong)').filter(
+                has_text=re.compile(r'Art by|Story and Art by')
+            )
+            if await artist_locator.count() > 0:
+                artist= await artist_locator.inner_html()
+                book['artist'] = artist.rsplit('</strong>', 1)[-1]
 
             artwork_type_locator = page.locator('.mar-b-md:has(>strong)').filter(
                 has_text=re.compile('Category')
@@ -175,8 +129,64 @@ class VizComItem(BaseLivelibWorkflow):
                 },
             )
 
+
+class VizComListing(BaseLivelibWorkflow):
+    name = 'livelib-viz-com-listing'
+    event = 'livelib:viz-com-listing'
+    site = 'viz.com'
+    input = InputLivelibBook
+    output = Output
+    item_wf = VizComItem
+
+    concurrency=3
+    execution_timeout_sec=300
+
+    start_urls = [
+        'https://www.viz.com/manga-books',
+        'https://www.viz.com/manga-books/genres',
+        'https://www.viz.com/manga-books/series',
+    ]
+
+    @classmethod
+    async def task(cls, input: InputLivelibBook, page: Page) -> Output:
+        resp = await page.goto(
+            input.url,
+            wait_until='domcontentloaded',
+        )
+        if not (200 <= resp.status < 400):
+            return Output(
+                result='error',
+                data={'status': resp.status},
+            )
+
+        data = {
+            'new-items-links': 0,
+            'new-nav-links': 0,
+        }
+
+        nav_link_locator = page.locator('.section_genres a, .section_see_all a, a[href$="all"], .p-cs-tile a ')
+        for gen_locator in await nav_link_locator.all():
+            if await cls.crawl(
+                urljoin(page.url, await gen_locator.get_attribute('href')),
+                input.task_id,
+            ):
+                data['new-nav-links'] += 1
+
+        items_links = await page.query_selector_all('article a[role="presentation"]')
+        for i in items_links:
+            item_href = await i.get_attribute('href')
+            item_url = urljoin(page.url, item_href)
+            if await VizComItem.crawl(item_url, input.task_id):
+                data['new-items-links'] += 1
+
+        return Output(
+            result='done',
+            data=data,
+        )
+
 if __name__ == '__main__':
     VizComListing.run_sync()
 
-    VizComListing.debug_sync(VizComListing.start_urls[0])
-    VizComItem.debug_sync('https://www.viz.com/manga-books/manga/frieren-beyond-journey-s-end-volume-11/product/7994')
+    # VizComListing.debug_sync(VizComListing.start_urls[0])
+    VizComItem.debug_sync('https://www.viz.com/manga-books/manga/kill-blue-volume-4/product/8627')
+    VizComItem.debug_sync('https://www.viz.com/manga-books/manga/naruto-chibi-sasukes-sharingan-legend-volume-3/product/5496')
