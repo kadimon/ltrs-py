@@ -1,5 +1,6 @@
 import re
 from urllib.parse import urljoin
+from typing import Literal
 
 from playwright.async_api import Page
 import dateparser
@@ -9,6 +10,7 @@ from workflow_base import BaseLivelibWorkflow
 from interfaces import InputLivelibBook, Output, WorkerLabels
 from db import DbSamizdatPrisma
 from utils import save_cover, sitemap
+import settings
 
 
 class ZahlebMeItem(BaseLivelibWorkflow):
@@ -17,8 +19,6 @@ class ZahlebMeItem(BaseLivelibWorkflow):
     site='zahleb.me'
     input = InputLivelibBook
     output = Output
-
-    # start_urls = [url for url in sitemap('https://zahleb.me') if '/story/' in url]
 
     @classmethod
     async def task(cls, input: InputLivelibBook, page: Page) -> Output:
@@ -34,6 +34,7 @@ class ZahlebMeItem(BaseLivelibWorkflow):
             )
 
         await page.wait_for_selector('h2.ant-typography')
+        await page.wait_for_timeout(1_000)
 
         age_checkbox_locator = page.locator('.ant-modal-body .ant-checkbox')
         if await age_checkbox_locator.count() > 0:
@@ -44,11 +45,11 @@ class ZahlebMeItem(BaseLivelibWorkflow):
             book = {
                 'url': page.url,
                 'source': cls.site,
-            };
+            }
 
             metrics = {
                 'bookUrl': page.url,
-            };
+            }
 
             if not await db.check_book_exist(page.url):
                 book['title'] = await page.text_content('h2.ant-typography')
@@ -77,6 +78,10 @@ class ZahlebMeItem(BaseLivelibWorkflow):
             if await tags_locator.count() > 0:
                 book['tags'] = [await t.text_content() for t in await tags_locator.all()]
 
+            date_release_locator = page.locator('[class^="LatestEpisodeReleaseTag_tag_content"]')
+            if await date_release_locator.count() > 0:
+                book['date_release'] = dateparser.parse(await date_release_locator.last.text_content())
+
             dates_locator = page.locator('.ant-list-item-meta-description .ant-space-item:nth-of-type(2)')
             if await dates_locator.count() > 0:
                 date_release_str = await dates_locator.first.text_content()
@@ -85,11 +90,16 @@ class ZahlebMeItem(BaseLivelibWorkflow):
                 date_updated_str = await dates_locator.last.text_content()
                 metrics['content_update_date'] = dateparser.parse(date_updated_str, languages=['ru'])
 
+
+            age_rating_locator = page.locator('div[class^="StoryInfo_container"] div[class^="StoryInfo_storyCover"] .ant-avatar-string')
+            if await age_rating_locator.count() > 0:
+                book['age_rating'] = re.search(r'\d+', await age_rating_locator.text_content())[0]
+
             if annotation := await page.inner_text('[class*="StoryInfo_description"]'):
                 book['annotation'] = annotation
 
             if not await db.check_book_have_cover(page.url):
-                img_cover_locator = page.locator('img[class^="StoryInfoCoverImage_storyCoverImageMain"]')
+                img_cover_locator = page.locator('div[class^="StoryInfo_container"] img[class^="StoryInfoCoverImage_storyCoverImageMain"]')
                 if await img_cover_locator.count() > 0:
                     img_src = await img_cover_locator.get_attribute('src', timeout=2_000)
                     if img_name := await save_cover(page, img_src, timeout=10_000):
@@ -131,7 +141,24 @@ class ZahlebMeItem(BaseLivelibWorkflow):
                 },
             )
 
+class ZahlebMeListing(ZahlebMeItem):
+    name = 'livelib-zahleb-me-listing'
+    event = 'livelib:zahleb-me-listing'
+    site='zahleb.me'
+    input = InputLivelibBook
+    output = Output
+    item_wf = ZahlebMeItem
+
+    @classmethod
+    async def run(cls, user_check: Literal['y', 'n'] | None = None) -> None:
+        if settings.DEBUG:
+            return
+
+        cls.start_urls = [url for url in sitemap('https://zahleb.me') if '/story/' in url]
+        await super().run()
+
 if __name__ == '__main__':
-    ZahlebMeItem.run_sync()
+    ZahlebMeListing.run_sync()
 
     ZahlebMeItem.debug_sync('https://zahleb.me/story/vashe-serdtse-vzlomano-qZJBA7XcMs')
+    ZahlebMeItem.debug_sync('https://zahleb.me/story/polovina-shestogo-hGzzpTUMxN/wIWqwq0WMn')
