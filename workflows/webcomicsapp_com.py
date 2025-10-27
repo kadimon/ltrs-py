@@ -11,60 +11,6 @@ from db import DbSamizdatPrisma
 from utils import save_cover
 
 
-class WebcomicsappComListing(BaseLivelibWorkflow):
-    name = 'livelib-webcomicsapp-com-listing'
-    event = 'livelib:webcomicsapp-com-listing'
-    site='webcomicsapp.com'
-    input = InputLivelibBook
-    output = Output
-
-    concurrency=3
-    execution_timeout_sec=300
-
-    start_urls = [
-        'https://www.webcomicsapp.com/genres/All/All/Popular/1',
-    ]
-
-    @classmethod
-    async def task(cls, input: InputLivelibBook, page: Page) -> Output:
-        resp = await page.goto(
-            input.url,
-            wait_until='domcontentloaded',
-        )
-        if not (200 <= resp.status < 400):
-            return Output(
-                result='error',
-                data={'status': resp.status},
-            )
-
-        data = {
-            'new-items-links': 0,
-            'new-page-links': 0,
-        }
-
-        pages_locator = page.locator('.page-list a')
-        for page_locator in await pages_locator.all():
-            if await cls.crawl(
-                urljoin(page.url, await page_locator.get_attribute('href')),
-                input.task_id,
-            ):
-                data['new-page-links'] += 1
-
-        items_links = await page.query_selector_all('.list-item > a')
-        for i in items_links:
-            item_href = await i.get_attribute('href')
-            item_url = urljoin(page.url, item_href)
-            if await WebcomicsappComItem.crawl(item_url, input.task_id):
-                data['new-items-links'] += 1
-
-        if not items_links:
-            raise Exception('ERROR: No Items')
-
-        return Output(
-            result='done',
-            data=data,
-        )
-
 class WebcomicsappComItem(BaseLivelibWorkflow):
     name = 'livelib-webcomicsapp-com-item'
     event = 'livelib:webcomicsapp-com-item'
@@ -144,8 +90,65 @@ class WebcomicsappComItem(BaseLivelibWorkflow):
                 },
             )
 
+
+class WebcomicsappComListing(BaseLivelibWorkflow):
+    name = 'livelib-webcomicsapp-com-listing'
+    event = 'livelib:webcomicsapp-com-listing'
+    site = 'webcomicsapp.com'
+    input = InputLivelibBook
+    output = Output
+    item_wf = WebcomicsappComItem
+
+    concurrency=3
+    execution_timeout_sec=300
+
+    start_urls = [
+        'https://www.webcomicsapp.com/genres/All/All/Popular/1',
+    ]
+
+    @classmethod
+    async def task(cls, input: InputLivelibBook, page: Page) -> Output:
+        resp = await page.goto(
+            input.url,
+            wait_until='domcontentloaded',
+        )
+        if not (200 <= resp.status < 400):
+            return Output(
+                result='error',
+                data={'status': resp.status},
+            )
+
+        data = {
+            'new-items-links': 0,
+            'new-page-links': 0,
+        }
+
+        pages_locator = page.locator('.page-list a')
+        for page_locator in await pages_locator.all():
+            if await cls.crawl(
+                urljoin(page.url, await page_locator.get_attribute('href')),
+                input.task_id,
+            ):
+                data['new-page-links'] += 1
+
+        items_links = await page.query_selector_all('.list-item > a')
+        for i in items_links:
+            item_href = await i.get_attribute('href')
+            item_url = urljoin(page.url, item_href)
+            if await WebcomicsappComItem.crawl(item_url, input.task_id):
+                data['new-items-links'] += 1
+
+        if not items_links:
+            raise Exception('ERROR: No Items')
+
+        return Output(
+            result='done',
+            data=data,
+        )
+
+
 if __name__ == '__main__':
     WebcomicsappComListing.run_sync()
 
     WebcomicsappComListing.debug_sync(WebcomicsappComListing.start_urls[0])
-    WebcomicsappComItem.debug_sync('https://www.webcomicsapp.com/comic/Adore-Me-Exclusively/61934ce08c252b2cf46d1d07')
+    WebcomicsappComItem.debug_sync('https://www.webcomicsapp.com/comic/The-Necromancer-Scourge-Incarnate/67d2567f62661d2b396f4062')
