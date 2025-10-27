@@ -10,62 +10,6 @@ from db import DbSamizdatPrisma
 from utils import save_cover
 
 
-class MangabuffRuListing(BaseLivelibWorkflow):
-    name = 'livelib-mangabuff-ru-listing'
-    event = 'livelib:mangabuff-ru-listing'
-    site='mangabuff.ru'
-    input = InputLivelibBook
-    output = Output
-
-    concurrency=3
-    execution_timeout_sec=300
-    backoff_max_seconds=30
-    backoff_factor=2
-
-    start_urls = [
-        'https://mangabuff.ru/manga',
-    ]
-
-    @classmethod
-    async def task(cls, input: InputLivelibBook, page: Page) -> Output:
-        resp = await page.goto(
-            input.url,
-            wait_until='domcontentloaded',
-        )
-        if not (200 <= resp.status < 400):
-            return Output(
-                result='error',
-                data={'status': resp.status},
-            )
-
-        data = {
-            'new-items-links': 0,
-            'new-page-links': 0,
-        }
-
-        pages_locator = page.locator('.pagination a')
-        for page_locator in await pages_locator.all():
-            if await cls.crawl(
-                urljoin(page.url, await page_locator.get_attribute('href')),
-                input.task_id,
-            ):
-                data['new-page-links'] += 1
-
-        items_links = await page.query_selector_all('a.cards__item')
-        for i in items_links:
-            item_href = await i.get_attribute('href')
-            item_url = urljoin(page.url, item_href)
-            if await MangabuffRuItem.crawl(item_url, input.task_id):
-                data['new-items-links'] += 1
-
-        if not items_links:
-            raise Exception('ERROR: No Items')
-
-        return Output(
-            result='done',
-            data=data,
-        )
-
 class MangabuffRuItem(BaseLivelibWorkflow):
     name = 'livelib-mangabuff-ru-item'
     event = 'livelib:mangabuff-ru-item'
@@ -178,6 +122,63 @@ class MangabuffRuItem(BaseLivelibWorkflow):
                     'metrics': metrics,
                 },
             )
+
+class MangabuffRuListing(BaseLivelibWorkflow):
+    name = 'livelib-mangabuff-ru-listing'
+    event = 'livelib:mangabuff-ru-listing'
+    site='mangabuff.ru'
+    input = InputLivelibBook
+    output = Output
+    item_wf = MangabuffRuItem
+
+    concurrency=3
+    execution_timeout_sec=300
+    backoff_max_seconds=30
+    backoff_factor=2
+
+    start_urls = [
+        'https://mangabuff.ru/manga',
+    ]
+
+    @classmethod
+    async def task(cls, input: InputLivelibBook, page: Page) -> Output:
+        resp = await page.goto(
+            input.url,
+            wait_until='domcontentloaded',
+        )
+        if not (200 <= resp.status < 400):
+            return Output(
+                result='error',
+                data={'status': resp.status},
+            )
+
+        data = {
+            'new-items-links': 0,
+            'new-page-links': 0,
+        }
+
+        pages_locator = page.locator('.pagination a')
+        for page_locator in await pages_locator.all():
+            if await cls.crawl(
+                urljoin(page.url, await page_locator.get_attribute('href')),
+                input.task_id,
+            ):
+                data['new-page-links'] += 1
+
+        items_links = await page.query_selector_all('a.cards__item')
+        for i in items_links:
+            item_href = await i.get_attribute('href')
+            item_url = urljoin(page.url, item_href)
+            if await MangabuffRuItem.crawl(item_url, input.task_id):
+                data['new-items-links'] += 1
+
+        if not items_links:
+            raise Exception('ERROR: No Items')
+
+        return Output(
+            result='done',
+            data=data,
+        )
 
 if __name__ == '__main__':
     MangabuffRuListing.run_sync()
