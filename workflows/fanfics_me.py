@@ -22,7 +22,7 @@ class FanficsMeItem(BaseLivelibWorkflow):
         resp = await page.goto(
             input.url,
             wait_until='domcontentloaded',
-            timeout=20_000,
+            # timeout=20_000,
         )
         if not (200 <= resp.status < 400):
             return Output(
@@ -46,11 +46,7 @@ class FanficsMeItem(BaseLivelibWorkflow):
                 book['title'] = re.sub(r'\([^()]+?\)$', '', await page.text_content('h1'))
                 await db.create_book(book)
 
-            authors_locator = page.locator('.FicHead tr').filter(
-                has=page.locator('tr').filter(
-                    has_text=re.compile(r'Автор:|Авторы:')
-                )
-            ).locator('a[href*="/translations?str="]')
+            authors_locator = page.locator('//*[./*[text()="Автор:"]]//a')
             if await authors_locator.count() > 0:
                 book['author'] = ', '.join([await a.text_content() for a in await authors_locator.all()])
                 # Все авторы с текстом и ссылками
@@ -65,10 +61,9 @@ class FanficsMeItem(BaseLivelibWorkflow):
                         'url': absolute_url
                     })
 
-            translators_locator = page.locator('.FicHead .tr').filter(
-                has_text=re.compile(r'Переводчик:|Переводчики:')
-            ).locator('a[href*="/user"]')
+            translators_locator = page.locator('//*[./*[text()="Переводчик:"]]//a')
             if await translators_locator.count() > 0:
+                book['translate'] = ', '.join([(await t.text_content()).strip() for t in await translators_locator.all()])
                 book['translators_data'] = []
                 for a in await translators_locator.all():
                     href = await a.get_attribute('href')
