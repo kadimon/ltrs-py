@@ -10,62 +10,6 @@ from db import DbSamizdatPrisma
 from utils import save_cover
 
 
-class FanficsMeListing(BaseLivelibWorkflow):
-    name = 'livelib-fanfics-me-listing'
-    event = 'livelib:fanfics-me-listing'
-    site='fanfics.me'
-    input = InputLivelibBook
-    output = Output
-
-    concurrency=3
-    execution_timeout_sec=300
-    backoff_max_seconds=30
-    backoff_factor=2
-
-    start_urls = [
-        'https://fanfics.me/find',
-    ]
-
-    @classmethod
-    async def task(cls, input: InputLivelibBook, page: Page) -> Output:
-        resp = await page.goto(
-            input.url,
-            wait_until='domcontentloaded',
-        )
-        if not (200 <= resp.status < 400):
-            return Output(
-                result='error',
-                data={'status': resp.status},
-            )
-
-        data = {
-            'new-items-links': 0,
-            'new-page-links': 0,
-        }
-
-        pages_locator = page.locator('.paginator a')
-        for page_locator in await pages_locator.all():
-            if await cls.crawl(
-                urljoin(page.url, await page_locator.get_attribute('href')),
-                input.task_id,
-            ):
-                data['new-page-links'] += 1
-
-        items_links = await page.query_selector_all('.FicTable_Title h4 a')
-        for i in items_links:
-            item_href = await i.get_attribute('href')
-            item_url = urljoin(page.url, item_href)
-            if await FanficsMeItem.crawl(item_url, input.task_id):
-                data['new-items-links'] += 1
-
-        if not items_links:
-            raise Exception('ERROR: No Items')
-
-        return Output(
-            result='done',
-            data=data,
-        )
-
 class FanficsMeItem(BaseLivelibWorkflow):
     name = 'livelib-fanfics-me-item'
     event = 'livelib:fanfics-me-item'
@@ -99,14 +43,16 @@ class FanficsMeItem(BaseLivelibWorkflow):
             };
 
             if not await db.check_book_exist(page.url):
-                book['title'] = await page.text_content('h1')
+                book['title'] = re.sub(r'\([^()]+?\)$', '', await page.text_content('h1'))
                 await db.create_book(book)
 
-            authors_locator = page.locator('.FicHead .tr').filter(
-                has_text=re.compile(r'Автор:|Авторы:')
-            ).locator('a')
+            authors_locator = page.locator('.FicHead tr').filter(
+                has=page.locator('tr').filter(
+                    has_text=re.compile(r'Автор:|Авторы:')
+                )
+            ).locator('a[href*="/translations?str="]')
             if await authors_locator.count() > 0:
-                book['author'] = await authors_locator.first.text_content()
+                book['author'] = ', '.join([await a.text_content() for a in await authors_locator.all()])
                 # Все авторы с текстом и ссылками
                 book['authors_data'] = []
                 for a in await authors_locator.all():
@@ -115,6 +61,21 @@ class FanficsMeItem(BaseLivelibWorkflow):
                     absolute_url = urljoin(page.url, href)
 
                     book['authors_data'].append({
+                        'name': text.strip(),
+                        'url': absolute_url
+                    })
+
+            translators_locator = page.locator('.FicHead .tr').filter(
+                has_text=re.compile(r'Переводчик:|Переводчики:')
+            ).locator('a[href*="/user"]')
+            if await translators_locator.count() > 0:
+                book['translators_data'] = []
+                for a in await translators_locator.all():
+                    href = await a.get_attribute('href')
+                    text = await a.text_content()
+                    absolute_url = urljoin(page.url, href)
+
+                    book['translators_data'].append({
                         'name': text.strip(),
                         'url': absolute_url
                     })
@@ -208,8 +169,69 @@ class FanficsMeItem(BaseLivelibWorkflow):
                 },
             )
 
+
+class FanficsMeListing(BaseLivelibWorkflow):
+    name = 'livelib-fanfics-me-listing'
+    event = 'livelib:fanfics-me-listing'
+    site = 'fanfics.me'
+    input = InputLivelibBook
+    output = Output
+
+    item_wf = FanficsMeItem
+
+    concurrency=3
+    execution_timeout_sec=300
+    backoff_max_seconds=30
+    backoff_factor=2
+
+    start_urls = [
+        'https://fanfics.me/find',
+    ]
+
+    @classmethod
+    async def task(cls, input: InputLivelibBook, page: Page) -> Output:
+        resp = await page.goto(
+            input.url,
+            wait_until='domcontentloaded',
+        )
+        if not (200 <= resp.status < 400):
+            return Output(
+                result='error',
+                data={'status': resp.status},
+            )
+
+        data = {
+            'new-items-links': 0,
+            'new-page-links': 0,
+        }
+
+        pages_locator = page.locator('.paginator a')
+        for page_locator in await pages_locator.all():
+            if await cls.crawl(
+                urljoin(page.url, await page_locator.get_attribute('href')),
+                input.task_id,
+            ):
+                data['new-page-links'] += 1
+
+        items_links = await page.query_selector_all('.FicTable_Title h4 a')
+        for i in items_links:
+            item_href = await i.get_attribute('href')
+            item_url = urljoin(page.url, item_href)
+            if await FanficsMeItem.crawl(item_url, input.task_id):
+                data['new-items-links'] += 1
+
+        if not items_links:
+            raise Exception('ERROR: No Items')
+
+        return Output(
+            result='done',
+            data=data,
+        )
+
+
 if __name__ == '__main__':
     FanficsMeListing.run_sync()
 
-    FanficsMeListing.debug_sync(FanficsMeListing.start_urls[0])
-    FanficsMeItem.debug_sync('https://fanfics.me/fic16')
+    # FanficsMeListing.debug_sync(FanficsMeListing.start_urls[0])
+    FanficsMeItem.debug_sync('https://fanfics.me/fic231649')
+    FanficsMeItem.debug_sync('https://fanfics.me/fic233531')

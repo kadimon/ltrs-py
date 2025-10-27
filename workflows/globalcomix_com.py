@@ -79,7 +79,7 @@ class GlobalcomixComItem(BaseLivelibWorkflow):
             if await publisher_locator.count() > 0:
                 name = (await publisher_locator.first.text_content()).strip()
                 url = await publisher_locator.first.get_attribute('href')
-                serie['publisher'] = [name]
+                serie['publisher'] = name
                 serie['publishers_data'] = [
                     {
                         'name': name,
@@ -229,6 +229,6 @@ class GlobalcomixComListing(BaseLivelibWorkflow):
 
 if __name__ == '__main__':
     GlobalcomixComListing.run_sync()
-    GlobalcomixComListing.debug_sync(GlobalcomixComListing.start_urls[0])
-    GlobalcomixComItem.debug_sync('https://globalcomix.com/c/sonic-the-hedgehog')
-    GlobalcomixComItem.debug_sync('https://globalcomix.com/c/pirates-of-the-hard-nox')
+    # GlobalcomixComListing.debug_sync(GlobalcomixComListing.start_urls[0])
+    GlobalcomixComItem.debug_sync('https://globalcomix.com/c/the-book-of-bronwyn-ronin')
+    # GlobalcomixComItem.debug_sync('https://globalcomix.com/c/pirates-of-the-hard-nox')
