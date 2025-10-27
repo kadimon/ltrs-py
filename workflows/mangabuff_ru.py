@@ -102,16 +102,24 @@ class MangabuffRuItem(BaseLivelibWorkflow):
                 book['title'] = await page.text_content('h1')
                 await db.create_book(book)
 
-            titles_other_locator = page.locator('.manga__name-alt')
+            titles_other_locator = page.locator('.manga__name-alt span')
             if await titles_other_locator.count() > 0:
                 book['titles_other'] = [(await t.text_content()).strip() for t in await titles_other_locator.all()]
 
-            if artwork_type := await page.text_content('.manga__middle-link:nth-child(2)'):
+            if artwork_type := await page.text_content('.manga__middle-link:nth-child(1)'):
                 book['artwork_type'] = artwork_type
 
-            genres_locator = page.locator('.tags__item')
-            if await genres_locator.count() > 0:
-                book['tags'] = [await g.text_content() for g in await genres_locator.all()]
+            tags_locator = page.locator('.tags__item')
+            if await tags_locator.count() > 0:
+                book['tags'] = [await g.text_content() for g in await tags_locator.all()]
+
+            age_rating_regex = r'^(\d+)\+$'
+            age_rating_locator = page.locator('.tags__item').filter(
+                has_text=re.compile(age_rating_regex)
+            )
+            if await age_rating_locator.count() > 0:
+                age_rating_match = re.search(age_rating_regex, await age_rating_locator.text_content())
+                book['age_rating'] = age_rating_match.group(1)
 
             annotation_locator = page.locator('.manga__description')
             if await annotation_locator.count() > 0:
