@@ -320,6 +320,8 @@ class BaseLivelibWorkflow(
             async with DbSamizdatPrisma() as db:
                 cls.item_wf.start_urls = await db.get_all_books_urls(cls.item_wf.site)
 
+            cls.start_urls = [u for u in cls.start_urls if u not in cls.item_wf.start_urls]
+
             await cls.item_wf.run(user_check)
 
         await super().run(user_check)
