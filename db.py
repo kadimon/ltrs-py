@@ -181,7 +181,10 @@ class DbSamizdatPrisma:
             if not v:
                 continue
 
-            if k in ("title", "author"):
+            if k in (
+                "title",
+                # "author",
+            ):
                 v = re.sub(
                     r'[!"#$%&\'()*+\-./:;<=>?@[\\\]^`{|}~]',
                     '',
