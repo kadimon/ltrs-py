@@ -32,6 +32,7 @@ class MantaNetItem(BaseLivelibWorkflow):
             )
 
         await page.wait_for_selector('[data-test="BlockText1-title"]')
+        await page.wait_for_timeout(2_000)
 
         async with DbSamizdatPrisma() as db:
             book = {
