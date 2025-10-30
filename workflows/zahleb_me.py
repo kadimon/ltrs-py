@@ -34,7 +34,7 @@ class ZahlebMeItem(BaseLivelibWorkflow):
             )
 
         await page.wait_for_selector('h2.ant-typography')
-        await page.wait_for_timeout(1_000)
+        await page.wait_for_timeout(2_000)
 
         age_checkbox_locator = page.locator('.ant-modal-body .ant-checkbox')
         if await age_checkbox_locator.count() > 0:
@@ -160,5 +160,5 @@ class ZahlebMeListing(ZahlebMeItem):
 if __name__ == '__main__':
     ZahlebMeListing.run_sync()
 
-    ZahlebMeItem.debug_sync('https://zahleb.me/story/vashe-serdtse-vzlomano-qZJBA7XcMs')
+    # ZahlebMeItem.debug_sync('https://zahleb.me/story/vashe-serdtse-vzlomano-qZJBA7XcMs')
     ZahlebMeItem.debug_sync('https://zahleb.me/story/polovina-shestogo-hGzzpTUMxN/wIWqwq0WMn')
