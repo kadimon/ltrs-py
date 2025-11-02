@@ -65,7 +65,7 @@ class FicbookGroupItem(BaseLivelibWorkflow):
             if await age_rating_locator.count() > 0:
                  book['age_rating_str'] = await age_rating_locator.text_content()
 
-            dates_locator = page.locator('.part-item__info span')
+            dates_locator = page.locator('.part-item__info span, .part-header__date')
             if await dates_locator.count() > 0:
                 book['date_release'] = dateparser.parse(await dates_locator.first.text_content())
                 metrics['content_update_date'] = dateparser.parse(await dates_locator.last.text_content())
@@ -186,3 +186,4 @@ if __name__ == '__main__':
 
     # FicbookGroupListing.debug_sync(FicbookGroupListing.start_urls[0])
     FicbookGroupItem.debug_sync('https://ficbook.group/readfic/65557')
+    FicbookGroupItem.debug_sync('https://ficbook.group/readfic/127801')

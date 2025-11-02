@@ -47,6 +47,60 @@ class VizComItem(BaseLivelibWorkflow):
                 book['title'] = await page.text_content('#purchase_links_block h2')
                 await db.create_book(book)
 
+            # replacement_list = [
+            #     # --- 1. Самые специфичные и составные роли ---
+            #     "Original Character and Hero Design by ",
+            #     "With the participation of ",
+            #     "Script and Art by ",
+            #     "Story and Art by ",
+            #     "Planning Story by ",
+            #     "Main Character Design by ",
+            #     "Original Illustrations by ",
+            #     "Script Cooperation by ",
+            #     "Based on the video game by ",
+            #     "Based on the novel by ",
+            #     "and Script by ",
+            #     "and Art by ",
+            #     # --- 2. Стандартные одиночные роли ---
+            #     "Art by ",
+            #     "Adapted by ",
+            #     "Character Designs by ",
+            #     "Character Design by ",
+            #     "Concept by ",
+            #     "Created by ",
+            #     "Contributor ",
+            #     "Earlier Script by ",
+            #     "Original Concept by ",
+            #     "Original Script by ",
+            #     "Original Story by ",
+            #     "Novel by ",
+            #     "Planning by ",
+            #     "Script by ",
+            #     "Story by ",
+            #     "Storyboards by ",
+            #     "Supervised by ",
+            #     "Supervision by ",
+            #     "Translated by ",
+            #     "Written by ",
+            #     # --- 3. Соединительные слова и ошибки данных ---
+            #     # (Их тоже заменяем на запятую)
+            #     " amp ",
+            #     " and ",
+            #     " Original ",  # (Обнаружено в источнике 8: "Art by Junji Ito Original Hirokatsu Kihara")
+            #     "p p",  # (Обнаружено в нескольких источниках, например 3, 4, 26)
+            # ]
+            # for b in await con.book.find_many(
+            #     where={"source": "viz.com", "author": {"contains": " by "}}
+            # ):
+            #     author = b.author
+            #     for r in replacement_list:
+            #         author = author.replace(r, ", ")
+
+            #     author = re.sub(r"\s+,", ",", author)
+            #     author = re.sub(r",{2,}", ",", author)
+            #     author = re.sub("(^,)|(,$)", "", author)
+            #     author = author.strip()
+
             author_locator = page.locator('.mar-b-md:has(>strong)').filter(
                 has_text=re.compile(r'Story by|Story and Art by')
             )

@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/playwright/python:v1.55.0-noble
+FROM mcr.microsoft.com/playwright/python:v1.56.1-noble
 
 RUN apt-get update \
     && apt-get install -y tini \
@@ -6,7 +6,7 @@ RUN apt-get update \
 
 RUN pip install playwright \
     patchright \
-    hatchet-sdk==1.19.0 \
+    hatchet-sdk==1.21.0 \
     prisma \
     pymongo \
     dateparser \

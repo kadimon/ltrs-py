@@ -230,4 +230,4 @@ if __name__ == '__main__':
 
     # FanficsMeListing.debug_sync(FanficsMeListing.start_urls[0])
     FanficsMeItem.debug_sync('https://fanfics.me/fic231649')
-    FanficsMeItem.debug_sync('https://fanfics.me/fic233531')
+    # FanficsMeItem.debug_sync('https://fanfics.me/fic233531')
