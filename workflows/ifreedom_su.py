@@ -37,11 +37,11 @@ class IfreedomSuItem(BaseLivelibWorkflow):
             book = {
                 'url': page.url,
                 'source': cls.site,
-            };
+            }
 
             metrics = {
                 'bookUrl': page.url,
-            };
+            }
 
             if not await db.check_book_exist(page.url):
                 book['title'] = await page.text_content('h1')

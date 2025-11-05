@@ -92,11 +92,11 @@ class MarvelComItem(BaseLivelibWorkflow):
             book = {
                 'url': page.url,
                 'source': input.site,
-            };
+            }
 
             metrics = {
                 'bookUrl': page.url,
-            };
+            }
 
             if not await db.check_book_exist(page.url):
                 book['title'] = await page.text_content('.ComicMasthead__Title h1.ModuleHeader')
@@ -106,7 +106,7 @@ class MarvelComItem(BaseLivelibWorkflow):
                 has_text=re.compile(r'Writer:')
             ).locator('a')
             if await authors_locator.count() > 0:
-                book['author'] = await authors_locator.first.text_content()
+                book['author'] = ', '.join([await a.text_content() for a in await authors_locator.all()])
                 # Все авторы с текстом и ссылками
                 book['authors_data'] = []
                 for a in await authors_locator.all():

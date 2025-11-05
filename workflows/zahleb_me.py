@@ -57,7 +57,7 @@ class ZahlebMeItem(BaseLivelibWorkflow):
 
             authors_locator = page.locator('a[class^="StoryInfoAuthor_author_name"]')
             if await authors_locator.count() > 0:
-                book['author'] = await authors_locator.first.text_content()
+                book['author'] = ', '.join([await a.text_content() for a in await authors_locator.all()])
                 # Все авторы с текстом и ссылками
                 book['authors_data'] = []
                 for a in await authors_locator.all():
@@ -161,4 +161,4 @@ if __name__ == '__main__':
     ZahlebMeListing.run_sync()
 
     # ZahlebMeItem.debug_sync('https://zahleb.me/story/vashe-serdtse-vzlomano-qZJBA7XcMs')
-    ZahlebMeItem.debug_sync('https://zahleb.me/story/polovina-shestogo-hGzzpTUMxN/wIWqwq0WMn')
+    ZahlebMeItem.debug_sync('https://zahleb.me/story/polovina-shestogo-hGzzpTUMxN')

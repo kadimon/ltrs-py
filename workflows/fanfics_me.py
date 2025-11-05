@@ -36,11 +36,11 @@ class FanficsMeItem(BaseLivelibWorkflow):
             book = {
                 'url': page.url,
                 'source': cls.site,
-            };
+            }
 
             metrics = {
                 'bookUrl': page.url,
-            };
+            }
 
             book['title'] = re.sub(r'\([^()]+?\)$', '', await page.text_content('h1'))
             if not await db.check_book_exist(page.url):

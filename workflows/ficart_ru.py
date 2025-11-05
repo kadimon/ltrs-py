@@ -37,11 +37,11 @@ class FicartRuItem(BaseLivelibWorkflow):
             book = {
                 'url': page.url,
                 'source': cls.site,
-            };
+            }
 
             metrics = {
                 'bookUrl': page.url,
-            };
+            }
 
             eval_text_follow = 'el => el.nextSibling?.textContent?.trim()'
 
