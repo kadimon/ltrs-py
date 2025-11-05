@@ -70,9 +70,9 @@ class AcomicsRuItem(BaseLivelibWorkflow):
                         'url': absolute_url
                     })
 
-            # genres_locator = page.locator('[class^="StoryInfo_container"] a[href*="/category/"]')
-            # if await genres_locator.count() > 0:
-            #     book['category'] = [await g.text_content() for g in await genres_locator.all()]
+            genres_locator = page.locator('.serial-about-badges a')
+            if await genres_locator.count() > 0:
+                book['category'] = [await g.text_content() for g in await genres_locator.all()]
 
             if annotation := await page.inner_text('.serial-about-text'):
                 book['annotation'] = annotation
