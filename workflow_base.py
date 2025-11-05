@@ -10,6 +10,8 @@ from itertools import batched
 
 from pydantic import BaseModel
 from patchright.async_api import async_playwright, Page
+from camoufox.async_api import AsyncCamoufox
+from browserforge.fingerprints import Screen
 from hatchet_sdk import Hatchet, ClientConfig, PushEventOptions, V1TaskStatus
 from hatchet_sdk.clients.events import BulkPushEventWithMetadata
 from pymongo import AsyncMongoClient
@@ -114,19 +116,28 @@ class BaseWorkflow(
     @classmethod
     async def debug(cls, url: str, **kwargs) -> None:
         if settings.DEBUG:
-            async with async_playwright() as p:
-                browser = await p.firefox.connect(settings.DEBUG_PW_SERVER)
+            async with AsyncCamoufox(
+                proxy={'server': settings.PROXY_URI} if cls.proxy_enable else None,
+                geoip=True,
+                locale='RU',
+                os='windows',
+                humanize=True,
+                screen=Screen(max_width=1920, max_height=1080),
+                # block_images=True,
+            ) as browser:
+                # browser = await p.firefox.connect(settings.DEBUG_PW_SERVER)
 
-                context = await browser.new_context(
-                    proxy={'server': settings.PROXY_URI} if cls.proxy_enable else None,
-                    viewport={'width': 1920, 'height': 1080},
-                )
+                # context = await browser.new_context(
+                #     proxy={'server': settings.PROXY_URI} if cls.proxy_enable else None,
+                #     viewport={'width': 1920, 'height': 1080},
+                # )
 
-                page = await context.new_page()
+                # page = await context.new_page()
+                page = await browser.new_page()
                 input = cls.input(url=url, **kwargs)
                 result = await cls.task(input, page)
 
-                await context.close()
+                # await context.close()
                 await browser.close()
 
                 pp(result.model_dump())
