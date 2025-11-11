@@ -35,6 +35,10 @@ class MantaNetItem(BaseLivelibWorkflow):
         await page.wait_for_timeout(2_000)
 
         async with DbSamizdatPrisma() as db:
+            if resp.status == 404:
+                await db.mark_book_deleted(input.url, cls.site)
+                return Output(result='error', data={'status': resp.status})
+
             book = {
                 'url': page.url,
                 'source': cls.site,

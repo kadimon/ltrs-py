@@ -32,6 +32,10 @@ class UsagiOneItem(BaseLivelibWorkflow):
         await page.wait_for_selector('h1')
 
         async with DbSamizdatPrisma() as db:
+            if resp.status == 404:
+                await db.mark_book_deleted(input.url, cls.site)
+                return Output(result='error', data={'status': resp.status})
+
             book = {
                 'url': page.url,
                 'source': cls.site,
