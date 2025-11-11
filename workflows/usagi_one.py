@@ -97,8 +97,9 @@ class UsagiOneItem(BaseLivelibWorkflow):
                 'bookUrl': page.url,
             }
 
+            book['title'] = await page.locator('h1 > .name').text_content()
             if not await db.check_book_exist(page.url):
-                book['title'] = await page.locator('h1 .name').first.text_content()
+                book['title'] = await page.locator('h1 > .name').text_content()
                 await db.create_book(book)
 
             titles_other_locator = page.locator('.another-names')
@@ -253,4 +254,4 @@ if __name__ == '__main__':
     UsagiOneListing.run_sync()
 
     # UsagiOneListing.debug_sync(UsagiOneListing.start_urls[0])
-    UsagiOneItem.debug_sync('https://web.usagi.one/ditia_durnyh_krovei')
+    UsagiOneItem.debug_sync('https://web.usagi.one/the_world_s_best_engineer')

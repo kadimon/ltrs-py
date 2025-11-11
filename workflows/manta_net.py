@@ -84,7 +84,7 @@ class MantaNetItem(BaseLivelibWorkflow):
             if await date_release_locator.count() > 0:
                  book['date_release'] = dateparser.parse(await date_release_locator.first.text_content())
 
-            if annotation := await page.text_content('[data-test="BlockText1-description"]'):
+            if annotation := await page.text_content('[data-test="BlockText1-descriptionLong"] > span'):
                 book['annotation'] = annotation
 
             if not await db.check_book_have_cover(page.url):
