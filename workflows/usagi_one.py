@@ -9,62 +9,6 @@ from interfaces import InputLivelibBook, Output, WorkerLabels
 from db import DbSamizdatPrisma
 from utils import save_cover
 
-
-class UsagiOneListing(BaseLivelibWorkflow):
-    name = 'livelib-usagi-one-listing'
-    event = 'livelib:usagi-one-listing'
-    site='usagi.one'
-    input = InputLivelibBook
-    output = Output
-
-    concurrency=3
-    execution_timeout_sec=300
-    backoff_max_seconds=30
-    backoff_factor=2
-
-    start_urls = [
-        'https://web.usagi.one/list/genres/sort_year',
-    ]
-
-    @classmethod
-    async def task(cls, input: InputLivelibBook, page: Page) -> Output:
-        resp = await page.goto(
-            input.url,
-            wait_until='domcontentloaded',
-            referer='https://web.usagi.one',
-        )
-
-        if not (200 <= resp.status < 400):
-            return Output(
-                result='error',
-                data={'status': resp.status},
-            )
-
-        data = {
-            'new-items-links': 0,
-            'new-nav-links': 0,
-        }
-
-        pages_locator = page.locator('a.element-link[href*="/genre/"], .pagination:first-of-type a')
-        for page_locator in await pages_locator.all():
-            if await cls.crawl(
-                urljoin(page.url, await page_locator.get_attribute('href')),
-                input.task_id,
-            ):
-                data['new-nav-links'] += 1
-
-        items_links = await page.query_selector_all('.tile h3 > a')
-        for i in items_links:
-            item_href = await i.get_attribute('href')
-            item_url = urljoin(page.url, item_href)
-            if await UsagiOneItem.crawl(item_url, input.task_id):
-                data['new-items-links'] += 1
-
-        return Output(
-            result='done',
-            data=data,
-        )
-
 class UsagiOneItem(BaseLivelibWorkflow):
     name = 'livelib-usagi-one-item'
     event = 'livelib:usagi-one-item'
@@ -249,6 +193,63 @@ class UsagiOneItem(BaseLivelibWorkflow):
                     'metrics': metrics,
                 },
             )
+
+
+class UsagiOneListing(BaseLivelibWorkflow):
+    name = 'livelib-usagi-one-listing'
+    event = 'livelib:usagi-one-listing'
+    site='usagi.one'
+    input = InputLivelibBook
+    output = Output
+    item_wf = UsagiOneItem
+
+    concurrency=3
+    execution_timeout_sec=300
+    backoff_max_seconds=30
+    backoff_factor=2
+
+    start_urls = [
+        'https://web.usagi.one/list/genres/sort_year',
+    ]
+
+    @classmethod
+    async def task(cls, input: InputLivelibBook, page: Page) -> Output:
+        resp = await page.goto(
+            input.url,
+            wait_until='domcontentloaded',
+            referer='https://web.usagi.one',
+        )
+
+        if not (200 <= resp.status < 400):
+            return Output(
+                result='error',
+                data={'status': resp.status},
+            )
+
+        data = {
+            'new-items-links': 0,
+            'new-nav-links': 0,
+        }
+
+        pages_locator = page.locator('a.element-link[href*="/genre/"], .pagination:first-of-type a')
+        for page_locator in await pages_locator.all():
+            if await cls.crawl(
+                urljoin(page.url, await page_locator.get_attribute('href')),
+                input.task_id,
+            ):
+                data['new-nav-links'] += 1
+
+        items_links = await page.query_selector_all('.tile h3 > a')
+        for i in items_links:
+            item_href = await i.get_attribute('href')
+            item_url = urljoin(page.url, item_href)
+            if await UsagiOneItem.crawl(item_url, input.task_id):
+                data['new-items-links'] += 1
+
+        return Output(
+            result='done',
+            data=data,
+        )
 
 if __name__ == '__main__':
     UsagiOneListing.run_sync()
