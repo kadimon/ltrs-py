@@ -44,6 +44,7 @@ class MantaNetItem(BaseLivelibWorkflow):
                 'bookUrl': page.url,
             }
 
+            book['title'] = await page.text_content('[data-test="BlockText1-title"]')
             if not await db.check_book_exist(page.url):
                 book['title'] = await page.text_content('[data-test="BlockText1-title"]')
                 await db.create_book(book)
