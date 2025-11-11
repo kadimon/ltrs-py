@@ -47,6 +47,7 @@ class DarkhorseComItem(BaseLivelibWorkflow):
                 'bookUrl': page.url,
             }
 
+            book['title'] = await page.text_content('h2.title')
             if not await db.check_book_exist(page.url):
                 book['title'] = await page.text_content('h2.title')
                 await db.create_book(book)

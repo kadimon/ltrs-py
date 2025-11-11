@@ -207,8 +207,6 @@ class ComXLifeListing(BaseLivelibWorkflow):
         return Output(result='done', data=data)
 
 
-
-
 if __name__ == '__main__':
     ComXLifeListing.run_sync()
     ComXLifeItem.debug_sync('https://com-x.life/12756-genialnyj-mag-pozhirajuschij-lekarstva.html')
