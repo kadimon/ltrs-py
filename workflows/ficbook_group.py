@@ -34,6 +34,10 @@ class FicbookGroupItem(BaseLivelibWorkflow):
         await page.wait_for_selector('h1')
 
         async with DbSamizdatPrisma() as db:
+            if resp.status == 404:
+                await db.mark_book_deleted(input.url, cls.site)
+                return Output(result='error', data={'status': resp.status})
+
             book = {
                 'url': page.url,
                 'source': cls.site,
@@ -43,12 +47,13 @@ class FicbookGroupItem(BaseLivelibWorkflow):
                 'bookUrl': page.url,
             }
 
+            book['title'] = await page.text_content('h1')
             if not await db.check_book_exist(page.url):
                 book['title'] = await page.text_content('h1')
                 await db.create_book(book)
 
             authors_locator = page.locator('.author-item ').filter(
-                has=page.locator('//*[text()="автор"]')
+                has=page.locator('//*[text()="автор" or text()="соавтор"]')
             ).locator('.author-item__name')
             if await authors_locator.count() > 0:
                 book['author'] = ', '.join([await a.text_content() for a in await authors_locator.all()])
@@ -80,7 +85,7 @@ class FicbookGroupItem(BaseLivelibWorkflow):
                 metrics['comments'] = await likes_locator.last.text_content()
 
             if not await db.check_book_have_cover(page.url):
-                img_locator = page.locator('img.article-top__image:not([src$="nofanfic.jpg"])')
+                img_locator = page.locator('.article-top img.article-top__image:not([src$="nofanfic.jpg"])')
                 if await img_locator.count() > 0:
                     img_src = await img_locator.get_attribute('src')
                     if img_name := await save_cover(page, img_src, timeout=10_000):
@@ -185,5 +190,5 @@ if __name__ == '__main__':
     FicbookGroupListing.run_sync()
 
     # FicbookGroupListing.debug_sync(FicbookGroupListing.start_urls[0])
-    FicbookGroupItem.debug_sync('https://ficbook.group/readfic/65557')
-    FicbookGroupItem.debug_sync('https://ficbook.group/readfic/127801')
+    FicbookGroupItem.debug_sync('https://ficbook.group/readfic/128789')
+    # FicbookGroupItem.debug_sync('https://ficbook.group/readfic/127801')

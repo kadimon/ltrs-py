@@ -42,6 +42,10 @@ class ZahlebMeItem(BaseLivelibWorkflow):
             await page.click('.ant-modal-body .ant-btn')
 
         async with DbSamizdatPrisma() as db:
+            if resp.status == 404:
+                await db.mark_book_deleted(input.url, cls.site)
+                return Output(result='error', data={'status': resp.status})
+
             book = {
                 'url': page.url,
                 'source': cls.site,
@@ -51,18 +55,22 @@ class ZahlebMeItem(BaseLivelibWorkflow):
                 'bookUrl': page.url,
             }
 
+            book['title'] = await page.text_content('h2.ant-typography')
             if not await db.check_book_exist(page.url):
                 book['title'] = await page.text_content('h2.ant-typography')
                 await db.create_book(book)
 
             authors_locator = page.locator('a[class^="StoryInfoAuthor_author_name"]')
             if await authors_locator.count() > 0:
-                book['author'] = ', '.join([await a.text_content() for a in await authors_locator.all()])
+                book['author'] = ', '.join([
+                    re.sub(r'^бета\s+|^соавтор\s+|\,\s+|\s+$|^\s+', '', await a.text_content())
+                    for a in await authors_locator.all()
+                ])
                 # Все авторы с текстом и ссылками
                 book['authors_data'] = []
                 for a in await authors_locator.all():
                     href = await a.get_attribute('href')
-                    text = await a.text_content()
+                    text = re.sub(r'^бета\s+|^соавтор\s+|\,\s+|\s+$|^\s+', '', await a.text_content())
                     absolute_url = urljoin(page.url, href)
 
                     book['authors_data'].append({
@@ -161,4 +169,5 @@ if __name__ == '__main__':
     ZahlebMeListing.run_sync()
 
     # ZahlebMeItem.debug_sync('https://zahleb.me/story/vashe-serdtse-vzlomano-qZJBA7XcMs')
-    ZahlebMeItem.debug_sync('https://zahleb.me/story/polovina-shestogo-hGzzpTUMxN')
+    # ZahlebMeItem.debug_sync('https://zahleb.me/story/polovina-shestogo-hGzzpTUMxN/wIWqwq0WMn')
+    ZahlebMeItem.debug_sync('https://zahleb.me/story/poteryannoe-nasledie-chast-1-oUdBkiJssb')
