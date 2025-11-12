@@ -35,10 +35,9 @@ class ComXLifeItem(BaseLivelibWorkflow):
             book = {'url': page.url, 'source': cls.site}
             metrics = {'bookUrl': page.url}
 
+            book['title'] = await page.text_content('div#dle-content h1')
             if not await db.check_book_exist(page.url):
-                title_locator = page.locator("div#dle-content h1")
-                if await title_locator.count() > 0:
-                    book['title'] = await title_locator.text_content()
+                book['title'] = page.locator("div#dle-content h1")
                 await db.create_book(book)
 
             # --- Сбор основной информации ---
