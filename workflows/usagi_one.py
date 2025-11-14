@@ -75,6 +75,7 @@ class UsagiOneItem(BaseLivelibWorkflow):
                 has_text=re.compile('Переводчик:|Переводчики:')
             ).locator('a')
             if await translators_locator.count() > 0:
+                book['translate'] = ', '.join([(await t.text_content()).strip() for t in await translators_locator.all()])
                 book['translators_data'] = []
                 for a in await translators_locator.all():
                     href = await a.get_attribute('href')
