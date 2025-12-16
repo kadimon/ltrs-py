@@ -78,7 +78,8 @@ def create_task_for_class(wf: BaseLitresPartnersWorkflow) -> Workflow:
 
             return {
                 field: (
-                    [{'key': k, 'value': v} for k,v in val.items()]
+                    # [{'key': k, 'value': v} for k,v in val.items()]
+                    'dict'
                     if isinstance(val, dict)
                     else
                     val
