@@ -277,7 +277,7 @@ class LitmarketListing(BaseLivelibWorkflow):
         return Output(result='done', data=data)
 
 if __name__ == '__main__':
-    LitmarketListing.run_sync()
+    # LitmarketListing.run_sync()
     import asyncio
     asyncio.run(LitmarketListing.run_cron())
     # Пример ссылки для отладки

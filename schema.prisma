@@ -90,10 +90,11 @@ model Metrics {
 }
 
 model Person {
-  id    Int          @id @default(autoincrement())
-  url   String       @unique @db.VarChar(2048)
-  name  String       @db.VarChar(512)
-  books BookPerson[]
+  id         Int          @id @default(autoincrement())
+  url        String       @unique @db.VarChar(2048)
+  name       String       @db.VarChar(512)
+  for_scrape Boolean      @default(false)
+  books      BookPerson[]
 }
 
 model BookPerson {
