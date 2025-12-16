@@ -26,10 +26,9 @@ root_logger.setLevel(logging.WARNING)
 
 hatchet = Hatchet(
     debug=False,
-    # config=ClientConfig(
-    #     # server_url='http://homeserver:8888',
-    #     logger=root_logger,
-    # ),
+    config=ClientConfig(
+        logger=root_logger,
+    ),
 )
 
 TInput = TypeVar('TInput', bound=interfaces.InputBase)
