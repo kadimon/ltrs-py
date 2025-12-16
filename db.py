@@ -4,10 +4,9 @@ from typing import Any, Dict, List, Optional
 
 from pymongo import AsyncMongoClient
 
-from prisma import Prisma
-
-from interfaces import InputLitresPartnersBook
 import settings
+from interfaces import InputLitresPartnersBook
+from prisma import Prisma
 
 
 async def save_book_mongo(input: InputLitresPartnersBook, site:str, book: dict[str, Any]):
@@ -262,3 +261,9 @@ class DbSamizdatPrisma:
             where={"source": source},
         )
         return [b.url for b in books]
+
+    async def get_priority_persons_urls(self, source: str) -> List[str]:
+        persons = await self.con.person.find_many(
+            where={"for_scrape": True, "books": {"some": {"book": {"source": source}}}},
+        )
+        return [p.url for p in persons]

@@ -1,26 +1,25 @@
-from dataclasses import dataclass
-from typing import Type, TypeVar, ClassVar, Generic, Optional, Literal
 import asyncio
-from pprint import pp
 import hashlib
 import logging
-from datetime import datetime, timedelta, timezone
 import re
+from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from itertools import batched
+from pprint import pp
+from typing import ClassVar, Generic, Literal, Optional, Type, TypeVar
 
-from pydantic import BaseModel
-from patchright.async_api import async_playwright, Page
-from camoufox.async_api import AsyncCamoufox
-from browserforge.fingerprints import Screen
-from hatchet_sdk import Hatchet, ClientConfig, PushEventOptions, V1TaskStatus
-from hatchet_sdk.clients.events import BulkPushEventWithMetadata
-from pymongo import AsyncMongoClient
 import pandas as pd
+from browserforge.fingerprints import Screen
+from camoufox.async_api import AsyncCamoufox
+from hatchet_sdk import ClientConfig, Hatchet, PushEventOptions, V1TaskStatus
+from hatchet_sdk.clients.events import BulkPushEventWithMetadata
+from patchright.async_api import Page, async_playwright
+from pydantic import BaseModel
+from pymongo import AsyncMongoClient
 
 import interfaces
 import settings
 from db import DbSamizdatPrisma
-
 
 root_logger = logging.getLogger('hatchet')
 root_logger.setLevel(logging.WARNING)
@@ -310,6 +309,8 @@ class BaseLivelibWorkflow(
 
     item_wf: Optional[Type["BaseLivelibWorkflow"]] = None
 
+    cron: Optional[str] = None
+
     customer = 'livelib'
 
     @classmethod
@@ -318,6 +319,7 @@ class BaseLivelibWorkflow(
             result='debug',
             data=input.model_dump()
         )
+
 
     @classmethod
     async def run(cls, user_check: Literal['y', 'n'] | None = None) -> None:
@@ -336,6 +338,14 @@ class BaseLivelibWorkflow(
             await cls.item_wf.run(user_check)
 
         await super().run(user_check)
+
+    @classmethod
+    async def run_cron(cls) -> None:
+        async with DbSamizdatPrisma() as db:
+            cls.start_urls = await db.get_priority_persons_urls(cls.site)
+
+        await super().run('y')
+
 
 @dataclass
 class BaseLtrsSeWorkflow(

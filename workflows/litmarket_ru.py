@@ -2,6 +2,8 @@ import re
 from datetime import datetime
 from urllib.parse import urljoin
 
+import dateparser
+from furl import furl
 from playwright.async_api import Page
 
 from db import DbSamizdatPrisma
@@ -91,38 +93,36 @@ class LitmarketItem(BaseLivelibWorkflow):
                     tags_list.append(clean_text)
                 book['tags'] = tags_list
 
-            # --- Специфичные селекторы (конвертация :has-text) ---
+            age_rating_regex = r'(\d{1,2})\+'
             age_rating_locator = page.locator('div.age-limit').filter(
                 has_text=re.compile(r'Возрастное ограничение:')
-            ).locator('span.data-value')
-
+            ).locator('span.data-value').filter(
+                has_text=re.compile(age_rating_regex)
+            )
             if await age_rating_locator.count() > 0:
-                age_text = await age_rating_locator.text_content()
-                if age_match := re.search(r'\d{1,2}', age_text):
-                    book['age_rating'] = int(age_match.group(0))
+                age_text = await age_rating_locator.first.text_content()
+                if age_match := re.search(age_rating_regex, age_text):
+                    book['age_rating'] = int(age_match.group(1))
 
-            release_date_locator = page.locator('div.card-date > span.date').filter(
+            release_date_locator = page.locator('div.card-info').filter(
                 has_text=re.compile(r'Создана:')
-            ).locator('time')
-
+            ).locator("time.btn-price__date")
             if await release_date_locator.count() > 0:
-                date_text = await release_date_locator.text_content()
-                if date_match := re.search(r'\d{2}\.\d{2}.\d{2}', date_text):
-                    book['date_release'] = datetime.strptime(date_match.group(0), '%d.%m.%y')
+                book['date_release'] = dateparser.parse(await release_date_locator.first.text_content())
 
-            final_date_locator = page.locator("div.card-info span.btn-price__date")
+            final_date_locator = page.locator('div.card-info').filter(
+                has_text=re.compile(r'Закончена:')
+            ).locator("span.btn-price__date")
             if await final_date_locator.count() > 0:
-                final_date_text = await final_date_locator.text_content()
-                if final_match := re.search(r'\d{2}\.\d{2}.\d{2}', final_date_text):
-                     book['date_final'] = datetime.strptime(final_match.group(0), '%d.%m.%y')
+                book['date_final'] = dateparser.parse(await final_date_locator.first.text_content())
 
             # --- Статус написания ---
-            btn_price_text = await page.locator("div.card-info div.btn-price").text_content() if await page.locator("div.card-info div.btn-price").count() > 0 else ""
-            status_full_count = await page.locator("div.book-view-box span.book-status-full").count()
+            btn_price_text = await page.locator("div.card-info div.btn-price").first.text_content() if await page.locator("div.card-info div.btn-price").count() > 0 else ""
+            # status_full_count = await page.locator("div.book-view-box span.book-status-full").count()
 
             if "В работе" in btn_price_text:
                 metrics['status_writing'] = "PROCESS"
-            elif status_full_count > 0:
+            elif "Закончена" in btn_price_text:
                 metrics['status_writing'] = "FINISH"
 
             # --- Метрики (Views, Likes, etc) ---
@@ -142,7 +142,7 @@ class LitmarketItem(BaseLivelibWorkflow):
 
             adds_locator = page.locator("div.card-info span.libraries-count")
             if await adds_locator.count() > 0:
-                adds_text = await adds_locator.text_content()
+                adds_text = await adds_locator.first.text_content()
                 if adds_match := re.search(r'[\d\.\,kmKM]+', adds_text):
                     metrics['added_to_lib'] = adds_match.group(0)
 
@@ -173,7 +173,7 @@ class LitmarketItem(BaseLivelibWorkflow):
             # --- Донаты ---
             donats_locator = page.locator("div.card-info span.donate-count")
             if await donats_locator.count() > 0:
-                donats_text = await donats_locator.text_content()
+                donats_text = await donats_locator.first.text_content()
                 if donats_match := re.search(r'\d+', donats_text):
                     if donats_match.group(0) != "0":
                          metrics['awards'] = {'donats': donats_match.group(0)}
@@ -234,32 +234,42 @@ class LitmarketListing(BaseLivelibWorkflow):
         if not (200 <= resp.status < 400):
             return Output(result='error', data={'status': resp.status})
 
-        await page.wait_for_selector("footer.footer")
+        title_selector = ".books-array article h4 a , div.card-title a"
+        await page.wait_for_selector(title_selector)
 
-        data = {'new_page_links': 0, 'new_items_links': 0}
+        data = {'new-page-links': 0, 'new-items-links': 0}
 
         # Обработка пагинации
         # JS: globs: ["https://litmarket.ru/books?page=*"]
         pagination_links = await page.locator("ul.pagination a").all()
+        url_data = furl(page.url)
         for link in pagination_links:
-            href = await link.get_attribute('href')
-            if href:
-                page_url = urljoin(page.url, href)
+            if href := await link.get_attribute('href'):
+                page_url = urljoin(page.url, await link.get_attribute('href'))
                 # Простая проверка на соответствие паттерну пагинации
                 if 'page=' in page_url:
                     if await cls.crawl(page_url, input.task_id):
-                        data['new_page_links'] += 1
+                        data['new-page-links'] += 1
+            else:
+                page_num_locator = link.filter(
+                    has_text=re.compile(r'\d+')
+                )
+                if await page_num_locator.count() > 0:
+                    url_data.args['page'] = await page_num_locator.text_content()
+                    if await cls.crawl(url_data.url, input.task_id):
+                        data['new-page-links'] += 1
+
 
         # Обработка ссылок на книги
         # JS: globs: ["https://litmarket.ru/books/*"]
-        book_links = await page.locator("div.card-title a").all()
+        book_links = await page.locator(title_selector).all()
         for link in book_links:
             href = await link.get_attribute('href')
             if href:
                 book_url = urljoin(page.url, href)
                 if '/books/' in book_url:
                     if await LitmarketItem.crawl(book_url, input.task_id):
-                        data['new_items_links'] += 1
+                        data['new-items-links'] += 1
 
         if not book_links:
             print(f"WARNING: No book links found on page {page.url}")
@@ -268,5 +278,9 @@ class LitmarketListing(BaseLivelibWorkflow):
 
 if __name__ == '__main__':
     LitmarketListing.run_sync()
+    import asyncio
+    asyncio.run(LitmarketListing.run_cron())
     # Пример ссылки для отладки
-    # LitmarketItem.debug_sync('https://litmarket.ru/books/some-book-url')
+    # LitmarketListing.debug_sync('https://litmarket.ru/books')
+    # LitmarketListing.debug_sync('https://litmarket.ru/karina-demina-p154501?utm_source=lm&utm_medium=&utm_campaign=karina-demina-p154501')
+    # LitmarketItem.debug_sync('https://litmarket.ru/books/byvshie-vernu-vas-na-novyy-god')

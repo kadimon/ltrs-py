@@ -17,6 +17,7 @@ RUN pip install playwright \
     furl \
     pandas \
     ultimate-sitemap-parser \
+    # croniter \
     && pip cache purge
 
 WORKDIR /app
