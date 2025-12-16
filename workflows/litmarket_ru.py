@@ -255,7 +255,10 @@ class LitmarketListing(BaseLivelibWorkflow):
                     has_text=re.compile(r'\d+')
                 )
                 if await page_num_locator.count() > 0:
-                    url_data.args['page'] = await page_num_locator.text_content()
+                    page_num = (await page_num_locator.text_content()).strip()
+                    if page_num == '1':
+                        continue
+                    url_data.args['page'] = page_num
                     if await cls.crawl(url_data.url, input.task_id):
                         data['new-page-links'] += 1
 
@@ -279,8 +282,8 @@ class LitmarketListing(BaseLivelibWorkflow):
 if __name__ == '__main__':
     # LitmarketListing.run_sync()
     import asyncio
-    asyncio.run(LitmarketListing.run_cron())
+    # asyncio.run(LitmarketListing.run_cron())
     # Пример ссылки для отладки
     # LitmarketListing.debug_sync('https://litmarket.ru/books')
     # LitmarketListing.debug_sync('https://litmarket.ru/karina-demina-p154501?utm_source=lm&utm_medium=&utm_campaign=karina-demina-p154501')
-    # LitmarketItem.debug_sync('https://litmarket.ru/books/byvshie-vernu-vas-na-novyy-god')
+    LitmarketItem.debug_sync('https://litmarket.ru/books/ne-mesto-dlya-lyudey-avtorskaya-versiya')
