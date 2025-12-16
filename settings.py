@@ -1,8 +1,9 @@
 import os
-import interfaces
 from datetime import datetime
 
 from dotenv import load_dotenv
+
+import interfaces
 
 load_dotenv()
 

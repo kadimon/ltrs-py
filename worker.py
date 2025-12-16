@@ -24,9 +24,9 @@ root_logger.setLevel(logging.WARNING)
 
 hatchet = Hatchet(
     debug=False,
-    config=ClientConfig(
-        logger=root_logger,
-    ),
+    # config=ClientConfig(
+    #     logger=root_logger,
+    # ),
 )
 
 WORKFLOWS_DIR = pathlib.Path(__file__).parent / 'workflows'

@@ -1,21 +1,21 @@
 import logging
 
+from hatchet_sdk import ClientConfig, Hatchet, PushEventOptions, V1TaskStatus
 from playwright.async_api import Page
 from pymongo import AsyncMongoClient
-from hatchet_sdk import Hatchet, ClientConfig, PushEventOptions, V1TaskStatus
 
-from workflow_base import BaseLtrsSeWorkflow
-from interfaces import InputSeLtrs, Output
 import settings
+from interfaces import InputSeLtrs, Output
+from workflow_base import BaseLtrsSeWorkflow
 
 root_logger = logging.getLogger('hatchet')
 root_logger.setLevel(logging.WARNING)
 
 hatchet = Hatchet(
     debug=False,
-    config=ClientConfig(
-        logger=root_logger,
-    ),
+    # config=ClientConfig(
+    #     logger=root_logger,
+    # ),
 )
 
 
