@@ -76,7 +76,13 @@ def create_task_for_class(wf: BaseLitresPartnersWorkflow) -> Workflow:
 
             await context.close()
 
-            return result
+            return {
+                field: [{'key': k, 'value': v} for k,v in val.items()]
+                if type(val) is dict
+                else
+                val
+                for field, val in result.items()
+            }
 
     return task_function
 
