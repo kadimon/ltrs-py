@@ -45,7 +45,7 @@ root_logger.setLevel(logging.WARNING)
 hatchet = Hatchet(
     debug=False,
     config=ClientConfig(
-        token=os.environ.get('HATCHET_CLIENT_TOKEN'),
+        server_url='https://queue.pirascout.com',
         logger=root_logger,
     ),
 )
