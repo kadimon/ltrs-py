@@ -25,7 +25,7 @@ root_logger = logging.getLogger('hatchet')
 root_logger.setLevel(logging.WARNING)
 
 hatchet = Hatchet(
-    # debug=False,
+    debug=False,
     # config=ClientConfig(
     #     # server_url='http://homeserver:8888',
     #     logger=root_logger,
