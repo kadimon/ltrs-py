@@ -1,6 +1,5 @@
 import asyncio
 import hashlib
-import logging
 import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -11,25 +10,15 @@ from typing import ClassVar, Generic, Literal, Optional, Type, TypeVar
 import pandas as pd
 from browserforge.fingerprints import Screen
 from camoufox.async_api import AsyncCamoufox
-from hatchet_sdk import ClientConfig, Hatchet, PushEventOptions, V1TaskStatus
+from hatchet_sdk import PushEventOptions, V1TaskStatus
 from hatchet_sdk.clients.events import BulkPushEventWithMetadata
 from patchright.async_api import Page, async_playwright
-from pydantic import BaseModel
 from pymongo import AsyncMongoClient
 
 import interfaces
 import settings
 from db import DbSamizdatPrisma
-
-root_logger = logging.getLogger('hatchet')
-root_logger.setLevel(logging.WARNING)
-
-hatchet = Hatchet(
-    debug=False,
-    config=ClientConfig(
-        logger=root_logger,
-    ),
-)
+from settings import hatchet
 
 TInput = TypeVar('TInput', bound=interfaces.InputBase)
 TOutput = TypeVar('TOutput', bound=interfaces.InputBase)

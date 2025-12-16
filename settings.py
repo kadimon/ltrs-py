@@ -1,7 +1,9 @@
+import logging
 import os
 from datetime import datetime
 
 from dotenv import load_dotenv
+from hatchet_sdk import ClientConfig, Hatchet
 
 import interfaces
 
@@ -36,3 +38,13 @@ DEBUG_PW_SERVER = 'ws://127.0.0.1:3000/'
 RUN = os.environ.get('RUN')
 
 START_TIME = datetime.now().strftime('%Y%m%d%H%M%S')
+
+root_logger = logging.getLogger('hatchet')
+root_logger.setLevel(logging.WARNING)
+
+hatchet = Hatchet(
+    debug=False,
+    config=ClientConfig(
+        logger=root_logger,
+    ),
+)

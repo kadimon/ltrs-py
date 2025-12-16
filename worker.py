@@ -1,33 +1,20 @@
 import importlib
 import inspect
-import logging
 import pathlib
 import pkgutil
 
 from hatchet_sdk import (
-    ClientConfig,
     ConcurrencyExpression,
     ConcurrencyLimitStrategy,
     Context,
-    Hatchet,
-    WorkerLabelComparator,
     Workflow,
 )
 from hatchet_sdk.labels import DesiredWorkerLabel
 from playwright.async_api import async_playwright
 
 import settings
+from settings import hatchet
 from workflow_base import BaseLitresPartnersWorkflow
-
-root_logger = logging.getLogger('hatchet')
-root_logger.setLevel(logging.WARNING)
-
-hatchet = Hatchet(
-    debug=False,
-    config=ClientConfig(
-        logger=root_logger,
-    ),
-)
 
 WORKFLOWS_DIR = pathlib.Path(__file__).parent / 'workflows'
 PACKAGE_NAME = 'workflows'  # папка должна содержать __init__.py
