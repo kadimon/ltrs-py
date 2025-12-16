@@ -158,25 +158,25 @@ class LitmarketItem(BaseLivelibWorkflow):
                 if pages_match := re.search(r'\d+', pages_text):
                     metrics['pages_count'] = int(pages_match.group(0))
 
-            # # --- Рейтинги сайта ---
-            # ratings_locators = await page.locator("div.card-info div.card-top-positions").all()
-            # if ratings_locators:
-            #     metrics['site_ratings'] = {}
-            #     for r in ratings_locators:
-            #         num_text = await r.locator("span.number").text_content()
-            #         cat_text = await r.locator('span[itemprop="genre"]').text_content()
+            # --- Рейтинги сайта ---
+            ratings_locators = await page.locator("div.card-info div.card-top-positions").all()
+            if ratings_locators:
+                metrics['site_ratings'] = {}
+                for r in ratings_locators:
+                    num_text = await r.locator("span.number").text_content()
+                    cat_text = await r.locator('span[itemprop="genre"]').text_content()
 
-            #         rating_match = re.search(r'\d+', num_text)
-            #         if rating_match and cat_text:
-            #             metrics['site_ratings'][cat_text] = rating_match.group(0)
+                    rating_match = re.search(r'\d+', num_text)
+                    if rating_match and cat_text:
+                        metrics['site_ratings'][cat_text] = rating_match.group(0)
 
-            # # --- Донаты ---
-            # donats_locator = page.locator("div.card-info span.donate-count")
-            # if await donats_locator.count() > 0:
-            #     donats_text = await donats_locator.first.text_content()
-            #     if donats_match := re.search(r'\d+', donats_text):
-            #         if donats_match.group(0) != "0":
-            #              metrics['awards'] = {'donats': donats_match.group(0)}
+            # --- Донаты ---
+            donats_locator = page.locator("div.card-info span.donate-count")
+            if await donats_locator.count() > 0:
+                donats_text = await donats_locator.first.text_content()
+                if donats_match := re.search(r'\d+', donats_text):
+                    if donats_match.group(0) != "0":
+                         metrics['awards'] = {'donats': donats_match.group(0)}
 
             # --- Цены ---
             price_btn_locator = page.locator("div.card-info div.btn-success.price-btn > a")
