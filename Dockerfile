@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/playwright/python:v1.55.0-noble
+FROM mcr.microsoft.com/playwright/python:v1.56.0-noble
 
 RUN apt-get update \
     && apt-get install -y tini \
@@ -7,7 +7,7 @@ RUN apt-get update \
 RUN pip install playwright \
     patchright \
     camoufox[geoip] \
-    hatchet-sdk==1.21.0 \
+    hatchet-sdk==1.21.6 \
     prisma \
     pymongo \
     dateparser \
