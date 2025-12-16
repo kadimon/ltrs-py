@@ -1,13 +1,14 @@
 import re
-from urllib.parse import urljoin
 from datetime import datetime
+from urllib.parse import urljoin
 
 from playwright.async_api import Page
 
-from workflow_base import BaseLivelibWorkflow
-from interfaces import InputLivelibBook, Output
 from db import DbSamizdatPrisma
+from interfaces import InputLivelibBook, Output
 from utils import save_cover
+from workflow_base import BaseLivelibWorkflow
+
 
 class ComXLifeItem(BaseLivelibWorkflow):
     name = 'livelib-com-x-life-item'
@@ -37,7 +38,6 @@ class ComXLifeItem(BaseLivelibWorkflow):
 
             book['title'] = await page.text_content('div#dle-content h1')
             if not await db.check_book_exist(page.url):
-                book['title'] = page.locator("div#dle-content h1")
                 await db.create_book(book)
 
             # --- Сбор основной информации ---
