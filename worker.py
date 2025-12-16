@@ -78,7 +78,7 @@ def create_task_for_class(wf: BaseLitresPartnersWorkflow) -> Workflow:
 
             return {
                 field: [{'key': k, 'value': v} for k,v in val.items()]
-                if type(val) is dict
+                if type(val) == dict
                 else
                 val
                 for field, val in result.items()

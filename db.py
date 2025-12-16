@@ -250,9 +250,8 @@ class DbSamizdatPrisma:
 
         fields2json_int_val = ["site_ratings", "awards"]
         for field in fields2json_int_val:
-            obj = metrics.get(field)
-            if obj:
-                metrics[field] = {k: str2int(v) for k, v in obj.items()}
+            if field_data := metrics.get(field):
+                metrics[field] = {k: str2int(v) for k, v in field_data.items()}
 
         return metrics
 
