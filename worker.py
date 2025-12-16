@@ -77,10 +77,12 @@ def create_task_for_class(wf: BaseLitresPartnersWorkflow) -> Workflow:
             await context.close()
 
             return {
-                field: [{'key': k, 'value': v} for k,v in val.items()]
-                if type(val) == dict
-                else
-                val
+                field: (
+                    [{'key': k, 'value': v} for k,v in val.items()]
+                    if isinstance(val, dict)
+                    else
+                    val
+                )
                 for field, val in result.items()
             }
 
