@@ -243,7 +243,7 @@ class LitmarketListing(BaseLivelibWorkflow):
         if not (200 <= resp.status < 400):
             return Output(result='error', data={'status': resp.status})
 
-        title_selector = ".books-array article h4 a , div.card-title a"
+        title_selector = ".books-array article h4 a , div.card-title a, .slideshow .card-name a"
         await page.wait_for_selector(title_selector)
 
         data = {'new-page-links': 0, 'new-items-links': 0}
@@ -295,4 +295,5 @@ if __name__ == '__main__':
     # Пример ссылки для отладки
     # LitmarketListing.debug_sync('https://litmarket.ru/books')
     # LitmarketListing.debug_sync('https://litmarket.ru/karina-demina-p154501?utm_source=lm&utm_medium=&utm_campaign=karina-demina-p154501')
-    LitmarketItem.debug_sync('https://litmarket.ru/books/ne-vremya-dlya-drakonov')
+    LitmarketListing.debug_sync('https://litmarket.ru/aleksandra-cherchen-p11719?utm_source=lm&utm_medium=&utm_campaign=aleksandra-cherchen-p11719')
+    # LitmarketItem.debug_sync('https://litmarket.ru/books/ne-vremya-dlya-drakonov')
