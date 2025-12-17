@@ -50,7 +50,7 @@ class LitmarketItem(BaseLivelibWorkflow):
             # --- Сбор основной информации ---
             authors_locator = page.locator("div.card-info div.card-author > a")
             if await authors_locator.count() > 0:
-                book['author'] = ', '.join([await a.text_content() for a in await authors_locator.all()])
+                book['author'] = ', '.join([(await a.text_content()).strip() for a in await authors_locator.all()])
                 # Все авторы с текстом и ссылками
                 book['authors_data'] = []
                 for a in await authors_locator.all():
@@ -75,6 +75,13 @@ class LitmarketItem(BaseLivelibWorkflow):
                         if img_name := await save_cover(page, full_img_src):
                             book['coverImage'] = img_name
 
+            genres_locators = await page.locator('.card-caption span[itemprop="genre"]').all()
+            if genres_locators:
+                book['category'] = list(set([
+                    (await g.text_content()).strip()
+                    for g in genres_locators
+                ]))
+
             series_locators = await page.locator("div.card-info div.card-cycle a").all()
             if series_locators:
                 series_list = []
@@ -82,7 +89,7 @@ class LitmarketItem(BaseLivelibWorkflow):
                     text = await s.text_content()
                     clean_text = re.sub(r'\s?#\d+.*$', '', text.strip())
                     series_list.append(clean_text)
-                book['series'] = series_list
+                book['series'] = list(set(series_list))
 
             tags_locators = await page.locator("div.card-info div.tags a").all()
             if tags_locators:
@@ -163,6 +170,8 @@ class LitmarketItem(BaseLivelibWorkflow):
             if ratings_locators:
                 metrics['site_ratings'] = {}
                 for r in ratings_locators:
+                    if await r.locator("span.number").count() == 0:
+                        continue
                     num_text = await r.locator("span.number").text_content()
                     cat_text = await r.locator('span[itemprop="genre"]').text_content()
 
@@ -286,4 +295,4 @@ if __name__ == '__main__':
     # Пример ссылки для отладки
     # LitmarketListing.debug_sync('https://litmarket.ru/books')
     # LitmarketListing.debug_sync('https://litmarket.ru/karina-demina-p154501?utm_source=lm&utm_medium=&utm_campaign=karina-demina-p154501')
-    LitmarketItem.debug_sync('https://litmarket.ru/books/ne-mesto-dlya-lyudey-avtorskaya-versiya')
+    LitmarketItem.debug_sync('https://litmarket.ru/books/ne-vremya-dlya-drakonov')
