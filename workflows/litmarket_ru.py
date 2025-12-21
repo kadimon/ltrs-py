@@ -291,9 +291,9 @@ class LitmarketListing(BaseLivelibWorkflow):
 if __name__ == '__main__':
     # LitmarketListing.run_sync()
     import asyncio
-    # asyncio.run(LitmarketListing.run_cron())
+    asyncio.run(LitmarketListing.run_cron())
     # Пример ссылки для отладки
     # LitmarketListing.debug_sync('https://litmarket.ru/books')
     # LitmarketListing.debug_sync('https://litmarket.ru/karina-demina-p154501?utm_source=lm&utm_medium=&utm_campaign=karina-demina-p154501')
-    LitmarketListing.debug_sync('https://litmarket.ru/aleksandra-cherchen-p11719?utm_source=lm&utm_medium=&utm_campaign=aleksandra-cherchen-p11719')
+    # LitmarketListing.debug_sync('https://litmarket.ru/aleksandra-cherchen-p11719?utm_source=lm&utm_medium=&utm_campaign=aleksandra-cherchen-p11719')
     # LitmarketItem.debug_sync('https://litmarket.ru/books/ne-vremya-dlya-drakonov')
