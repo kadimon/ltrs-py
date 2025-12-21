@@ -76,7 +76,7 @@ class AuthorTodayItem(BaseLivelibWorkflow):
             # --- Аннотация ---
             annotation_locator = page.locator('div[itemtype="http://schema.org/Book"] div.rich-content')
             if await annotation_locator.count() > 0:
-                book['annotation'] = [await a.inner_text() for a in await annotation_locator.all()]
+                book['annotation'] = '\n'.join([await a.inner_text() for a in await annotation_locator.all()])
 
             # --- Обложка ---
             if not await db.check_book_have_cover(page.url):
