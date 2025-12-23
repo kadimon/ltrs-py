@@ -1,15 +1,16 @@
 import re
-from urllib.parse import urljoin
 from datetime import datetime
+from urllib.parse import urljoin
 
-from playwright.async_api import Page
-from furl import furl
 import dateparser
+from furl import furl
+from playwright.async_api import Page
 
-from workflow_base import BaseLivelibWorkflow
-from interfaces import InputLivelibBook, Output
 from db import DbSamizdatPrisma
+from interfaces import InputLivelibBook, Output
 from utils import save_cover
+from workflow_base import BaseLivelibWorkflow
+
 
 class GlobalcomixComItem(BaseLivelibWorkflow):
     name = 'livelib-globalcomix-com-item'
@@ -108,8 +109,8 @@ class GlobalcomixComItem(BaseLivelibWorkflow):
                     'bookUrl': book_url,
                 }
 
+                book['title'] = await title_locator.text_content()
                 if not await db.check_book_exist(book_url):
-                    book['title'] = await title_locator.text_content()
                     await db.create_book(book)
 
                 annotation_locator = item.locator('.sheet-content-description')
@@ -179,7 +180,7 @@ class GlobalcomixComListing(BaseLivelibWorkflow):
 
     input = InputLivelibBook
     output = Output
-    # item_wf = GlobalcomixComItem
+    item_wf = GlobalcomixComItem
 
     concurrency=3
     execution_timeout_sec=3600
@@ -229,6 +230,6 @@ class GlobalcomixComListing(BaseLivelibWorkflow):
 
 if __name__ == '__main__':
     GlobalcomixComListing.run_sync()
-    # GlobalcomixComListing.debug_sync(GlobalcomixComListing.start_urls[0])
-    GlobalcomixComItem.debug_sync('https://globalcomix.com/c/the-book-of-bronwyn-ronin')
+    GlobalcomixComListing.debug_sync(GlobalcomixComListing.start_urls[0])
+    # GlobalcomixComItem.debug_sync('https://globalcomix.com/c/the-book-of-bronwyn-ronin')
     # GlobalcomixComItem.debug_sync('https://globalcomix.com/c/pirates-of-the-hard-nox')

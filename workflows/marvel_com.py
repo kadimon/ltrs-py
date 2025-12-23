@@ -1,69 +1,16 @@
 import re
-from urllib.parse import urljoin
 from pathlib import Path
+from urllib.parse import urljoin
 
-from playwright.async_api import Page
 import dateparser
 from furl import furl
+from playwright.async_api import Page
 
-from workflow_base import BaseLivelibWorkflow
-from interfaces import InputLivelibBook, Output
 from db import DbSamizdatPrisma
+from interfaces import InputLivelibBook, Output
 from utils import save_cover
+from workflow_base import BaseLivelibWorkflow
 
-class MarvelComListing(BaseLivelibWorkflow):
-    name = 'livelib-marvel-com-listing'
-    event = 'livelib:marvel-com-listing'
-    site = 'marvel.com'
-    input = InputLivelibBook
-    output = Output
-
-    concurrency=3
-    execution_timeout_sec=300
-    # proxy_enable = False
-
-    start_urls = [
-        'https://bifrost.marvel.com/v1/catalog/comics/calendar/?byType=date&offset=0&limit=100&orderBy=release_date%2Bdesc%2Ctitle%2Basc&variants=false&formatType=issue&dateStart=1820-12-31&dateEnd=2028-12-31',
-    ]
-
-    async def task(self, input: InputLivelibBook, page: Page) -> Output:
-        resp = await page.goto(
-            input.url,
-            wait_until='domcontentloaded',
-        )
-        if not (200 <= resp.status < 400):
-            return Output(
-                result='error',
-                data={'status': resp.status},
-            )
-
-        data = {
-            'new-items-links': 0,
-            'new-page-links': 0,
-        }
-
-        page_data = await resp.json()
-
-        page_url_data = furl(page.url)
-
-        if page_url_data.args['offset'] == '0':
-            total_books = page_data['data']['total']
-            for offset in range(100, total_books, 100):
-                page_url_data.args['offset'] = offset
-                if await MarvelComListing.crawl(page_url_data.url, input.task_id):
-                    data['new-page-links'] += 1
-
-        for i in page_data['data']['results']:
-            if await MarvelComItem.crawl(i['metadata']['url'], input.task_id):
-                data['new-items-links'] += 1
-
-        if not page_data['data']['results']:
-            raise Exception('ERROR: No Items')
-
-        return Output(
-            result='done',
-            data=data,
-        )
 
 class MarvelComItem(BaseLivelibWorkflow):
     name = 'livelib-marvel-com-item'
@@ -74,7 +21,8 @@ class MarvelComItem(BaseLivelibWorkflow):
 
     # proxy_enable = False
 
-    async def task(self, input: InputLivelibBook, page: Page) -> Output:
+    @classmethod
+    async def task(cls, input: InputLivelibBook, page: Page) -> Output:
         resp = await page.goto(
             input.url,
             wait_until='domcontentloaded',
@@ -91,7 +39,7 @@ class MarvelComItem(BaseLivelibWorkflow):
         async with DbSamizdatPrisma() as db:
             book = {
                 'url': page.url,
-                'source': input.site,
+                'source': cls.site,
             }
 
             metrics = {
@@ -182,9 +130,9 @@ class MarvelComItem(BaseLivelibWorkflow):
             if await pages_count_locator.count() > 0:
                  metrics['pages_count'] = await pages_count_locator.text_content()
 
-            date_release_locator = page.locator('.ComicIssueMoreDetails__List li').filter(
-                has_text=re.compile('FOC Date:')
-             ).locator('span:nth-child(2)')
+            date_release_locator = page.locator('.ComicMasthead__Meta_Item').filter(
+                has_text=re.compile('Published')
+             ).locator('p:nth-child(2)')
             if await date_release_locator.count() > 0:
                 release_date_str = await date_release_locator.text_content()
                 book['date_release'] = dateparser.parse(release_date_str)
@@ -211,8 +159,68 @@ class MarvelComItem(BaseLivelibWorkflow):
                 data={'book': book, 'metrics': metrics},
             )
 
+class MarvelComListing(BaseLivelibWorkflow):
+    name = 'livelib-marvel-com-listing'
+    event = 'livelib:marvel-com-listing'
+    site = 'marvel.com'
+    input = InputLivelibBook
+    output = Output
+
+    item_wf = MarvelComItem
+
+    concurrency=3
+    execution_timeout_sec=300
+    # proxy_enable = False
+
+    start_urls = [
+        'https://bifrost.marvel.com/v1/catalog/comics/calendar/?byType=date&offset=0&limit=100&orderBy=release_date%2Bdesc%2Ctitle%2Basc&variants=false&formatType=issue&dateStart=1820-12-31&dateEnd=2028-12-31',
+    ]
+
+    @classmethod
+    async def task(cls, input: InputLivelibBook, page: Page) -> Output:
+        resp = await page.goto(
+            input.url,
+            wait_until='domcontentloaded',
+        )
+        if not (200 <= resp.status < 400):
+            return Output(
+                result='error',
+                data={'status': resp.status},
+            )
+
+        data = {
+            'new-items-links': 0,
+            'new-page-links': 0,
+        }
+
+        page_data = await resp.json()
+
+        page_url_data = furl(page.url)
+
+        if page_url_data.args['offset'] == '0':
+            total_books = page_data['data']['total']
+            for offset in range(100, total_books, 100):
+                page_url_data.args['offset'] = offset
+                if await MarvelComListing.crawl(page_url_data.url, input.task_id):
+                    data['new-page-links'] += 1
+
+        for i in page_data['data']['results']:
+            if await MarvelComItem.crawl(i['metadata']['url'], input.task_id):
+                data['new-items-links'] += 1
+
+        if not page_data['data']['results']:
+            raise Exception('ERROR: No Items')
+
+        return Output(
+            result='done',
+            data=data,
+        )
+
+
+
 if __name__ == '__main__':
     MarvelComListing.run_sync()
 
     MarvelComListing.debug_sync(MarvelComListing.start_urls[0])
     MarvelComItem.debug_sync('https://www.marvel.com/comics/issue/5538/new_excalibur_2005_13')
+    MarvelComItem.debug_sync('https://www.marvel.com/comics/issue/131971/daredevilpunisher_the_devils_trigger_2025_2')
