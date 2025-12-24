@@ -52,9 +52,7 @@ class AuthorTodayItem(BaseLivelibWorkflow):
             metrics = {'bookUrl': page.url}
 
             # --- Создание книги ---
-            title_locator = page.locator('div[itemtype="http://schema.org/Book"] h1')
-            if await title_locator.count() > 0:
-                book['title'] = await title_locator.text_content()
+            book['title'] = await page.text_content('div[itemtype="http://schema.org/Book"] h1')
 
             if not await db.check_book_exist(page.url):
                 await db.create_book(book)
@@ -316,5 +314,5 @@ if __name__ == '__main__':
     # asyncio.run(AuthorTodayListing.run_cron())
     # Пример ссылки для отладки
     # AuthorTodayListing.debug_sync(AuthorTodayListing.start_urls[0])
-    AuthorTodayListing.debug_sync('https://author.today/u/igor_koltsov/works')
-    # AuthorTodayItem.debug_sync('https://author.today/work/519196')
+    # AuthorTodayListing.debug_sync('https://author.today/u/igor_koltsov/works')
+    AuthorTodayItem.debug_sync('https://author.today/work/519196')
