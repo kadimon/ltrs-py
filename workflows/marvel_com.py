@@ -46,8 +46,8 @@ class MarvelComItem(BaseLivelibWorkflow):
                 'bookUrl': page.url,
             }
 
+            book['title'] = await page.text_content('.ComicMasthead__Title h1.ModuleHeader')
             if not await db.check_book_exist(page.url):
-                book['title'] = await page.text_content('.ComicMasthead__Title h1.ModuleHeader')
                 await db.create_book(book)
 
             authors_locator = page.locator('.ComicIssueMoreDetails__List li').filter(
