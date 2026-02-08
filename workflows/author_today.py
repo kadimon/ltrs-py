@@ -309,9 +309,9 @@ class AuthorTodayListing(BaseLivelibWorkflow):
 
 
 if __name__ == '__main__':
-    AuthorTodayListing.run_sync()
-    # import asyncio
-    # asyncio.run(AuthorTodayListing.run_cron())
+    # AuthorTodayListing.run_sync()
+    import asyncio
+    asyncio.run(AuthorTodayListing.run_cron())
     # Пример ссылки для отладки
     # AuthorTodayListing.debug_sync(AuthorTodayListing.start_urls[0])
     # AuthorTodayListing.debug_sync('https://author.today/u/igor_koltsov/works')

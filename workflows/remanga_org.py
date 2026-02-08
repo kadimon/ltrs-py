@@ -1,14 +1,15 @@
 import re
-from urllib.parse import urljoin
 from datetime import datetime
+from urllib.parse import urljoin
 
-from playwright.async_api import Page
 from furl import furl
+from playwright.async_api import Page
 
-from workflow_base import BaseLivelibWorkflow
-from interfaces import InputLivelibBook, Output
 from db import DbSamizdatPrisma
+from interfaces import InputLivelibBook, Output
 from utils import save_cover
+from workflow_base import BaseLivelibWorkflow
+
 
 class RemangaOrgItem(BaseLivelibWorkflow):
     name = 'livelib-remanga-org-item'
@@ -292,5 +293,6 @@ class RemangaOrgListing(BaseLivelibWorkflow):
 
 if __name__ == '__main__':
     RemangaOrgListing.run_sync()
-    RemangaOrgListing.debug_sync(RemangaOrgListing.start_urls[0])
-    RemangaOrgItem.debug_sync('https://remanga.org/manga/enten/main')
+    # RemangaOrgListing.debug_sync(RemangaOrgListing.start_urls[0])
+    RemangaOrgItem.debug_sync('https://ranobelib.me/ru/book/248228--awakening-the-only-sss-rank-class-now-even-dragons-obey-me')
+    # RemangaOrgItem.debug_sync('https://remanga.org/manga/enten/main')

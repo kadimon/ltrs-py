@@ -376,9 +376,10 @@ class LitnetListing(BaseLivelibWorkflow):
 if __name__ == '__main__':
     # LitnetListing.run_sync()
     import asyncio
-    # asyncio.run(LitnetListing.run_cron())
+    asyncio.run(LitnetListing.run_cron())
     # Для отладки
     # LitnetListing.debug_sync(LitnetListing.start_urls[0])
     # LitnetListing.debug_sync('https://litnet.com/ru/authors/%D0%90%D0%BD%D0%B4%D1%80%D0%B5%D0%B9%20%D0%91%D0%B5%D0%BB%D1%8F%D0%BD%D0%B8%D0%BD-t119205')
-    # LitnetListing.debug_sync('https://litnet.com/ru/anya-istomina-u11251559')
+    LitnetListing.debug_sync('https://litnet.com/ru/anya-istomina-u11251559')
     LitnetItem.debug_sync('https://litnet.com/ru/book/my-nevozmozhny-b564772')
+    LitnetItem.debug_sync('https://litnet.com/ru/book/posle-razvoda-desyat-let-spustya-b547174')
