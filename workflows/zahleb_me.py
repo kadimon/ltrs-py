@@ -1,16 +1,16 @@
 import re
-from urllib.parse import urljoin
 from typing import Literal
+from urllib.parse import urljoin
 
-from playwright.async_api import Page
 import dateparser
 from furl import furl
+from playwright.async_api import Page
 
-from workflow_base import BaseLivelibWorkflow
-from interfaces import InputLivelibBook, Output, WorkerLabels
-from db import DbSamizdatPrisma
-from utils import save_cover, sitemap
 import settings
+from db import DbSamizdatPrisma
+from interfaces import InputLivelibBook, Output, WorkerLabels
+from utils import save_cover, sitemap
+from workflow_base import BaseLivelibWorkflow
 
 
 class ZahlebMeItem(BaseLivelibWorkflow):
@@ -62,15 +62,19 @@ class ZahlebMeItem(BaseLivelibWorkflow):
 
             authors_locator = page.locator('a[class^="StoryInfoAuthor_author_name"]')
             if await authors_locator.count() > 0:
-                book['author'] = ', '.join([
-                    re.sub(r'^бета\s+|^соавтор\s+|\,\s+|\s+$|^\s+', '', await a.text_content())
+                authors_str_list = [
+                    re.sub(r'^соавтор\s+|\,\s+|\s+$|^\s+', '', await a.text_content())
                     for a in await authors_locator.all()
-                ])
+                ]
+                book['author'] = ', '.join([a for a in authors_str_list if not a.startswith('бета ')])
                 # Все авторы с текстом и ссылками
                 book['authors_data'] = []
                 for a in await authors_locator.all():
                     href = await a.get_attribute('href')
-                    text = re.sub(r'^бета\s+|^соавтор\s+|\,\s+|\s+$|^\s+', '', await a.text_content())
+                    text = re.sub(r'^соавтор\s+|\,\s+|\s+$|^\s+', '', await a.text_content())
+                    if text.startswith('бета '):
+                        continue
+
                     absolute_url = urljoin(page.url, href)
 
                     book['authors_data'].append({
