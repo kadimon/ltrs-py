@@ -16,9 +16,11 @@ from workflow_base import BaseLivelibWorkflow
 class ZahlebMeItem(BaseLivelibWorkflow):
     name = 'livelib-zahleb-me-item'
     event = 'livelib:zahleb-me-item'
-    site='zahleb.me'
+    site = 'zahleb.me'
     input = InputLivelibBook
     output = Output
+
+    concurrency = 20
 
     @classmethod
     async def task(cls, input: InputLivelibBook, page: Page) -> Output:
@@ -60,7 +62,7 @@ class ZahlebMeItem(BaseLivelibWorkflow):
                 book['title'] = await page.text_content('h2.ant-typography')
                 await db.create_book(book)
 
-            authors_locator = page.locator('a[class^="StoryInfoAuthor_author_name"]')
+            authors_locator = page.locator('a[class*="StoryInfoAuthor_author_name"]')
             if await authors_locator.count() > 0:
                 authors_str_list = [
                     re.sub(r'^соавтор\s+|\,\s+|\s+$|^\s+', '', await a.text_content())
@@ -167,11 +169,12 @@ class ZahlebMeListing(ZahlebMeItem):
             return
 
         cls.start_urls = [url for url in sitemap('https://zahleb.me') if '/story/' in url]
+        print('books in sitemap:', len(cls.start_urls))
         await super().run()
 
 if __name__ == '__main__':
     ZahlebMeListing.run_sync()
 
+    ZahlebMeItem.debug_sync('https://zahleb.me/story/petrovich-1qyeJcBs8t/lMas628XMc')
     # ZahlebMeItem.debug_sync('https://zahleb.me/story/vashe-serdtse-vzlomano-qZJBA7XcMs')
-    # ZahlebMeItem.debug_sync('https://zahleb.me/story/polovina-shestogo-hGzzpTUMxN/wIWqwq0WMn')
-    ZahlebMeItem.debug_sync('https://zahleb.me/story/poteryannoe-nasledie-chast-1-oUdBkiJssb')
+    # ZahlebMeItem.debug_sync('https://zahleb.me/story/t-i-v-zemle-korolei-r0cC5aemAF')

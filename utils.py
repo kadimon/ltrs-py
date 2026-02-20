@@ -1,13 +1,13 @@
-from urllib.parse import urljoin
-from pathlib import Path
 import hashlib
 from io import BytesIO
+from pathlib import Path
+from urllib.parse import urljoin
 
-from playwright.async_api import Page
-from PIL import Image
 import puremagic
-from furl import furl
 from aiobotocore.session import get_session
+from furl import furl
+from PIL import Image
+from playwright.async_api import Page
 from usp.tree import sitemap_tree_for_homepage
 
 import settings
@@ -55,7 +55,7 @@ async def save_cover(page: Page, cover_url: str, timeout: int = 10_000) -> str |
 
         return cover_name
 
-    except Exception:
+    except Exception as e:
         return None
 
 def sitemap(url: str) -> list[str]:
