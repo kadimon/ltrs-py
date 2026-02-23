@@ -29,11 +29,13 @@ class ZahlebMeItem(BaseLivelibWorkflow):
             wait_until='domcontentloaded',
             timeout=20_000,
         )
-        if not (200 <= resp.status < 400):
-            return Output(
-                result='error',
-                data={'status': resp.status},
-            )
+
+        error_title_locator = page.locator('[class*="EmptyPageComponent_title"]')
+        if not (200 <= resp.status < 400) \
+        or await error_title_locator.count() > 0:
+            async with DbSamizdatPrisma() as db:
+                await db.mark_book_deleted(page.url, cls.site)
+            return Output(result='error', data={'status': resp.status, 'error_page': await error_title_locator.is_visible()})
 
         await page.wait_for_selector('h2.ant-typography')
         await page.wait_for_timeout(2_000)
@@ -175,6 +177,6 @@ class ZahlebMeListing(ZahlebMeItem):
 if __name__ == '__main__':
     ZahlebMeListing.run_sync()
 
-    ZahlebMeItem.debug_sync('https://zahleb.me/story/petrovich-1qyeJcBs8t/lMas628XMc')
+    ZahlebMeItem.debug_sync('https://zahleb.me/story/ya-vybirayu-porazhenie-ODB83WgWX5/H4NbLUv10H')
     # ZahlebMeItem.debug_sync('https://zahleb.me/story/vashe-serdtse-vzlomano-qZJBA7XcMs')
     # ZahlebMeItem.debug_sync('https://zahleb.me/story/t-i-v-zemle-korolei-r0cC5aemAF')
