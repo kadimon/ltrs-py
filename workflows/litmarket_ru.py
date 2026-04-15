@@ -48,7 +48,7 @@ class LitmarketItem(BaseLivelibWorkflow):
                 await db.create_book(book)
 
             # --- Сбор основной информации ---
-            authors_locator = page.locator("div.card-info div.card-author > a")
+            authors_locator = page.locator("div.card-info div.card-author a")
             if await authors_locator.count() > 0:
                 book['author'] = ', '.join([(await a.text_content()).strip() for a in await authors_locator.all()])
                 # Все авторы с текстом и ссылками
@@ -68,7 +68,7 @@ class LitmarketItem(BaseLivelibWorkflow):
                 book['annotation'] = await annotation_locator.inner_text()
 
             if not await db.check_book_have_cover(page.url):
-                cover_locator = page.locator('div.card-info img[itemprop="thumbnailUrl"]')
+                cover_locator = page.locator('div.card-info img[itemprop="contentUrl"]')
                 if await cover_locator.count() > 0:
                     if img_src := await cover_locator.get_attribute('src'):
                         full_img_src = urljoin(page.url, img_src)
@@ -91,7 +91,7 @@ class LitmarketItem(BaseLivelibWorkflow):
                     series_list.append(clean_text)
                 book['series'] = list(set(series_list))
 
-            tags_locators = await page.locator("div.card-info div.tags a").all()
+            tags_locators = await page.locator("div.card-info ul.tags a").all()
             if tags_locators:
                 tags_list = []
                 for t in tags_locators:
@@ -113,7 +113,7 @@ class LitmarketItem(BaseLivelibWorkflow):
 
             release_date_locator = page.locator('div.card-info').filter(
                 has_text=re.compile(r'Создана:')
-            ).locator("time.btn-price__date")
+            ).locator("span.btn-price__date")
             if await release_date_locator.count() > 0:
                 book['date_release'] = dateparser.parse(await release_date_locator.first.text_content())
 
@@ -173,7 +173,7 @@ class LitmarketItem(BaseLivelibWorkflow):
                     if await r.locator("span.number").count() == 0:
                         continue
                     num_text = await r.locator("span.number").text_content()
-                    cat_text = await r.locator('span[itemprop="genre"]').text_content()
+                    cat_text = await r.locator('span[itemprop="name"]').text_content()
 
                     rating_match = re.search(r'\d+', num_text)
                     if rating_match and cat_text:
@@ -294,6 +294,7 @@ if __name__ == '__main__':
     asyncio.run(LitmarketListing.run_cron())
     # Пример ссылки для отладки
     # LitmarketListing.debug_sync('https://litmarket.ru/books')
-    # LitmarketListing.debug_sync('https://litmarket.ru/karina-demina-p154501?utm_source=lm&utm_medium=&utm_campaign=karina-demina-p154501')
-    # LitmarketListing.debug_sync('https://litmarket.ru/aleksandra-cherchen-p11719?utm_source=lm&utm_medium=&utm_campaign=aleksandra-cherchen-p11719')
-    # LitmarketItem.debug_sync('https://litmarket.ru/books/ne-vremya-dlya-drakonov')
+    LitmarketListing.debug_sync('https://litmarket.ru/karina-demina-p154501?utm_source=lm&utm_medium=&utm_campaign=karina-demina-p154501')
+    LitmarketListing.debug_sync('https://litmarket.ru/aleksandra-cherchen-p11719?utm_source=lm&utm_medium=&utm_campaign=aleksandra-cherchen-p11719')
+    LitmarketItem.debug_sync('https://litmarket.ru/books/ne-vremya-dlya-drakonov')
+    LitmarketItem.debug_sync('https://litmarket.ru/books/nasledie-razvedchika?utm_source=lm&utm_medium=also_read&utm_campaign=nasledie-razvedchika')

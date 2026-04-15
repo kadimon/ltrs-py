@@ -314,5 +314,5 @@ if __name__ == '__main__':
     asyncio.run(AuthorTodayListing.run_cron())
     # Пример ссылки для отладки
     # AuthorTodayListing.debug_sync(AuthorTodayListing.start_urls[0])
-    # AuthorTodayListing.debug_sync('https://author.today/u/igor_koltsov/works')
+    AuthorTodayListing.debug_sync('https://author.today/u/igor_koltsov/works')
     AuthorTodayItem.debug_sync('https://author.today/work/519196')

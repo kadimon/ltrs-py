@@ -105,7 +105,7 @@ class BaseWorkflow(
         if settings.DEBUG:
             async with AsyncCamoufox(
                 proxy={'server': settings.PROXY_URI} if cls.proxy_enable else None,
-                geoip=True,
+                # geoip=True,
                 locale='RU',
                 os='windows',
                 humanize=True,

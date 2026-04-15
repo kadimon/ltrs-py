@@ -1,13 +1,14 @@
 import re
+from datetime import datetime
 from urllib.parse import urljoin
 
 from playwright.async_api import Page
-from datetime import datetime
 
-from workflow_base import BaseLivelibWorkflow
-from interfaces import InputLivelibBook, Output, WorkerLabels
 from db import DbSamizdatPrisma
+from interfaces import InputLivelibBook, Output, WorkerLabels
 from utils import save_cover
+from workflow_base import BaseLivelibWorkflow
+
 
 class UsagiOneItem(BaseLivelibWorkflow):
     name = 'livelib-usagi-one-item'
@@ -45,9 +46,9 @@ class UsagiOneItem(BaseLivelibWorkflow):
                 'bookUrl': page.url,
             }
 
-            book['title'] = await page.locator('h1 > .name').text_content()
+            book['title'] = await page.locator('h1').text_content()
             if not await db.check_book_exist(page.url):
-                book['title'] = await page.locator('h1 > .name').text_content()
+                book['title'] = await page.locator('h1').text_content()
                 await db.create_book(book)
 
             titles_other_locator = page.locator('.another-names')
@@ -260,4 +261,4 @@ if __name__ == '__main__':
     UsagiOneListing.run_sync()
 
     # UsagiOneListing.debug_sync(UsagiOneListing.start_urls[0])
-    UsagiOneItem.debug_sync('https://web.usagi.one/the_world_s_best_engineer')
+    UsagiOneItem.debug_sync('https://web.usagi.one/32834')
