@@ -238,11 +238,14 @@ class LitnetItem(BaseLivelibWorkflow):
                 has_text=re.compile(r'\d+')
             )
             if await price_btn_locator.count() > 0:
-                price_btn_text = await price_btn_locator.text_content()
+                price_btn_text = await price_btn_locator.first.text_content()
 
                 if price_match := re.search(r'[\d\.]+', price_btn_text):
                     metrics['price'] = float(price_match.group(0))
                 if "Подписка" in price_btn_text:
+                    metrics['in_subscribe'] = True
+
+                if await price_btn_locator.filter(has_text=re.compile(r"дней доступа")).count() > 0:
                     metrics['in_subscribe'] = True
 
             # Price Old
@@ -380,6 +383,6 @@ if __name__ == '__main__':
     # Для отладки
     # LitnetListing.debug_sync(LitnetListing.start_urls[0])
     # LitnetListing.debug_sync('https://litnet.com/ru/authors/%D0%90%D0%BD%D0%B4%D1%80%D0%B5%D0%B9%20%D0%91%D0%B5%D0%BB%D1%8F%D0%BD%D0%B8%D0%BD-t119205')
-    LitnetListing.debug_sync('https://litnet.com/ru/anya-istomina-u11251559')
-    LitnetItem.debug_sync('https://litnet.com/ru/book/my-nevozmozhny-b564772')
-    LitnetItem.debug_sync('https://litnet.com/ru/book/posle-razvoda-desyat-let-spustya-b547174')
+    # LitnetListing.debug_sync('https://litnet.com/ru/anya-istomina-u11251559')
+    # LitnetItem.debug_sync('https://litnet.com/ru/book/my-nevozmozhny-b564772')
+    LitnetItem.debug_sync('https://litnet.com/ru/book/sbezhavshaya-zhena-bossa-razvoda-ne-budet-b404030')
