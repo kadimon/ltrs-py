@@ -319,7 +319,7 @@ class LitnetListing(BaseLivelibWorkflow):
     item_wf = LitnetItem
 
     concurrency=3
-    execution_timeout_sec=300
+    execution_timeout_sec=3000
     backoff_max_seconds=30
     backoff_factor=2
 
