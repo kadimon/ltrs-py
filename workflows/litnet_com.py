@@ -327,14 +327,10 @@ class LitnetListing(BaseLivelibWorkflow):
 
     @classmethod
     async def task(cls, input: InputLivelibBook, page: Page) -> Output:
-        print(input.url)
-        resp = await page.goto(
-            input.url,
-            # wait_until='domcontentloaded',
-        )
         stats = {'new-page-links': 0, 'new-items-links': 0}
 
         if 'superapi.litnet.com' in input.url:
+            resp = await page.request.get(input.url)
             data = await resp.json()
             url_data = furl(page.url)
 
@@ -350,6 +346,11 @@ class LitnetListing(BaseLivelibWorkflow):
                         stats['new-page-links'] += 1
 
         else:
+            resp = await page.goto(
+                input.url,
+                wait_until='domcontentloaded',
+            )
+
             await page.wait_for_selector(".main_footer-inform")
 
             # Обработка пагинации
