@@ -341,7 +341,7 @@ class LitnetListing(BaseLivelibWorkflow):
 
             if url_data.args['offset'] == '0':
                 total_items = int(data['total'])
-                for offset in range(20, total_items + 20, 20):
+                for offset in range(79520, total_items + 20, 20):
                     url_data.args['offset'] = offset
                     if await cls.crawl(url_data.url, input.task_id, dont_dedupe=True):
                         stats['new-page-links'] += 1
