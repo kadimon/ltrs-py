@@ -328,7 +328,10 @@ class LitnetListing(BaseLivelibWorkflow):
     @classmethod
     async def task(cls, input: InputLivelibBook, page: Page) -> Output:
         print(input.url)
-        resp = await page.goto(input.url, wait_until='domcontentloaded')
+        resp = await page.goto(
+            input.url,
+            # wait_until='domcontentloaded',
+        )
         stats = {'new-page-links': 0, 'new-items-links': 0}
 
         if 'superapi.litnet.com' in input.url:
