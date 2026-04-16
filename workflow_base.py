@@ -139,13 +139,14 @@ class BaseWorkflow(
         url: str,
         task_id: str,
         dedupe_hours: int = 480,
+        dont_dedupe: bool = False,
         **kwargs
     ) -> bool:
         if settings.DEBUG:
             return True
 
         hash = cls._task_hash(task_id, url)
-        if await cls._not_dupe(hash, dedupe_hours):
+        if dont_dedupe or await cls._not_dupe(hash, dedupe_hours):
             payload = {
                 'url': url,
                 'task_id': task_id,
