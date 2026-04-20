@@ -326,9 +326,9 @@ class LitnetListing(BaseLivelibWorkflow):
     start_urls = ["https://superapi.litnet.com/v2/genres/top?limit=20&offset=0&sort=rate&sortDirection=DESC"]
 
     cron_urls = [
-        "https://litnet.com/ru/podborka/goryachie-novinki",
-        "https://litnet.com/ru/top/o-created-today",
-        "https://litnet.com/ru/podborka/litnet-rekomenduet",
+        "https://superapi.litnet.com/v2/widgets/books-list/goryachie-novinki?limit=20&offset=0",
+        "https://superapi.litnet.com/v2/genres/top?limit=20&offset=0&createdAt=1&sort=rate&sortDirection=DESC",
+        "https://superapi.litnet.com/v2/widgets/books-list/litnet-rekomenduet?limit=20&offset=0",
     ]
 
     @classmethod
@@ -347,7 +347,7 @@ class LitnetListing(BaseLivelibWorkflow):
 
             if url_data.args['offset'] == '0':
                 total_items = int(data['total'])
-                for offset in range(79520, total_items + 20, 20):
+                for offset in range(20, total_items + 20, 20):
                     url_data.args['offset'] = offset
                     if await cls.crawl(url_data.url, input.task_id, dont_dedupe=True):
                         stats['new-page-links'] += 1
@@ -382,14 +382,9 @@ class LitnetListing(BaseLivelibWorkflow):
                     if await cls.crawl(url_data.url, input.task_id):
                         stats['new-page-links'] += 1
 
-            show_more_locator = page.locator('div[text="Показать еще"] button')
-            while await show_more_locator.count() > 0:
-                await show_more_locator.click()
-                await page.wait_for_timeout(1_000)
-
             # Обработка книг
             # JS selector: "h4.book-title a", label: "book"
-            book_links = await page.locator('h4.book-title a, h4[itemprop="name"] a').all()
+            book_links = await page.locator('h4.book-title a').all()
             for link in book_links:
                 href = await link.get_attribute('href')
                 if href:
@@ -403,11 +398,11 @@ class LitnetListing(BaseLivelibWorkflow):
 
 if __name__ == '__main__':
     # LitnetListing.run_sync()
-    # import asyncio
-    # asyncio.run(LitnetListing.run_cron())
+    LitnetListing.run_cron_sync()
     # Для отладки
     # LitnetListing.debug_sync(LitnetListing.start_urls[0])
     # LitnetListing.debug_sync('https://litnet.com/ru/authors/%D0%90%D0%BD%D0%B4%D1%80%D0%B5%D0%B9%20%D0%91%D0%B5%D0%BB%D1%8F%D0%BD%D0%B8%D0%BD-t119205')
-    LitnetListing.debug_sync('https://litnet.com/ru/podborka/goryachie-novinki')
+    # for cron_url in LitnetListing.cron_urls:
+    #     LitnetListing.debug_sync(cron_url)
     # LitnetItem.debug_sync('https://litnet.com/ru/book/my-nevozmozhny-b564772')
     # LitnetItem.debug_sync('https://litnet.com/ru/book/sbezhavshaya-zhena-bossa-razvoda-ne-budet-b404030')

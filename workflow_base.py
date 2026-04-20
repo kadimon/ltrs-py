@@ -333,10 +333,14 @@ class BaseLivelibWorkflow(
     async def run_cron(cls) -> None:
         async with DbSamizdatPrisma() as db:
             cls.start_urls = await db.get_priority_persons_urls(cls.site)
-        if cls.cron_urls:
-            cls.start_urls.extend(cls.cron_urls)
+        if cron_urls := cls.cron_urls:
+            cls.start_urls.extend(cron_urls)
 
         await super().run('y')
+
+    @classmethod
+    def run_cron_sync(cls) -> None:
+        asyncio.run(cls.run_cron())
 
 
 @dataclass

@@ -259,6 +259,12 @@ class AuthorTodayListing(BaseLivelibWorkflow):
 
     start_urls = ["https://author.today/work/genres"]
 
+    cron_urls = [
+        'https://author.today/work/genre/all?pub=3&sorting=popular',
+        'https://author.today/work/genre/all?sorting=popular',
+        'https://author.today/work/genre/all?sorting=recent',
+    ]
+
     @classmethod
     async def task(cls, input: InputLivelibBook, page: Page) -> Output:
         resp = await page.goto(input.url, wait_until='domcontentloaded')
@@ -310,9 +316,10 @@ class AuthorTodayListing(BaseLivelibWorkflow):
 
 if __name__ == '__main__':
     # AuthorTodayListing.run_sync()
-    import asyncio
-    asyncio.run(AuthorTodayListing.run_cron())
+    AuthorTodayListing.run_cron_sync()
     # Пример ссылки для отладки
+    # for cron_url in AuthorTodayListing.cron_urls:
+    #     AuthorTodayListing.debug_sync(cron_url)
     # AuthorTodayListing.debug_sync(AuthorTodayListing.start_urls[0])
-    AuthorTodayListing.debug_sync('https://author.today/u/igor_koltsov/works')
-    AuthorTodayItem.debug_sync('https://author.today/work/519196')
+    # AuthorTodayListing.debug_sync('https://author.today/u/igor_koltsov/works')
+    # AuthorTodayItem.debug_sync('https://author.today/work/519196')

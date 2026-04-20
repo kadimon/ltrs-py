@@ -237,13 +237,15 @@ class LitmarketListing(BaseLivelibWorkflow):
 
     start_urls = ["https://litmarket.ru/books"]
 
+    cron_urls = ['https://litmarket.ru/books?access=free&sorting=rating&periods=month']
+
     @classmethod
     async def task(cls, input: InputLivelibBook, page: Page) -> Output:
         resp = await page.goto(input.url, wait_until='domcontentloaded')
         if not (200 <= resp.status < 400):
             return Output(result='error', data={'status': resp.status})
 
-        title_selector = ".books-array article h4 a , div.card-title a, .slideshow .card-name a"
+        title_selector = ".books-array article h4 a, div.card-title a, .slideshow .card-name a"
         await page.wait_for_selector(title_selector)
 
         data = {'new-page-links': 0, 'new-items-links': 0}
@@ -290,11 +292,12 @@ class LitmarketListing(BaseLivelibWorkflow):
 
 if __name__ == '__main__':
     # LitmarketListing.run_sync()
-    import asyncio
-    asyncio.run(LitmarketListing.run_cron())
+    LitmarketListing.run_cron_sync()
     # Пример ссылки для отладки
     # LitmarketListing.debug_sync('https://litmarket.ru/books')
-    LitmarketListing.debug_sync('https://litmarket.ru/karina-demina-p154501?utm_source=lm&utm_medium=&utm_campaign=karina-demina-p154501')
-    LitmarketListing.debug_sync('https://litmarket.ru/aleksandra-cherchen-p11719?utm_source=lm&utm_medium=&utm_campaign=aleksandra-cherchen-p11719')
-    LitmarketItem.debug_sync('https://litmarket.ru/books/ne-vremya-dlya-drakonov')
-    LitmarketItem.debug_sync('https://litmarket.ru/books/nasledie-razvedchika?utm_source=lm&utm_medium=also_read&utm_campaign=nasledie-razvedchika')
+    # for cron_url in LitmarketListing.cron_urls:
+    #     LitmarketListing.debug_sync(cron_url)
+    # LitmarketListing.debug_sync('https://litmarket.ru/karina-demina-p154501?utm_source=lm&utm_medium=&utm_campaign=karina-demina-p154501')
+    # LitmarketListing.debug_sync('https://litmarket.ru/aleksandra-cherchen-p11719?utm_source=lm&utm_medium=&utm_campaign=aleksandra-cherchen-p11719')
+    # LitmarketItem.debug_sync('https://litmarket.ru/books/ne-vremya-dlya-drakonov')
+    # LitmarketItem.debug_sync('https://litmarket.ru/books/nasledie-razvedchika?utm_source=lm&utm_medium=also_read&utm_campaign=nasledie-razvedchika')
