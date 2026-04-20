@@ -219,7 +219,7 @@ class StrokiMtsItem(BaseLivelibWorkflow):
                  has_text=re.compile(r"Аудиокнига")
             )
             if await button_audio_locator.count() > 0:
-                await button_audio_locator.click()
+                await button_audio_locator.first.click()
                 book['url_audio'] = page.url
 
             await db.update_book(book)

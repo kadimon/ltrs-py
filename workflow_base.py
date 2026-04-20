@@ -299,6 +299,7 @@ class BaseLivelibWorkflow(
     item_wf: Optional[Type["BaseLivelibWorkflow"]] = None
 
     cron: Optional[str] = None
+    cron_urls: Optional[list[str]] = None
 
     customer = 'livelib'
 
@@ -332,6 +333,8 @@ class BaseLivelibWorkflow(
     async def run_cron(cls) -> None:
         async with DbSamizdatPrisma() as db:
             cls.start_urls = await db.get_priority_persons_urls(cls.site)
+        if cls.cron_urls:
+            cls.start_urls.extend(cls.cron_urls)
 
         await super().run('y')
 

@@ -319,11 +319,17 @@ class LitnetListing(BaseLivelibWorkflow):
     item_wf = LitnetItem
 
     concurrency=3
-    execution_timeout_sec=3000
+    execution_timeout_sec=3600
     backoff_max_seconds=30
     backoff_factor=2
 
     start_urls = ["https://superapi.litnet.com/v2/genres/top?limit=20&offset=0&sort=rate&sortDirection=DESC"]
+
+    cron_urls = [
+        "https://litnet.com/ru/podborka/goryachie-novinki",
+        "https://litnet.com/ru/top/o-created-today",
+        "https://litnet.com/ru/podborka/litnet-rekomenduet",
+    ]
 
     @classmethod
     async def task(cls, input: InputLivelibBook, page: Page) -> Output:
@@ -367,9 +373,23 @@ class LitnetListing(BaseLivelibWorkflow):
                         if await cls.crawl(page_url, input.task_id):
                             stats['new-page-links'] += 1
 
+            pagination_buttons = await page.locator(".page-list span").all()
+            url_data = furl(input.url)
+            for b in pagination_buttons:
+                page_num = await b.text_content()
+                if page_num:
+                    url_data.args['page'] = page_num.strip()
+                    if await cls.crawl(url_data.url, input.task_id):
+                        stats['new-page-links'] += 1
+
+            show_more_locator = page.locator('div[text="Показать еще"] button')
+            while await show_more_locator.count() > 0:
+                await show_more_locator.click()
+                await page.wait_for_timeout(1_000)
+
             # Обработка книг
             # JS selector: "h4.book-title a", label: "book"
-            book_links = await page.locator("h4.book-title a").all()
+            book_links = await page.locator('h4.book-title a, h4[itemprop="name"] a').all()
             for link in book_links:
                 href = await link.get_attribute('href')
                 if href:
@@ -383,11 +403,11 @@ class LitnetListing(BaseLivelibWorkflow):
 
 if __name__ == '__main__':
     # LitnetListing.run_sync()
-    import asyncio
-    asyncio.run(LitnetListing.run_cron())
+    # import asyncio
+    # asyncio.run(LitnetListing.run_cron())
     # Для отладки
-    LitnetListing.debug_sync(LitnetListing.start_urls[0])
+    # LitnetListing.debug_sync(LitnetListing.start_urls[0])
     # LitnetListing.debug_sync('https://litnet.com/ru/authors/%D0%90%D0%BD%D0%B4%D1%80%D0%B5%D0%B9%20%D0%91%D0%B5%D0%BB%D1%8F%D0%BD%D0%B8%D0%BD-t119205')
-    # LitnetListing.debug_sync('https://litnet.com/ru/anya-istomina-u11251559')
+    LitnetListing.debug_sync('https://litnet.com/ru/podborka/goryachie-novinki')
     # LitnetItem.debug_sync('https://litnet.com/ru/book/my-nevozmozhny-b564772')
     # LitnetItem.debug_sync('https://litnet.com/ru/book/sbezhavshaya-zhena-bossa-razvoda-ne-budet-b404030')
