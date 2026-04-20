@@ -80,7 +80,7 @@ class StrokiMtsItem(BaseLivelibWorkflow):
 
             # Cover
             if not await db.check_book_have_cover(page.url):
-                cover_locator = page.locator("div#card_head cover img")
+                cover_locator = page.locator(".left-block cover img")
                 if await cover_locator.count() > 0:
                     if img_src := await cover_locator.get_attribute('src'):
                         full_img_src = urljoin(page.url, img_src)
@@ -300,6 +300,7 @@ class StrokiMtsListing(BaseLivelibWorkflow):
 
 
 if __name__ == '__main__':
+    StrokiMtsListing.run_sync()
     # import asyncio
     # asyncio.run(StrokiMtsListing.run_cron())
     # Для отладки
@@ -307,4 +308,4 @@ if __name__ == '__main__':
     # StrokiMtsListing.debug_sync('https://stroki.mts.ru/genres/young-adult-1206')
     # StrokiMtsItem.debug_sync('https://stroki.mts.ru/book/chetvertoye-krylo-240562')
     # StrokiMtsItem.debug_sync('https://stroki.mts.ru/audiobook/chetvertoye-krylo-240563')
-    StrokiMtsItem.debug_sync('https://stroki.mts.ru/book/zeleniy-svet-30182')
+    # StrokiMtsItem.debug_sync('https://stroki.mts.ru/book/zeleniy-svet-30182')
