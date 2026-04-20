@@ -23,8 +23,7 @@ class StrokiMtsItem(BaseLivelibWorkflow):
     @classmethod
     async def task(cls, input: InputLivelibBook, page: Page) -> Output:
         resp = await page.goto(input.url, wait_until='domcontentloaded')
-        # await page.wait_for_timeout(3000)
-        await page.wait_for_selector("main")
+        await page.wait_for_timeout(3000)
 
         if resp.status == 404 or page.url == "https://stroki.mts.ru/not-found":
             async with DbSamizdatPrisma() as db:
