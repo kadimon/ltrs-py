@@ -240,7 +240,7 @@ class StrokiMtsListing(BaseLivelibWorkflow):
     output = Output
     item_wf = StrokiMtsItem
 
-    concurrency = 3
+    concurrency = 4
     execution_timeout_sec = 36_000
     backoff_max_seconds = 30
     backoff_factor = 2

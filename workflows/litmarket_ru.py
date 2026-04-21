@@ -230,7 +230,7 @@ class LitmarketListing(BaseLivelibWorkflow):
     output = Output
     item_wf = LitmarketItem
 
-    concurrency=3
+    concurrency=4
     execution_timeout_sec=300
     backoff_max_seconds=30
     backoff_factor=2

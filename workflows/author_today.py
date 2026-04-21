@@ -252,7 +252,7 @@ class AuthorTodayListing(BaseLivelibWorkflow):
     output = Output
     item_wf = AuthorTodayItem
 
-    concurrency = 3
+    concurrency = 4
     execution_timeout_sec = 3600
     backoff_max_seconds = 30
     backoff_factor = 2
