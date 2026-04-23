@@ -255,23 +255,25 @@ class LitmarketListing(BaseLivelibWorkflow):
         pagination_links = await page.locator("ul.pagination a").all()
         url_data = furl(page.url)
         for link in pagination_links:
-            if href := await link.get_attribute('href'):
-                page_url = urljoin(page.url, await link.get_attribute('href'))
-                # Простая проверка на соответствие паттерну пагинации
-                if 'page=' in page_url:
-                    if await cls.crawl(page_url, input.task_id):
-                        data['new-page-links'] += 1
-            else:
-                page_num_locator = link.filter(
-                    has_text=re.compile(r'\d+')
-                )
-                if await page_num_locator.count() > 0:
-                    page_num = (await page_num_locator.text_content()).strip()
-                    if page_num == '1':
-                        continue
-                    url_data.args['page'] = page_num
-                    if await cls.crawl(url_data.url, input.task_id):
-                        data['new-page-links'] += 1
+            # if href := await link.get_attribute('href'):
+            #     print(href)
+            #     page_url = urljoin(page.url, await link.get_attribute('href'))
+            #     # Простая проверка на соответствие паттерну пагинации
+            #     if 'page=' in page_url:
+            #         if await cls.crawl(page_url, input.task_id):
+            #             data['new-page-links'] += 1
+            # else:
+            page_num_locator = link.filter(
+                has_text=re.compile(r'\d+')
+            )
+            if await page_num_locator.count() > 0:
+                page_num = (await page_num_locator.text_content()).strip()
+                if page_num == '1':
+                    continue
+                url_data.args['page'] = page_num
+                print(url_data.url)
+                if await cls.crawl(url_data.url, input.task_id):
+                    data['new-page-links'] += 1
 
 
         # Обработка ссылок на книги
@@ -292,11 +294,11 @@ class LitmarketListing(BaseLivelibWorkflow):
 
 if __name__ == '__main__':
     # LitmarketListing.run_sync()
-    LitmarketListing.run_cron_sync()
+    # LitmarketListing.run_cron_sync()
     # Пример ссылки для отладки
     # LitmarketListing.debug_sync('https://litmarket.ru/books')
-    # for cron_url in LitmarketListing.cron_urls:
-    #     LitmarketListing.debug_sync(cron_url)
+    for cron_url in LitmarketListing.cron_urls:
+        LitmarketListing.debug_sync(cron_url)
     # LitmarketListing.debug_sync('https://litmarket.ru/karina-demina-p154501?utm_source=lm&utm_medium=&utm_campaign=karina-demina-p154501')
     # LitmarketListing.debug_sync('https://litmarket.ru/aleksandra-cherchen-p11719?utm_source=lm&utm_medium=&utm_campaign=aleksandra-cherchen-p11719')
     # LitmarketItem.debug_sync('https://litmarket.ru/books/ne-vremya-dlya-drakonov')
