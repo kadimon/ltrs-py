@@ -7,7 +7,7 @@ RUN apt-get update \
 RUN pip install playwright \
     patchright \
     camoufox[geoip] \
-    hatchet-sdk==1.23.0 \
+    hatchet-sdk==1.33.2 \
     prisma \
     pymongo \
     dateparser \

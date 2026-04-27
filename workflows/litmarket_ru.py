@@ -294,7 +294,7 @@ class LitmarketListing(BaseLivelibWorkflow):
 
 if __name__ == '__main__':
     # LitmarketListing.run_sync()
-    # LitmarketListing.run_cron_sync()
+    LitmarketListing.run_cron_sync()
     # Пример ссылки для отладки
     # LitmarketListing.debug_sync('https://litmarket.ru/books')
     for cron_url in LitmarketListing.cron_urls:
