@@ -207,7 +207,7 @@ class BookmateListing(BaseLivelibWorkflow):
     item_wf = BookmateItem
 
     concurrency = 4
-    execution_timeout_sec = 3_600
+    execution_timeout_sec = 7_200
     backoff_max_seconds = 30
     backoff_factor = 2
 
@@ -282,5 +282,6 @@ if __name__ == '__main__':
     # BookmateListing.debug_sync(BookmateListing.start_urls[0])
     # BookmateListing.debug_sync('https://books.yandex.ru/section/all/uyutnye-detektivy-qGulE45y')
     # BookmateListing.debug_sync('https://books.yandex.ru/section/all/samorazvitie-tq0QW7Lz')
-    BookmateItem.debug_sync('https://books.yandex.ru/books/k5ZjBit1')
+    BookmateListing.debug_sync('https://books.yandex.ru/section/audiobook/sovremennaya-russkaya-proza-XHwMYsO6')
+    # BookmateItem.debug_sync('https://books.yandex.ru/books/k5ZjBit1')
     # BookmateItem.debug_sync('https://books.yandex.ru/audiobooks/VIitWf9R')
