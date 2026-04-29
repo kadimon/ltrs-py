@@ -193,7 +193,7 @@ class BookmateItem(BaseLivelibWorkflow):
             await db.create_metrics(metrics)
 
             # --- Crawl book formats ---
-            format_tab_locator = page.locator('a[data-test-id^="CONTENT_SYNC_TAB"]:not([data-tab-active="true"]')
+            format_tab_locator = page.locator('a[data-test-id^="CONTENT_SYNC_TAB"]:not([data-tab-active="true"])')
             for tab_locator in await format_tab_locator.all():
                 if url_tab := await tab_locator.get_attribute('href'):
                     await cls.crawl(
@@ -283,12 +283,12 @@ class BookmateListing(BaseLivelibWorkflow):
 
 
 if __name__ == '__main__':
-    # BookmateListing.run_sync()
+    BookmateListing.run_sync()
     # BookmateListing.run_cron_sync()
     # Для отладки
     # BookmateListing.debug_sync(BookmateListing.start_urls[0])
     # BookmateListing.debug_sync('https://books.yandex.ru/section/all/uyutnye-detektivy-qGulE45y')
     # BookmateListing.debug_sync('https://books.yandex.ru/section/all/samorazvitie-tq0QW7Lz')
-    BookmateListing.debug_sync('https://books.yandex.ru/section/audiobook/sovremennaya-russkaya-proza-XHwMYsO6')
+    # BookmateListing.debug_sync('https://books.yandex.ru/section/audiobook/sovremennaya-russkaya-proza-XHwMYsO6')
     # BookmateItem.debug_sync('https://books.yandex.ru/books/k5ZjBit1')
     # BookmateItem.debug_sync('https://books.yandex.ru/audiobooks/VIitWf9R')
