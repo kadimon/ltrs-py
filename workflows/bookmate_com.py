@@ -139,7 +139,7 @@ class BookmateItem(BaseLivelibWorkflow):
             if await button_audio_locator.count() > 0:
                 if url_audio := await button_audio_locator.get_attribute('href'):
                     book['url_audio'] = urljoin(page.url, url_audio)
-                    await cls.crawl(url_audio, input.task_id)
+                    await cls.crawl(book['url_audio'], input.task_id)
 
 
             # --- Metrics ---
