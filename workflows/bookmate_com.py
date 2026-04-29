@@ -139,8 +139,6 @@ class BookmateItem(BaseLivelibWorkflow):
             if await button_audio_locator.count() > 0:
                 if url_audio := await button_audio_locator.get_attribute('href'):
                     book['url_audio'] = urljoin(page.url, url_audio)
-                    await cls.crawl(book['url_audio'], input.task_id)
-
 
             # --- Metrics ---
 
@@ -193,6 +191,15 @@ class BookmateItem(BaseLivelibWorkflow):
 
             await db.update_book(book)
             await db.create_metrics(metrics)
+
+            # --- Crawl book formats ---
+            format_tab_locator = page.locator('a[data-test-id^="CONTENT_SYNC_TAB"]:not([data-tab-active="true"]')
+            for tab_locator in await format_tab_locator.all():
+                if url_tab := await tab_locator.get_attribute('href'):
+                    await cls.crawl(
+                        urljoin(page.url, url_tab),
+                        input.task_id
+                    )
 
             return Output(result='done', data={'book': book, 'metrics': metrics})
 
