@@ -27,6 +27,8 @@ class BookmateItem(BaseLivelibWorkflow):
     async def task(cls, input: InputLivelibBook, page: Page) -> Output:
         resp = await page.goto(input.url, wait_until='domcontentloaded')
 
+        await page.wait_for_selector('h1')
+
         # Проверка URL и статуса
         error_locator = page.locator('h1[class*="ContentErrorPageTitle"]')
         if resp.status == 404 or await error_locator.count() > 0:
