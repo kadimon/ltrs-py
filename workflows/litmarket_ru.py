@@ -27,7 +27,11 @@ class LitmarketItem(BaseLivelibWorkflow):
         # Проверка на 404, 500, ошибки на странице или неверный URL
         deleted_profile_locator = page.locator("div.card h5.profileDeletedText")
 
-        if resp.status in (404, 500) or '/books/' not in page.url:
+        if resp.status in (404, 500) \
+        or '/books/' not in page.url \
+        or await page.locator('.card-content').filter(
+            has_text=re.compile(r'Доступ закрыт')
+        ).count() > 0:
             async with DbSamizdatPrisma() as db:
                 await db.mark_book_deleted(page.url, cls.site)
             return Output(result='error', data={'status': resp.status, 'error': 'invalid_url_or_status'})
@@ -294,12 +298,12 @@ class LitmarketListing(BaseLivelibWorkflow):
 
 if __name__ == '__main__':
     # LitmarketListing.run_sync()
-    LitmarketListing.run_cron_sync()
+    # LitmarketListing.run_cron_sync()
     # Пример ссылки для отладки
     # LitmarketListing.debug_sync('https://litmarket.ru/books')
-    for cron_url in LitmarketListing.cron_urls:
-        LitmarketListing.debug_sync(cron_url)
+    # for cron_url in LitmarketListing.cron_urls:
+    #     LitmarketListing.debug_sync(cron_url)
     # LitmarketListing.debug_sync('https://litmarket.ru/karina-demina-p154501?utm_source=lm&utm_medium=&utm_campaign=karina-demina-p154501')
     # LitmarketListing.debug_sync('https://litmarket.ru/aleksandra-cherchen-p11719?utm_source=lm&utm_medium=&utm_campaign=aleksandra-cherchen-p11719')
     # LitmarketItem.debug_sync('https://litmarket.ru/books/ne-vremya-dlya-drakonov')
-    # LitmarketItem.debug_sync('https://litmarket.ru/books/nasledie-razvedchika?utm_source=lm&utm_medium=also_read&utm_campaign=nasledie-razvedchika')
+    LitmarketItem.debug_sync('https://litmarket.ru/books/mrachnye-okovy')

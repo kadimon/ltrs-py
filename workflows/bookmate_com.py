@@ -227,7 +227,9 @@ class BookmateListing(BaseLivelibWorkflow):
         "https://books.yandex.ru/library/t-detyam-ru",
     ]
 
-    cron_urls = []
+    cron_urls = [
+        'https://books.yandex.ru/section/all/novinki-uQfUIsur'
+    ]
 
     @classmethod
     async def task(cls, input: InputLivelibBook, page: Page) -> Output:
@@ -285,8 +287,8 @@ class BookmateListing(BaseLivelibWorkflow):
 
 
 if __name__ == '__main__':
-    BookmateListing.run_sync()
-    # BookmateListing.run_cron_sync()
+    # BookmateListing.run_sync()
+    BookmateListing.run_cron_sync()
     # Для отладки
     # BookmateListing.debug_sync(BookmateListing.start_urls[0])
     # BookmateListing.debug_sync('https://books.yandex.ru/section/all/uyutnye-detektivy-qGulE45y')

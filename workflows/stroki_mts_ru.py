@@ -247,6 +247,10 @@ class StrokiMtsListing(BaseLivelibWorkflow):
 
     start_urls = ["https://stroki.mts.ru/genres"]
 
+    cron_urls = [
+        "https://stroki.mts.ru/collection/novinki-2513"
+    ]
+
     @classmethod
     async def task(cls, input: InputLivelibBook, page: Page) -> Output:
         stats = {'new-page-links': 0, 'new-items-links': 0}
@@ -300,12 +304,12 @@ class StrokiMtsListing(BaseLivelibWorkflow):
 
 
 if __name__ == '__main__':
-    StrokiMtsListing.run_sync()
-    # import asyncio
-    # asyncio.run(StrokiMtsListing.run_cron())
+    # StrokiMtsListing.run_sync()
+    StrokiMtsListing.run_cron_sync()
     # Для отладки
     # StrokiMtsListing.debug_sync(StrokiMtsListing.start_urls[0])
     # StrokiMtsListing.debug_sync('https://stroki.mts.ru/genres/young-adult-1206')
+    # StrokiMtsListing.debug_sync('https://stroki.mts.ru/collection/novinki-2513')
     # StrokiMtsItem.debug_sync('https://stroki.mts.ru/book/chetvertoye-krylo-240562')
     # StrokiMtsItem.debug_sync('https://stroki.mts.ru/audiobook/chetvertoye-krylo-240563')
     # StrokiMtsItem.debug_sync('https://stroki.mts.ru/book/zeleniy-svet-30182')

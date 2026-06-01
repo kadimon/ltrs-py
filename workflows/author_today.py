@@ -261,8 +261,8 @@ class AuthorTodayListing(BaseLivelibWorkflow):
 
     cron_urls = [
         'https://author.today/work/genre/all?pub=3&sorting=popular',
-        'https://author.today/work/genre/all?sorting=popular',
-        'https://author.today/work/genre/all?sorting=recent',
+        # 'https://author.today/work/genre/all?sorting=popular',
+        # 'https://author.today/work/genre/all?sorting=recent',
     ]
 
     @classmethod
