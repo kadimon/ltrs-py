@@ -288,7 +288,7 @@ class BookmateListing(BaseLivelibWorkflow):
 
 if __name__ == '__main__':
     # BookmateListing.run_sync()
-    # BookmateListing.run_cron_sync()
+    BookmateListing.run_cron_sync()
     # Для отладки
     # BookmateListing.debug_sync(BookmateListing.start_urls[0])
     # BookmateListing.debug_sync('https://books.yandex.ru/section/all/uyutnye-detektivy-qGulE45y')
