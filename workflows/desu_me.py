@@ -1,6 +1,7 @@
 import re
 from urllib.parse import urljoin
 
+import dateparser
 from playwright.async_api import Page
 
 from db import DbSamizdatPrisma
@@ -127,13 +128,11 @@ class DesuItem(BaseLivelibWorkflow):
                         book['category'].append(value)
 
             # Release Year
-            release_year_locator = page.locator(
+            release_date_locator = page.locator(
                 'div.b-db_entry div.line-container:has(div.key:text-is("Статус:")) div.value'
             )
-            if await release_year_locator.count() > 0:
-                release_year_text = await release_year_locator.text_content()
-                if release_year_match := re.search(r'\d{4}', release_year_text):
-                    book['date_release'] = release_year_match.group(0)
+            if await release_date_locator.count() > 0:
+                book['date_release'] = dateparser.parse(await release_date_locator.first.text_content())
 
             # Artwork Type
             artwork_type_locator = page.locator(
