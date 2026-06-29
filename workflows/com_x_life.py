@@ -197,6 +197,7 @@ class ComXLifeListing(BaseLivelibWorkflow):
             href = await link.get_attribute('href')
             if href:
                 page_url = urljoin(page.url, href)
+                # print(page_url)
                 if await cls.crawl(page_url, input.task_id):
                     data['new_page_links'] += 1
 
@@ -206,6 +207,7 @@ class ComXLifeListing(BaseLivelibWorkflow):
             href = await link.get_attribute('href')
             if href:
                 book_url = urljoin(page.url, href)
+                # print(book_url)
                 if await ComXLifeItem.crawl(book_url, input.task_id):
                     data['new_items_links'] += 1
 
@@ -216,6 +218,6 @@ class ComXLifeListing(BaseLivelibWorkflow):
 
 
 if __name__ == '__main__':
-    # ComXLifeListing.run_sync()
+    ComXLifeListing.run_sync()
     ComXLifeListing.debug_sync(ComXLifeListing.start_urls[0])
     ComXLifeItem.debug_sync('https://com-x.life/12756-genialnyj-mag-pozhirajuschij-lekarstva.html')
