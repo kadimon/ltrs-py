@@ -230,6 +230,6 @@ class FeisovietListing(BaseLivelibWorkflow):
 
 
 if __name__ == '__main__':
-    FeisovietListing.run_cron_sync()
+    FeisovietListing.run_sync()
     # FeisovietListing.debug_sync(FeisovietListing.start_urls[0])
     # FeisovietItem.debug_sync('https://feisovet.ru/магазин/Притяжение-любви-Без-границ-Нинель-Нуар')
