@@ -22,10 +22,15 @@ class ComXLifeItem(BaseLivelibWorkflow):
     async def task(cls, input: InputLivelibBook, page: Page) -> Output:
         resp = await page.goto(input.url, wait_until='domcontentloaded')
 
+        try:
+            await page.wait_for_selector("ul.footer__menu", timeout=10_000)
+        except:
+            pass
+
         # Проверка на 404, ошибки на странице или неверный URL, как в JS
         error_title_locator = page.locator("div.message-info__title")
         is_invalid_url = not re.search(r'com-x\.life/\d+-', page.url)
-        if not (200 <= resp.status < 400) or await error_title_locator.count() > 0 or is_invalid_url:
+        if await error_title_locator.count() > 0 or is_invalid_url:
             async with DbSamizdatPrisma() as db:
                 await db.mark_book_deleted(page.url, cls.site)
             return Output(result='error', data={'status': resp.status, 'error_page': await error_title_locator.is_visible()})
@@ -174,11 +179,15 @@ class ComXLifeListing(BaseLivelibWorkflow):
 
     @classmethod
     async def task(cls, input: InputLivelibBook, page: Page) -> Output:
-        resp = await page.goto(input.url, wait_until='domcontentloaded')
-        if not (200 <= resp.status < 400):
-            return Output(result='error', data={'status': resp.status})
+        resp = await page.goto(
+            input.url,
+            wait_until='domcontentloaded'
+        )
 
-        await page.wait_for_selector("ul.footer__menu")
+        try:
+            await page.wait_for_selector("ul.footer__menu", timeout=10_000)
+        except:
+            return Output(result='error', data={'status': resp.status})
 
         data = {'new_page_links': 0, 'new_items_links': 0}
 
@@ -207,5 +216,6 @@ class ComXLifeListing(BaseLivelibWorkflow):
 
 
 if __name__ == '__main__':
-    ComXLifeListing.run_sync()
+    # ComXLifeListing.run_sync()
+    ComXLifeListing.debug_sync(ComXLifeListing.start_urls[0])
     ComXLifeItem.debug_sync('https://com-x.life/12756-genialnyj-mag-pozhirajuschij-lekarstva.html')
