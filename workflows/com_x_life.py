@@ -15,8 +15,11 @@ class ComXLifeItem(BaseLivelibWorkflow):
     event = 'livelib:com-x-life-item'
     site = 'com-x.life'
 
+
     input = InputLivelibBook
     output = Output
+
+    concurrency = 3
 
     @classmethod
     async def task(cls, input: InputLivelibBook, page: Page) -> Output:
@@ -218,6 +221,6 @@ class ComXLifeListing(BaseLivelibWorkflow):
 
 
 if __name__ == '__main__':
-    ComXLifeListing.run_sync()
-    ComXLifeListing.debug_sync(ComXLifeListing.start_urls[0])
-    ComXLifeItem.debug_sync('https://com-x.life/12756-genialnyj-mag-pozhirajuschij-lekarstva.html')
+    # ComXLifeListing.run_sync()
+    # ComXLifeListing.debug_sync(ComXLifeListing.start_urls[0])
+    ComXLifeItem.debug_sync('https://com-x.life/5095-olympians-read.html')
