@@ -18,7 +18,7 @@ class LitgorodItem(BaseLivelibWorkflow):
     input = InputLivelibBook
     output = Output
 
-    concurrency = 25
+    concurrency = 10
 
     @classmethod
     async def task(cls, input: InputLivelibBook, page: Page) -> Output:
