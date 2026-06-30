@@ -9,10 +9,9 @@ from typing import ClassVar, Generic, Literal, Optional, Type, TypeVar
 
 import pandas as pd
 from browserforge.fingerprints import Screen
-from camoufox.async_api import AsyncCamoufox
+from camoufox.async_api import AsyncCamoufox, Page
 from hatchet_sdk import PushEventOptions, V1TaskStatus
 from hatchet_sdk.clients.events import BulkPushEventWithMetadata
-from patchright.async_api import Page, async_playwright
 from pymongo import AsyncMongoClient
 
 import interfaces
