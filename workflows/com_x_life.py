@@ -19,7 +19,7 @@ class ComXLifeItem(BaseLivelibWorkflow):
     input = InputLivelibBook
     output = Output
 
-    concurrency = 1
+    concurrency = 2
 
     @classmethod
     async def task(cls, input: InputLivelibBook, page: Page) -> Output:
