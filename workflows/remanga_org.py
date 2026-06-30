@@ -43,7 +43,7 @@ class RemangaOrgItem(BaseLivelibWorkflow):
             metrics = {'bookUrl': page.url}
 
             if not await db.check_book_exist(page.url):
-                book['title'] = await page.text_content('p.cs-layout-title-text')
+                book['title'] = await page.text_content('h1.cs-layout-title-text')
                 await db.create_book(book)
 
             titles_other_locator = page.locator('p[data-testid="title-alt-name-item"]')
@@ -59,7 +59,7 @@ class RemangaOrgItem(BaseLivelibWorkflow):
                 authors = []
                 authors_data = []
                 for author_link in await creators_locator.all():
-                    name = await author_link.text_content()
+                    name = await author_link.locator('span.line-clamp-1').text_content()
                     url = await author_link.get_attribute('href')
                     authors.append(name.strip())
                     authors_data.append({'name': name.strip(), 'url': urljoin(page.url, url)})
@@ -75,7 +75,7 @@ class RemangaOrgItem(BaseLivelibWorkflow):
                 publishers = []
                 publishers_data = []
                 for pub_link in await publishers_locator.all():
-                    name = await pub_link.text_content()
+                    name = await pub_link.locator('span.line-clamp-1').text_content()
                     url = await pub_link.get_attribute('href')
                     publishers.append(name.strip())
                     publishers_data.append({'name': name.strip(), 'url': urljoin(page.url, url)})
@@ -97,7 +97,7 @@ class RemangaOrgItem(BaseLivelibWorkflow):
                             book['coverImage'] = img_name
 
             tags_blok_locator = page.locator('div[data-sentry-component="EntityLayoutStatsLineItemContent"]').filter(
-                has=page.locator(' > a[href*="/manga/"]')
+                has=page.locator(' > a[href*="/catalog/"]')
             )
             if await tags_blok_locator.count() > 0:
                 # Нажать кнопку "еще" (больше) для тегов
@@ -108,12 +108,12 @@ class RemangaOrgItem(BaseLivelibWorkflow):
 
                 book['category'] = [
                     await c.text_content()
-                    for c in await tags_blok_locator.locator('a[href*="/manga/genres/"]').all()
+                    for c in await tags_blok_locator.locator('a[href*="/catalog/genres/"]').all()
                 ]
 
                 book['tags'] = [
                     await t.text_content()
-                    for t in await tags_blok_locator.locator('a[href*="/manga/categories/"]').all()
+                    for t in await tags_blok_locator.locator('a[href*="/catalog/categories/"]').all()
                 ]
 
             year_regex = r'\d{4}'
@@ -292,7 +292,7 @@ class RemangaOrgListing(BaseLivelibWorkflow):
         return Output(result='done', data=stats)
 
 if __name__ == '__main__':
-    RemangaOrgListing.run_sync()
+    # RemangaOrgListing.run_sync()
     # RemangaOrgListing.debug_sync(RemangaOrgListing.start_urls[0])
-    RemangaOrgItem.debug_sync('https://ranobelib.me/ru/book/248228--awakening-the-only-sss-rank-class-now-even-dragons-obey-me')
+    RemangaOrgItem.debug_sync('https://remanga.org/manga/%3C29.04.2026%3Ethe-strongest-mercenary_/main')
     # RemangaOrgItem.debug_sync('https://remanga.org/manga/enten/main')

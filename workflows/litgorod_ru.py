@@ -246,8 +246,8 @@ class LitgorodListing(BaseLivelibWorkflow):
 
 
 if __name__ == '__main__':
-    # LitgorodListing.run_sync()
+    LitgorodListing.run_sync()
     # Для отладки
-    # LitgorodListing.debug_sync(LitgorodListing.start_urls[0])
-    # LitgorodListing.debug_sync('https://litgorod.ru/books/search?genre_id=3')
+    LitgorodListing.debug_sync(LitgorodListing.start_urls[0])
+    LitgorodListing.debug_sync('https://litgorod.ru/books/search?genre_id=3')
     LitgorodItem.debug_sync('https://litgorod.ru/books/view/64875')
