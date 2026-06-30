@@ -292,7 +292,7 @@ class RemangaOrgListing(BaseLivelibWorkflow):
         return Output(result='done', data=stats)
 
 if __name__ == '__main__':
-    # RemangaOrgListing.run_sync()
-    # RemangaOrgListing.debug_sync(RemangaOrgListing.start_urls[0])
+    RemangaOrgListing.run_sync()
+    RemangaOrgListing.debug_sync(RemangaOrgListing.start_urls[0])
     RemangaOrgItem.debug_sync('https://remanga.org/manga/%3C29.04.2026%3Ethe-strongest-mercenary_/main')
-    # RemangaOrgItem.debug_sync('https://remanga.org/manga/enten/main')
+    RemangaOrgItem.debug_sync('https://remanga.org/manga/enten/main')
