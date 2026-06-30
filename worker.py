@@ -2,7 +2,9 @@ import importlib
 import inspect
 import pathlib
 import pkgutil
+from pathlib import Path
 
+from camoufox.async_api import AsyncCamoufox
 from hatchet_sdk import (
     ConcurrencyExpression,
     ConcurrencyLimitStrategy,
@@ -10,7 +12,6 @@ from hatchet_sdk import (
     Workflow,
 )
 from hatchet_sdk.labels import DesiredWorkerLabel
-from playwright.async_api import async_playwright
 
 import settings
 from settings import hatchet
@@ -47,24 +48,26 @@ def create_task_for_class(wf: BaseLitresPartnersWorkflow) -> Workflow:
 
     )
     async def task_function(input: wf.input, ctx: Context) -> wf.output:
+        addons_dir = Path(settings.BROWSER_ADDONS_DIR)
+        if addons_dir.exists():
+            addons_paths_list = [str(f.resolve()) for f in addons_dir.iterdir() if addons_dir.is_dir()]
+        else:
+            addons_paths_list = []
 
-        async with async_playwright() as p:
-            context = await p.firefox.launch_persistent_context(
-                './profileDir',
-                proxy={'server': settings.PROXY_URI} if wf.proxy_enable else None,
-                headless=False,
-                viewport={'width': 1920, 'height': 1080},
-                timeout=10_000,
-                firefox_user_prefs={
-                    'xpinstall.signatures.required': False,
-                    'extensions.autoDisableScopes': 0,
-                    'extensions.enabledScopes': 15,
-                    'extensions.update.enabled': False,
-                    'extensions.update.autoUpdateDefault': False,
-                }
-            )
+        async with AsyncCamoufox(
+            os='windows',
+            humanize=True,
+            headless='virtual',
+            persistent_context=True,
+            user_data_dir='user_data',
+            locale=['ru-RU', 'en-US'],
+            addons=addons_paths_list,
+            proxy={
+                'server': {'server': settings.PROXY_URI} if wf.proxy_enable else None,
+            }
+        ) as browser:
+            page = await browser.new_page()
 
-            page = context.pages[0] if context.pages else await context.new_page()
             instance = wf(
                 name=wf.name,
                 event=wf.event,
@@ -73,8 +76,6 @@ def create_task_for_class(wf: BaseLitresPartnersWorkflow) -> Workflow:
                 output=wf.output,
             )
             result = await instance.task(input, page)
-
-            await context.close()
 
             return result
 

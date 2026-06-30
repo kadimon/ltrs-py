@@ -8,11 +8,11 @@ services:
       dockerfile: ./Dockerfile
 
     volumes:
-      - /home/dima/scrape_sessions/${SERVER}_${SESSION}:/app/profileDir
-      - /home/dima/extensions:/app/extensions:ro
+      - /home/dima/scrape_sessions/${SERVER}_${SESSION}:/app/user_data
+      - /home/dima/browser_addons:/app/browser_addons:ro
 
     environment:
-      - PLAYWRIGHT_FIREFOX_POLICIES_JSON=/app/policies.json
+      # - PLAYWRIGHT_FIREFOX_POLICIES_JSON=/app/policies.json
       - LABELS=${LABELS}
       - PRISMA_URI=${PRISMA_URI}
       - SESSION=${SESSION}

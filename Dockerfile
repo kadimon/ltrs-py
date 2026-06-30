@@ -1,12 +1,12 @@
-FROM mcr.microsoft.com/playwright/python:v1.60.0-noble
+FROM python:3.13.14-bookworm
 
 RUN apt-get update \
     && apt-get install -y tini \
     && rm -rf /var/lib/apt/lists/*
 
 RUN pip install playwright \
-    patchright \
-    camoufox[geoip] \
+    cloverlabs-camoufox[geoip] \
+    playwright==1.59.0 \
     hatchet-sdk==1.33.10 \
     prisma \
     pymongo \
@@ -20,14 +20,16 @@ RUN pip install playwright \
     # croniter \
     && pip cache purge
 
+RUN playwright install-deps firefox
+RUN python -m camoufox fetch
+
 WORKDIR /app
 
 COPY ./schema.prisma ./
 RUN prisma generate --generator client-py
 
 COPY ./workflows/ ./workflows/
-COPY ./policies.json \
-    ./worker.py \
+COPY ./worker.py \
     ./settings.py \
     ./db.py \
     ./interfaces.py \
@@ -36,7 +38,4 @@ COPY ./policies.json \
     ./
 
 ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["xvfb-run", "-a", "python", "worker.py"]
-
-# CMD ["sh", "-c", "npx -y playwright@1.51.0 run-server --port 3000 --host 0.0.0.0"]
-# CMD ["tail", "-f", "/dev/null"]
+CMD ["python3", "worker.py"]

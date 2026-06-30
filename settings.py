@@ -19,6 +19,8 @@ AWS_SECRET_ACCESS_KEY = os.environ['AWS_SECRET_ACCESS_KEY']
 AWS_COVERS_BUCKET = os.environ['AWS_COVERS_BUCKET']
 AWS_COVERS_DIR = 'covers'
 
+BROWSER_ADDONS_DIR='/app/browser_addons'
+
 
 if labels_str := os.environ.get('LABELS'):
     labels_list = [
