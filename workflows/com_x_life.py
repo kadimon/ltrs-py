@@ -19,7 +19,7 @@ class ComXLifeItem(BaseLivelibWorkflow):
     input = InputLivelibBook
     output = Output
 
-    concurrency = 3
+    concurrency = 1
 
     @classmethod
     async def task(cls, input: InputLivelibBook, page: Page) -> Output:
@@ -173,7 +173,7 @@ class ComXLifeListing(BaseLivelibWorkflow):
     output = Output
     item_wf = ComXLifeItem
 
-    concurrency=3
+    concurrency=1
     execution_timeout_sec=300
     backoff_max_seconds=30
     backoff_factor=2
