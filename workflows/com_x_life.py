@@ -19,11 +19,17 @@ class ComXLifeItem(BaseLivelibWorkflow):
     input = InputLivelibBook
     output = Output
 
-    concurrency = 2
+    concurrency = 1
+
 
     @classmethod
     async def task(cls, input: InputLivelibBook, page: Page) -> Output:
         resp = await page.goto(input.url, wait_until='domcontentloaded')
+
+        cookies_dict = await page.context.cookies([
+            'com-x.life'
+        ])
+        print(cookies_dict)
 
         try:
             await page.wait_for_selector("ul.footer__menu", timeout=10_000)
@@ -222,5 +228,5 @@ class ComXLifeListing(BaseLivelibWorkflow):
 
 if __name__ == '__main__':
     ComXLifeListing.run_sync()
-    ComXLifeListing.debug_sync(ComXLifeListing.start_urls[0])
+    # ComXLifeListing.debug_sync(ComXLifeListing.start_urls[0])
     ComXLifeItem.debug_sync('https://com-x.life/5095-olympians-read.html')

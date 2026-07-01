@@ -337,7 +337,7 @@ class MangalibListing(BaseLivelibWorkflow):
 
 
 if __name__ == '__main__':
-    # MangalibListing.run_sync()
+    MangalibListing.run_sync()
     # Для отладки
     MangalibListing.debug_sync(MangalibListing.start_urls[0])
     MangalibItem.debug_sync('https://mangalib.me/ru/manga/267369--made-in-abyss-sozdannyi-v-bezdne')
