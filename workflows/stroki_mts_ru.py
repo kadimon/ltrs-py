@@ -334,7 +334,9 @@ if __name__ == '__main__':
     # StrokiMtsListing.run_cron_sync()
     # Для отладки
     # StrokiMtsListing.debug_sync(StrokiMtsListing.start_urls[0])
-    StrokiMtsListing.debug_sync('https://stroki.mts.ru/genres/young-adult-1206')
+    # StrokiMtsListing.debug_sync('https://stroki.mts.ru/collection/novinki-2513')
+    # StrokiMtsListing.debug_sync('https://stroki.mts.ru/genres/young-adult-1206')
     # StrokiMtsItem.debug_sync('https://stroki.mts.ru/book/chetvertoye-krylo-240562')
     # StrokiMtsItem.debug_sync('https://stroki.mts.ru/audiobook/chetvertoye-krylo-240563')
     # StrokiMtsItem.debug_sync('https://stroki.mts.ru/book/zeleniy-svet-30182')
+    StrokiMtsItem.debug_sync('https://stroki.mts.ru/book/sozhzhennyye-mechty-380885')
