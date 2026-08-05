@@ -275,7 +275,7 @@ class StrokiMtsListing(BaseLivelibWorkflow):
         while True:
             book_urls_new = []
             # Сбор книг во время скролла списка
-            book_links =  page.locator(".card-wrapper > a[href]")
+            book_links =  page.locator("a.content-name")
             for link in await book_links.all():
                 if href := await link.get_attribute('href'):
                     book_url = urljoin(page.url, href)
@@ -285,7 +285,6 @@ class StrokiMtsListing(BaseLivelibWorkflow):
                             if await StrokiMtsItem.crawl(book_url, input.task_id):
                                 stats['new-items-links'] += 1
             book_urls_new = list(set(book_urls_new))
-            print(await book_links.count(), len(book_urls_new))
             if book_urls_new:
                 book_urls_done.extend(book_urls_new)
                 try:
@@ -325,20 +324,17 @@ class StrokiMtsListing(BaseLivelibWorkflow):
         for link in genre_links:
             if href := await link.get_attribute('href'):
                 genre_url = urljoin(page.url, href)
-                print(genre_url)
                 if await cls.crawl(genre_url, input.task_id):
                     stats['new-page-links'] += 1
 
         return Output(result='done', data=stats)
-
 
 if __name__ == '__main__':
     # StrokiMtsListing.run_sync()
     # StrokiMtsListing.run_cron_sync()
     # Для отладки
     # StrokiMtsListing.debug_sync(StrokiMtsListing.start_urls[0])
-    # StrokiMtsListing.debug_sync(StrokiMtsListing.cron_urls[0])
-    # StrokiMtsListing.debug_sync('https://stroki.mts.ru/genres/young-adult-1206')
-    StrokiMtsItem.debug_sync('https://stroki.mts.ru/book/chetvertoye-krylo-240562')
+    StrokiMtsListing.debug_sync('https://stroki.mts.ru/genres/young-adult-1206')
+    # StrokiMtsItem.debug_sync('https://stroki.mts.ru/book/chetvertoye-krylo-240562')
     # StrokiMtsItem.debug_sync('https://stroki.mts.ru/audiobook/chetvertoye-krylo-240563')
     # StrokiMtsItem.debug_sync('https://stroki.mts.ru/book/zeleniy-svet-30182')
