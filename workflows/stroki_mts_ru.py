@@ -1,8 +1,11 @@
+import asyncio
 import re
 from datetime import datetime
+from random import randint
 from urllib.parse import urljoin
 
 from playwright.async_api import Page
+from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
 from db import DbSamizdatPrisma
 from interfaces import InputLivelibBook, Output
@@ -43,20 +46,20 @@ class StrokiMtsItem(BaseLivelibWorkflow):
 
             # Title
             title_locator = page.locator("detail-page h1")
-            book['title'] = await title_locator.text_content() if await title_locator.count() > 0 else ""
+            book['title'] = await title_locator.first.text_content() if await title_locator.count() > 0 else ""
 
             if not await db.check_book_exist(page.url):
                 await db.create_book(book)
 
             # Original Title
             title_original_locator = page.locator("book-body-description-widget-item").filter(
-                has=page.locator("div.title").filter(has_text=re.compile(r"Название на языке оригинала"))
+                has=page.locator("div.title").filter(has_text=re.compile(r"^\s*название на языке оригинала\s*$", re.I))
             ).locator("div.content")
             if await title_original_locator.count() > 0:
-                book['title_original'] = await title_original_locator.inner_text()
+                book['title_original'] = await title_original_locator.first.inner_text()
 
             # Authors
-            authors_locator = page.locator("authors-links a.author-link")
+            authors_locator = page.locator("authors-links.in-detail-content a.author-link")
             if await authors_locator.count() > 0:
                 author_elements = await authors_locator.all()
                 book['author'] = ', '.join([await a.text_content() for a in author_elements]).strip()
@@ -80,9 +83,9 @@ class StrokiMtsItem(BaseLivelibWorkflow):
 
             # Cover
             if not await db.check_book_have_cover(page.url):
-                cover_locator = page.locator(".left-block cover img")
+                cover_locator = page.locator("cover.detail-contents-cover img")
                 if await cover_locator.count() > 0:
-                    if img_src := await cover_locator.get_attribute('src'):
+                    if img_src := await cover_locator.first.get_attribute('src'):
                         full_img_src = urljoin(page.url, img_src)
                         if img_name := await save_cover(page, full_img_src):
                             book['coverImage'] = img_name
@@ -93,54 +96,58 @@ class StrokiMtsItem(BaseLivelibWorkflow):
                 book['category'] = [(await x.text_content()).strip() for x in await category_locator.all()]
 
             # Release Date
-            release_date_locator = page.locator("div.info-block__item").filter(
-                has=page.locator("p").filter(has_text=re.compile(r"Год создания"))
-            ).locator("p.info-block__item-value")
+            release_date_locator = page.locator("book-body-description-widget-item").filter(
+                has=page.locator("div.title").filter(has_text=re.compile(r"^\s*год создания\s*$", re.I))
+            ).locator("div.content")
             if await release_date_locator.count() > 0:
-                if release_match := re.search(r'\d{4}', await release_date_locator.text_content()):
+                if release_match := re.search(r'\d{4}', await release_date_locator.first.text_content()):
                     book['date_release'] = datetime.strptime(release_match.group(0), "%Y")
 
             # Publisher
-            publisher_locator = page.locator("book-body-description-widget-item").filter(
-                has=page.locator("div.title").filter(has_text=re.compile(r"издатель"))
-            ).locator("div.content")
+            publisher_locator = page.locator("persons-block a.person-card").filter(
+                has=page.locator("div.role").filter(has_text=re.compile(r"^\s*издательств", re.I))
+            ).locator("div.name")
             if await publisher_locator.count() > 0:
-                book['publisher'] = await publisher_locator.inner_text()
+                book['publisher'] = await publisher_locator.first.inner_text()
 
             # Translator
-            translator_locator = page.locator("book-body-description-widget-item").filter(
-                has=page.locator("div.title").filter(has_text=re.compile(r"переводчик"))
-            ).locator("div.content")
+            translator_locator = page.locator("persons-block a.person-card").filter(
+                has=page.locator("div.role").filter(has_text=re.compile(r"^\s*переводчик", re.I))
+            ).locator("div.name")
             if await translator_locator.count() > 0:
-                book['translate'] = await translator_locator.inner_text()
+                book['translate'] = ', '.join(
+                    [(await x.inner_text()).strip() for x in await translator_locator.all()]
+                )
 
             # Voice
-            voice_locator = page.locator("book-body-description-widget-item").filter(
-                has=page.locator("div.title").filter(has_text=re.compile(r"чтецы"))
-            ).locator("div.content")
+            voice_locator = page.locator("persons-block a.person-card").filter(
+                has=page.locator("div.role").filter(has_text=re.compile(r"^\s*чтец", re.I))
+            ).locator("div.name")
             if await voice_locator.count() > 0:
-                book['voice'] = await voice_locator.inner_text()
+                book['voice'] = ', '.join(
+                    [(await x.inner_text()).strip() for x in await voice_locator.all()]
+                )
 
             # Age Rating
             age_rating_locator = page.locator("book-body-description-widget-item").filter(
-                has=page.locator("div.title").filter(has_text=re.compile(r"Возраст"))
+                has=page.locator("div.title").filter(has_text=re.compile(r"^\s*возраст\s*$", re.I))
             ).locator("div.content")
             if await age_rating_locator.count() > 0:
-                book['age_rating'] = await age_rating_locator.inner_text()
+                book['age_rating'] = await age_rating_locator.first.inner_text()
 
             # Language
             lang_locator = page.locator("book-body-description-widget-item").filter(
-                has=page.locator("div.title").filter(has_text=re.compile(r"Язык"))
+                has=page.locator("div.title").filter(has_text=re.compile(r"^\s*язык\s*$", re.I))
             ).locator("div.content")
             if await lang_locator.count() > 0:
-                book['language'] = await lang_locator.inner_text()
+                book['language'] = await lang_locator.first.inner_text()
 
             # Duration
-            duration_locator = page.locator("div.info-block__item").filter(
-                has=page.locator("p").filter(has_text=re.compile(r"Длительность"))
-            ).locator("p.info-block__item-value")
+            duration_locator = page.locator("book-body-description-widget-item").filter(
+                has=page.locator("div.title").filter(has_text=re.compile(r"^\s*длительность\s*$", re.I))
+            ).locator("div.content")
             if await duration_locator.count() > 0:
-                duration_text = await duration_locator.text_content()
+                duration_text = await duration_locator.first.text_content()
                 hours = 0
                 minutes = 0
 
@@ -153,80 +160,79 @@ class StrokiMtsItem(BaseLivelibWorkflow):
                     metrics['duration'] = hours * 3600 + minutes * 60
 
             # Rating
-            rating_locator = page.locator("div.info-block__item").filter(
-                has=page.locator("p").filter(has_text=re.compile(r"оценок"))
-            ).locator("p.info-block__item-value")
+            rating_locator = page.locator('stroki-raiting [itemprop="ratingValue"]')
             if await rating_locator.count() > 0:
-                if rating_match := re.search(r'[\d\.]+', await rating_locator.text_content()):
+                if rating_match := re.search(r'[\d\.]+', await rating_locator.first.text_content()):
                     if rating_match.group(0) != "0":
                         metrics['rating'] = rating_match.group(0)
 
             # Votes
-            votes_locator = page.locator("div.info-block__item p").filter(has_text=re.compile(r"оценок"))
+            votes_locator = page.locator('stroki-raiting [itemprop="ratingCount"]')
             if await votes_locator.count() > 0:
-                if votes_match := re.search(r'\d+', await votes_locator.text_content()):
+                if votes_match := re.search(r'\d+', await votes_locator.first.text_content()):
                     if votes_match.group(0) != "0":
                         metrics['votes'] = votes_match.group(0)
 
             # Price
-            # price_locator = page.locator("client-offer span.price-wrapper")
+            # price_locator = page.locator("offer-buttons stroki-button.stroki-btn-primary p.button-price")
             # if await price_locator.count() > 0:
             #     if price_match := re.search(r'[\d\.]+', await price_locator.first.text_content()):
             #         metrics['price'] = price_match.group(0)
 
             # # Old Price
-            # old_price_locator = page.locator("client-offer span.price-wrapper .old-price")
+            # old_price_locator = page.locator("offer-buttons span.sub-price p.old-price")
             # if await old_price_locator.count() > 0:
             #     if old_price_match := re.search(r'[\d\.]+', await old_price_locator.first.text_content()):
             #         metrics['price_old'] = old_price_match.group(0)
 
             # In Subscribe
-            in_subscribe_locator = page.locator("access-badges span").filter(has_text=re.compile(r"По подписке"))
+            in_subscribe_locator = page.locator("access-badges.payment-badges span.access-badge__text").filter(
+                has_text=re.compile(r"По подписке")
+            )
             if await in_subscribe_locator.count() > 0:
                 metrics['in_subscribe'] = True
 
             # Бесплатно
-            in_free_locator = page.locator("access-badges span").filter(has_text=re.compile(r"Бесплатно"))
+            in_free_locator = page.locator("access-badges.payment-badges span.access-badge__text").filter(
+                has_text=re.compile(r"Бесплатно")
+            )
             if await in_free_locator.count() > 0:
                 metrics['price'] = '0'
 
             # Только платно
-            in_paid_locator = page.locator("access-badges span").filter(has_text=re.compile(r"Платная книга"))
+            in_paid_locator = page.locator("access-badges.payment-badges span.access-badge__text").filter(
+                has_text=re.compile(r"Платная книга")
+            )
             if await in_paid_locator.count() > 0:
-                price_locator = page.locator('.priority-offer .price-wrapper')
+                price_locator = page.locator('offer-buttons stroki-button.stroki-btn-primary p.button-price')
                 if price_match := re.search(r'[\d\.]+', await price_locator.first.text_content()):
                     metrics['price'] = price_match.group(0)
 
             # Показать полную цену
-            show_price_button_locator =page.locator('.stroki-btn-secondary-inverted p').filter(
-                has_text=re.compile(r"Все варианты приобретения")
+            # Модалки «Все варианты приобретения» больше нет: цена покупки всегда
+            # отрисована прямо на кнопке «КУПИТЬ» / «КУПИТЬ ОТДЕЛЬНО», клик не нужен.
+            show_price_button_locator = page.locator('offer-buttons stroki-button.stroki-btn-primary').filter(
+                has_text=re.compile(r"КУПИТЬ", re.I)
             )
             if await show_price_button_locator.count() > 0:
-                await show_price_button_locator.click()
-                await page.wait_for_timeout(500)
-
-                price_locator = page.locator("subscription-card").filter(
-                    has_text=re.compile(r"Останется у вас навсегда")
-                ).locator('.price-wrapper')
+                price_locator = show_price_button_locator.first.locator('p.button-price')
                 if await price_locator.count() > 0:
                     if price_match := re.search(r'[\d\.]+', await price_locator.first.text_content()):
                         metrics['price'] = price_match.group(0)
 
-                await page.keyboard.press('Escape')
-
             # Audio Button
             button_audio_locator = page.locator(".slider-wrapper .slider-item:not(.active) p").filter(
-                 has_text=re.compile(r"Аудиокнига")
+                 has_text=re.compile(r"Аудио")
             )
             if await button_audio_locator.count() > 0:
                 await button_audio_locator.first.click()
                 book['url_audio'] = page.url
 
             await db.update_book(book)
-            print("book", book)
+            # print("book", book)
 
             await db.create_metrics(metrics)
-            print("metrics", metrics)
+            # print("metrics", metrics)
 
             return Output(result='done', data={'book': book, 'metrics': metrics})
 
@@ -255,15 +261,21 @@ class StrokiMtsListing(BaseLivelibWorkflow):
     async def task(cls, input: InputLivelibBook, page: Page) -> Output:
         stats = {'new-page-links': 0, 'new-items-links': 0}
 
+        await page.set_viewport_size({
+            "width": randint(1800, 1920),
+            "height": randint(950,1080),
+        })
+
         await page.goto(input.url, wait_until='domcontentloaded')
         await page.wait_for_selector("page-title h1")
         await page.wait_for_timeout(2000)
 
+        more_button_locator = page.locator('.more stroki-button span.text')
         book_urls_done = []
         while True:
             book_urls_new = []
             # Сбор книг во время скролла списка
-            book_links =  page.locator("a.content-name")
+            book_links =  page.locator(".card-wrapper > a[href]")
             for link in await book_links.all():
                 if href := await link.get_attribute('href'):
                     book_url = urljoin(page.url, href)
@@ -273,11 +285,28 @@ class StrokiMtsListing(BaseLivelibWorkflow):
                             if await StrokiMtsItem.crawl(book_url, input.task_id):
                                 stats['new-items-links'] += 1
             book_urls_new = list(set(book_urls_new))
+            print(await book_links.count(), len(book_urls_new))
             if book_urls_new:
                 book_urls_done.extend(book_urls_new)
-                # Скролим к последней книге
-                await book_links.last.hover()
+                try:
+                    async with page.expect_response(
+                        lambda res: res.url == 'https://stroki.mts.ru/api/books/search',
+                        timeout=7000,
+                    ):
+                        # Скроллим к футеру
+                        await page.locator('stroki-footer').focus()
+
+                        # Жмем кнопку если она есть
+                        if await more_button_locator.count() > 0 and await more_button_locator.first.is_visible():
+                            await more_button_locator.first.click()
+
+                except (PlaywrightTimeoutError, asyncio.TimeoutError):
+                    pass
+
                 await page.wait_for_timeout(500)
+
+                # await page.wait_for_timeout(2000)
+
             else:
                 break
 
@@ -305,11 +334,11 @@ class StrokiMtsListing(BaseLivelibWorkflow):
 
 if __name__ == '__main__':
     # StrokiMtsListing.run_sync()
-    StrokiMtsListing.run_cron_sync()
+    # StrokiMtsListing.run_cron_sync()
     # Для отладки
     # StrokiMtsListing.debug_sync(StrokiMtsListing.start_urls[0])
+    # StrokiMtsListing.debug_sync(StrokiMtsListing.cron_urls[0])
     # StrokiMtsListing.debug_sync('https://stroki.mts.ru/genres/young-adult-1206')
-    # StrokiMtsListing.debug_sync('https://stroki.mts.ru/collection/novinki-2513')
-    # StrokiMtsItem.debug_sync('https://stroki.mts.ru/book/chetvertoye-krylo-240562')
+    StrokiMtsItem.debug_sync('https://stroki.mts.ru/book/chetvertoye-krylo-240562')
     # StrokiMtsItem.debug_sync('https://stroki.mts.ru/audiobook/chetvertoye-krylo-240563')
     # StrokiMtsItem.debug_sync('https://stroki.mts.ru/book/zeleniy-svet-30182')
