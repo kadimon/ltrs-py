@@ -138,7 +138,7 @@ class BaseWorkflow(
         cls,
         url: str,
         task_id: str,
-        dedupe_hours: int = 24,
+        dedupe_hours: int = 480,
         dont_dedupe: bool = False,
         **kwargs
     ) -> bool:
