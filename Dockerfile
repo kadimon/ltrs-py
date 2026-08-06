@@ -21,7 +21,9 @@ RUN pip install playwright \
     && pip cache purge
 
 RUN playwright install-deps firefox
-RUN python -m camoufox fetch
+RUN python -m camoufox sync \
+    && python -m camoufox set prerelease \
+    && python -m camoufox fetch
 
 WORKDIR /app
 

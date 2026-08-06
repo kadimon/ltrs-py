@@ -4,6 +4,7 @@ import pathlib
 import pkgutil
 from pathlib import Path
 
+from browserforge.fingerprints import Screen
 from camoufox.async_api import AsyncCamoufox
 from hatchet_sdk import (
     ConcurrencyExpression,
@@ -58,13 +59,12 @@ def create_task_for_class(wf: BaseLitresPartnersWorkflow) -> Workflow:
             os='windows',
             humanize=True,
             headless='virtual',
+            screen=Screen(max_width=1920, max_height=1080),
             persistent_context=True,
             user_data_dir='user_data',
             locale=['ru-RU', 'en-US'],
             addons=addons_paths_list,
-            proxy={
-                'server': settings.PROXY_URI if wf.proxy_enable else None,
-            }
+            proxy={'server': settings.PROXY_URI} if wf.proxy_enable else None,
         ) as browser:
             page = await browser.new_page()
 

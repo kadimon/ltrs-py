@@ -106,7 +106,7 @@ class BaseWorkflow(
             async with AsyncCamoufox(
                 proxy={'server': settings.PROXY_URI} if cls.proxy_enable else None,
                 # geoip=True,
-                locale='RU',
+                locale=['ru-RU', 'en-US'],
                 os='windows',
                 humanize=True,
                 screen=Screen(max_width=1920, max_height=1080),
