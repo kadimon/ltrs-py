@@ -35,8 +35,9 @@ class StrokiMtsItem(BaseLivelibWorkflow):
 
         await page.wait_for_selector("detail-page h1")
 
-        adult_button = page.locator("adult-content-modal stroki-button.stroki-btn-primary")
-        if await adult_button.count() > 0 and await adult_button.is_visible():
+        adult_button = page.locator("adult-content-modal stroki-button.stroki-btn-primary span.text")
+        if await adult_button.count() > 0 and await adult_button.first.is_visible():
+            await adult_button.first.hover(force=True, timeout=5000)
             await adult_button.first.click(force=True, timeout=5000)
 
 
@@ -331,7 +332,7 @@ class StrokiMtsListing(BaseLivelibWorkflow):
 
 if __name__ == '__main__':
     # StrokiMtsListing.run_sync()
-    StrokiMtsListing.run_cron_sync()
+    # StrokiMtsListing.run_cron_sync()
     # Для отладки
     # StrokiMtsListing.debug_sync(StrokiMtsListing.start_urls[0])
     # StrokiMtsListing.debug_sync('https://stroki.mts.ru/collection/novinki-2513')
@@ -339,4 +340,4 @@ if __name__ == '__main__':
     # StrokiMtsItem.debug_sync('https://stroki.mts.ru/book/chetvertoye-krylo-240562')
     # StrokiMtsItem.debug_sync('https://stroki.mts.ru/audiobook/chetvertoye-krylo-240563')
     # StrokiMtsItem.debug_sync('https://stroki.mts.ru/book/zeleniy-svet-30182')
-    # StrokiMtsItem.debug_sync('https://stroki.mts.ru/book/prizraki-vody-375514')
+    StrokiMtsItem.debug_sync('https://stroki.mts.ru/book/prizraki-vody-375514')
