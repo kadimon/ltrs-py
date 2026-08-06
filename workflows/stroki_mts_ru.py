@@ -282,7 +282,11 @@ class StrokiMtsListing(BaseLivelibWorkflow):
                     if '/book/' in book_url or '/audiobook/' in book_url or '/comics/' in book_url:
                         if book_url not in book_urls_done:
                             book_urls_new.append(book_url)
-                            if await StrokiMtsItem.crawl(book_url, input.task_id):
+                            if await StrokiMtsItem.crawl(
+                                book_url,
+                                input.task_id,
+                                dedupe_hours=12,
+                            ):
                                 stats['new-items-links'] += 1
             book_urls_new = list(set(book_urls_new))
             if book_urls_new:
@@ -324,7 +328,11 @@ class StrokiMtsListing(BaseLivelibWorkflow):
         for link in genre_links:
             if href := await link.get_attribute('href'):
                 genre_url = urljoin(page.url, href)
-                if await cls.crawl(genre_url, input.task_id):
+                if await cls.crawl(
+                    genre_url,
+                    input.task_id,
+                    dedupe_hours=12,
+                ):
                     stats['new-page-links'] += 1
 
         return Output(result='done', data=stats)
@@ -334,9 +342,9 @@ if __name__ == '__main__':
     # StrokiMtsListing.run_cron_sync()
     # Для отладки
     # StrokiMtsListing.debug_sync(StrokiMtsListing.start_urls[0])
-    # StrokiMtsListing.debug_sync('https://stroki.mts.ru/collection/novinki-2513')
+    StrokiMtsListing.debug_sync('https://stroki.mts.ru/collection/novinki-2513')
     # StrokiMtsListing.debug_sync('https://stroki.mts.ru/genres/young-adult-1206')
     # StrokiMtsItem.debug_sync('https://stroki.mts.ru/book/chetvertoye-krylo-240562')
     # StrokiMtsItem.debug_sync('https://stroki.mts.ru/audiobook/chetvertoye-krylo-240563')
     # StrokiMtsItem.debug_sync('https://stroki.mts.ru/book/zeleniy-svet-30182')
-    StrokiMtsItem.debug_sync('https://stroki.mts.ru/book/sozhzhennyye-mechty-380885')
+    # StrokiMtsItem.debug_sync('https://stroki.mts.ru/book/sozhzhennyye-mechty-380885')

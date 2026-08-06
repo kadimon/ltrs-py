@@ -138,7 +138,7 @@ class BaseWorkflow(
         cls,
         url: str,
         task_id: str,
-        dedupe_hours: int = 480,
+        dedupe_hours: int = 24,
         dont_dedupe: bool = False,
         **kwargs
     ) -> bool:
@@ -173,7 +173,7 @@ class BaseWorkflow(
         cls,
         url: str,
         task_id: str,
-        dedupe_hours: int = 480,
+        dedupe_hours: int = 24,
         **kwargs
     ) -> bool:
         return asyncio.run(cls.crawl(url, task_id, dedupe_hours))
@@ -181,7 +181,7 @@ class BaseWorkflow(
     @classmethod
     async def _not_dupe(cls, hash: str, hours: int) -> bool:
         runs_list = await hatchet.runs.aio_list_with_pagination(
-            since=datetime.now(timezone.utc) - timedelta(hours=hours),
+            since=datetime.now().astimezone() - timedelta(hours=hours),
             additional_metadata={
                 'hash': hash,
             },
