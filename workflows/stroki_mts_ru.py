@@ -292,9 +292,10 @@ class StrokiMtsListing(BaseLivelibWorkflow):
                     async with page.expect_response(
                         lambda res: res.url == 'https://stroki.mts.ru/api/books/search',
                         timeout=7000,
-                    ):
+                    ) as resp:
                         # Скроллим к футеру
-                        await page.locator('stroki-footer').focus()
+                        await page.locator('.footer-application').focus()
+                        print('scroll')
 
                         # Жмем кнопку если она есть
                         if await more_button_locator.count() > 0 and await more_button_locator.first.is_visible():
@@ -336,8 +337,8 @@ if __name__ == '__main__':
     # Для отладки
     # StrokiMtsListing.debug_sync(StrokiMtsListing.start_urls[0])
     # StrokiMtsListing.debug_sync('https://stroki.mts.ru/collection/novinki-2513')
-    # StrokiMtsListing.debug_sync('https://stroki.mts.ru/genres/young-adult-1206')
+    StrokiMtsListing.debug_sync('https://stroki.mts.ru/genres/young-adult-1206')
     # StrokiMtsItem.debug_sync('https://stroki.mts.ru/book/chetvertoye-krylo-240562')
     # StrokiMtsItem.debug_sync('https://stroki.mts.ru/audiobook/chetvertoye-krylo-240563')
     # StrokiMtsItem.debug_sync('https://stroki.mts.ru/book/zeleniy-svet-30182')
-    StrokiMtsItem.debug_sync('https://stroki.mts.ru/book/prizraki-vody-375514')
+    # StrokiMtsItem.debug_sync('https://stroki.mts.ru/book/prizraki-vody-375514')

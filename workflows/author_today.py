@@ -316,10 +316,10 @@ class AuthorTodayListing(BaseLivelibWorkflow):
 
 if __name__ == '__main__':
     # AuthorTodayListing.run_sync()
-    AuthorTodayListing.run_cron_sync()
+    # AuthorTodayListing.run_cron_sync()
     # Пример ссылки для отладки
-    # for cron_url in AuthorTodayListing.cron_urls:
-    #     AuthorTodayListing.debug_sync(cron_url)
-    # AuthorTodayListing.debug_sync(AuthorTodayListing.start_urls[0])
-    # AuthorTodayListing.debug_sync('https://author.today/u/igor_koltsov/works')
-    # AuthorTodayItem.debug_sync('https://author.today/work/519196')
+    for cron_url in AuthorTodayListing.cron_urls:
+        AuthorTodayListing.debug_sync(cron_url)
+    AuthorTodayListing.debug_sync(AuthorTodayListing.start_urls[0])
+    AuthorTodayListing.debug_sync('https://author.today/u/igor_koltsov/works')
+    AuthorTodayItem.debug_sync('https://author.today/work/519196')
