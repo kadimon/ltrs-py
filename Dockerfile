@@ -6,7 +6,7 @@ RUN apt-get update \
 
 RUN pip install playwright \
     cloverlabs-camoufox[geoip] \
-    playwright \
+    playwright==1.59.0 \
     hatchet-sdk==1.35.1 \
     prisma \
     pymongo \
