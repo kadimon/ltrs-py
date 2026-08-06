@@ -22,7 +22,6 @@ class StrokiMtsItem(BaseLivelibWorkflow):
     output = Output
 
     concurrency = 25
-    execution_timeout_sec = 60
 
     @classmethod
     async def task(cls, input: InputLivelibBook, page: Page) -> Output:
@@ -37,7 +36,7 @@ class StrokiMtsItem(BaseLivelibWorkflow):
         await page.wait_for_selector("detail-page h1")
 
         adult_button = page.locator("adult-content-modal stroki-button.stroki-btn-primary")
-        if await adult_button.count() > 0:
+        if await adult_button.count() > 0 and await adult_button.is_visible():
             await adult_button.first.click()
 
 
@@ -283,11 +282,7 @@ class StrokiMtsListing(BaseLivelibWorkflow):
                     if '/book/' in book_url or '/audiobook/' in book_url or '/comics/' in book_url:
                         if book_url not in book_urls_done:
                             book_urls_new.append(book_url)
-                            if await StrokiMtsItem.crawl(
-                                book_url,
-                                input.task_id,
-                                dedupe_hours=12,
-                            ):
+                            if await StrokiMtsItem.crawl(book_url, input.task_id):
                                 stats['new-items-links'] += 1
             book_urls_new = list(set(book_urls_new))
             if book_urls_new:
@@ -329,18 +324,14 @@ class StrokiMtsListing(BaseLivelibWorkflow):
         for link in genre_links:
             if href := await link.get_attribute('href'):
                 genre_url = urljoin(page.url, href)
-                if await cls.crawl(
-                    genre_url,
-                    input.task_id,
-                    dedupe_hours=12,
-                ):
+                if await cls.crawl(genre_url, input.task_id):
                     stats['new-page-links'] += 1
 
         return Output(result='done', data=stats)
 
 if __name__ == '__main__':
     # StrokiMtsListing.run_sync()
-    # StrokiMtsListing.run_cron_sync()
+    StrokiMtsListing.run_cron_sync()
     # Для отладки
     # StrokiMtsListing.debug_sync(StrokiMtsListing.start_urls[0])
     # StrokiMtsListing.debug_sync('https://stroki.mts.ru/collection/novinki-2513')
@@ -348,4 +339,4 @@ if __name__ == '__main__':
     # StrokiMtsItem.debug_sync('https://stroki.mts.ru/book/chetvertoye-krylo-240562')
     # StrokiMtsItem.debug_sync('https://stroki.mts.ru/audiobook/chetvertoye-krylo-240563')
     # StrokiMtsItem.debug_sync('https://stroki.mts.ru/book/zeleniy-svet-30182')
-    StrokiMtsItem.debug_sync('https://stroki.mts.ru/book/burya-magii-i-pepla-320812')
+    # StrokiMtsItem.debug_sync('https://stroki.mts.ru/book/burya-magii-i-pepla-320812')
