@@ -20,12 +20,22 @@ services:
       - MONGO_URI=${MONGO_URI}
       - HATCHET_CLIENT_TOKEN=${HATCHET_CLIENT_TOKEN}
       - HATCHET_CLIENT_TLS_STRATEGY=${HATCHET_CLIENT_TLS_STRATEGY}
+      - HATCHET_CLIENT_LISTENER_V2_TIMEOUT=300
+      - HATCHET_CLIENT_WORKER_HEALTHCHECK_ENABLED=true
       - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL}
       - AWS_COVERS_BUCKET=${AWS_COVERS_BUCKET}
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - TZ=${TZ}
       - SERVER=${SERVER}
+
+    healthcheck:
+      # Docker будет дергать этот URL изнутри контейнера
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s      # Как часто проверять (каждые 15 сек)
+      timeout: 5s        # Сколько ждать ответа
+      retries: 3         # Убить и перезапустить контейнер после 3 неудач подряд
+      start_period: 30s  # Дать воркеру 10 секунд на запуск, прежде чем начать проверки
 
     logging:
       driver: gelf
