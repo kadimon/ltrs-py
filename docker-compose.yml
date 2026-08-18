@@ -37,6 +37,12 @@ services:
       retries: 3         # Убить и перезапустить контейнер после 3 неудач подряд
       start_period: 30s  # Дать воркеру 10 секунд на запуск, прежде чем начать проверки
 
+    shm_size: 4gb
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+
     logging:
       driver: gelf
       options:
