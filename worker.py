@@ -63,7 +63,7 @@ def create_task_for_class(wf: BaseLitresPartnersWorkflow) -> Workflow:
             persistent_context=True,
             user_data_dir='user_data',
             locale=['ru-RU', 'en-US'],
-            addons=addons_paths_list,
+            # addons=addons_paths_list,
             proxy={'server': settings.PROXY_URI} if wf.proxy_enable else None,
         ) as browser:
             page = await browser.new_page()
