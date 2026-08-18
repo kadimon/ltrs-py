@@ -295,7 +295,6 @@ class StrokiMtsListing(BaseLivelibWorkflow):
                     ) as resp:
                         # Скроллим к футеру
                         await page.locator('.footer-application').focus()
-                        print('scroll')
 
                         # Жмем кнопку если она есть
                         if await more_button_locator.count() > 0 and await more_button_locator.first.is_visible():
