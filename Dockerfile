@@ -4,9 +4,9 @@ RUN apt-get update \
     && apt-get install -y tini \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install playwright \
+RUN pip install \
+    playwright==1.60.0 \
     cloverlabs-camoufox[geoip] \
-    playwright==1.59.0 \
     hatchet-sdk==1.37.2 \
     prisma \
     pymongo \
@@ -20,15 +20,15 @@ RUN pip install playwright \
     # croniter \
     && pip cache purge
 
-RUN playwright install-deps firefox
+RUN python -m playwright install-deps firefox
 RUN python -m camoufox sync \
-    && python -m camoufox set prerelease \
+    && python -m camoufox set official/prerelease \
     && python -m camoufox fetch
 
 WORKDIR /app
 
 COPY ./schema.prisma ./
-RUN prisma generate --generator client-py
+RUN python -m prisma generate --generator client-py
 
 COPY ./workflows/ ./workflows/
 COPY ./worker.py \
