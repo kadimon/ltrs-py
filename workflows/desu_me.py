@@ -9,121 +9,6 @@ from interfaces import InputLivelibBook, Output
 from utils import save_cover
 from workflow_base import BaseLivelibWorkflow
 
-# Один проход по DOM вместо ~35 locator-вызовов. Каждый locator — это отдельный
-# round-trip в браузер с перепроверкой актуальности узла, а `:has()` +
-# `:text-is()` Playwright резолвит своим движком поверх querySelectorAll, то есть
-# на каждое поле шёл повторный обход всего b-db_entry. Здесь весь разбор
-# страницы — одна сериализация результата.
-ITEM_JS = r'''() => {
-    const norm = el => el ? el.textContent.replace(/\s+/g, ' ').trim() : null;
-    const raw = el => el ? el.textContent.trim() : null;
-    const attr = (el, name) => el ? el.getAttribute(name) : null;
-
-    const entry = document.querySelector('div.b-db_entry');
-
-    // Замена для 'div.b-db_entry div.line-container:has(div.key:text-is("X")) div.value'.
-    // Ключи собираем в Map один раз, дальше это lookup, а не обход DOM.
-    // Двоеточие в ключе снимаем: разметка отдаёт "Тип:", старые селекторы
-    // писались без него.
-    const lines = new Map();
-    for (const line of document.querySelectorAll('div.b-db_entry div.line-container')) {
-        const key = (norm(line.querySelector('div.key')) ?? '').replace(/:$/, '');
-        if (key && !lines.has(key)) {
-            lines.set(key, line.querySelector('div.value'));
-        }
-    }
-    // Список ключей, а не один: сайт переехал на множественное число
-    // ("Авторы", "Переводчики"), старые варианты оставлены как запасные.
-    const value = keys => {
-        for (const key of keys) {
-            const found = lines.get(key);
-            if (found) return found;
-        }
-        return null;
-    };
-    const people = keys => {
-        const el = value(keys);
-        if (!el) return null;
-        const links = [...el.querySelectorAll('ul > li > a')];
-        return links.length ? links.map(a => ({name: norm(a), href: attr(a, 'href')})) : null;
-    };
-
-    // Замена для 'div.secondaryContent:has(h3:text-is("X"))'
-    const sections = [...document.querySelectorAll('div.secondaryContent')];
-    const section = heading => sections.find(el => norm(el.querySelector('h3')) === heading) ?? null;
-    const votes = section('Оценки пользователей');
-
-    // Замена для 'div.secondaryContent div.line:has(div.x_label:text-is("X")) div.bar':
-    // все шесть подписей блока «В списках» забираем за один обход.
-    const bars = {};
-    for (const line of document.querySelectorAll('div.secondaryContent div.line')) {
-        const label = norm(line.querySelector('div.x_label'));
-        const title = attr(line.querySelector('div.bar[title]'), 'title');
-        if (label && title !== null && !(label in bars)) {
-            bars[label] = title;
-        }
-    }
-
-    // На выдаче постер лениво подгружается скриптом, до этого в src лежит
-    // заглушка 'data:,' — тогда берём тот же файл из og:image.
-    let cover = attr(document.querySelector('div.c-poster img'), 'src');
-    if (!cover || cover.startsWith('data:')) {
-        cover = attr(document.querySelector('meta[property="og:image"]'), 'content');
-    }
-
-    const status = value(['Статус']);
-    const translate = value(['Перевод']);
-
-    return {
-        // --- Основная информация ---
-        title: norm(document.querySelector('h1 span.rus-name')),
-        title_original: norm(document.querySelector('h1 span.name')),
-        authors: people(['Авторы', 'Автор']),
-        artists: people(['Художник', 'Художники']),
-        translators: people(['Переводчики', 'Переводчик']),
-        annotation: raw(document.querySelector('div[itemprop="description"]')),
-        cover: cover,
-        genres: entry ? [...entry.querySelectorAll('a[itemprop="genre"]')].map(norm) : [],
-        date_release: norm(status),
-        artwork_type: norm(value(['Тип'])),
-        age_18_plus: document.querySelector('div.c-poster.age_18_plus') !== null,
-
-        // --- Метрики ---
-        rating: norm(entry ? entry.querySelector('div.score-value') : null),
-        votes: votes ? [...votes.querySelectorAll('div.bar[title]')].map(el => attr(el, 'title')) : [],
-        views: norm(value(['Просмотров'])),
-        added_to_lib: norm(document.querySelector('h3.textWithCount span.count')),
-        comments: attr(document.querySelector('div.desu-comments-shell[data-comment-count]'), 'data-comment-count'),
-        chapters: norm(document.querySelector('a.read-ch-online')),
-        status_writing: status && status.querySelector('span.released') ? 'FINISH'
-            : status && status.querySelector('span.ongoing') ? 'PROCESS' : null,
-        status_translate: translate && translate.querySelector('span.completed') ? 'FINISH'
-            : translate && translate.querySelector('span.continued') ? 'PROCESS' : null,
-        bars: bars,
-    };
-}'''
-
-# Пагинация и карточки одним вызовом: PageNav отрисован дважды (над и под
-# списком), поэтому ссылки приходят с дублями — их снимает dict.fromkeys.
-LISTING_JS = r'''() => ({
-    pages: [...document.querySelectorAll('div.PageNav a')]
-        .map(a => a.getAttribute('href'))
-        .filter(Boolean),
-    items: [...document.querySelectorAll('ol.memberList h3 a')]
-        .map(a => a.getAttribute('href'))
-        .filter(Boolean),
-})'''
-
-# Подписи блока «В списках» -> поля метрик
-READ_STATS = (
-    ('read_process', 'Читаю'),
-    ('read_stoped', 'Брошено'),
-    ('read_on_pause', 'Отложено'),
-    ('read_later', 'Запланировано'),
-    ('read_finished', 'Прочитано'),
-    ('likes', 'Любимое'),
-)
-
 
 class DesuItem(BaseLivelibWorkflow):
     name = 'desu-store-item'
@@ -146,8 +31,6 @@ class DesuItem(BaseLivelibWorkflow):
 
         await page.wait_for_selector('div.footerLegal')
 
-        data = await page.evaluate(ITEM_JS)
-
         async with DbSamizdatPrisma() as db:
             book = {'url': page.url, 'source': cls.site}
             metrics = {'bookUrl': page.url}
@@ -155,125 +38,232 @@ class DesuItem(BaseLivelibWorkflow):
             # --- Основная информация ---
 
             # Title
-            if data['title']:
-                book['title'] = data['title']
+            title_locator = page.locator('h1 span.rus-name')
+            if await title_locator.count() > 0:
+                book['title'] = await title_locator.text_content()
 
             if not await db.check_book_exist(page.url):
                 await db.create_book(book)
 
             # Title Original
-            if data['title_original']:
-                book['title_original'] = data['title_original']
+            title_original_locator = page.locator('h1 span.name')
+            if await title_original_locator.count() > 0:
+                book['title_original'] = await title_original_locator.text_content()
 
             # Authors
-            if data['authors']:
-                book['author'] = ', '.join([a['name'] for a in data['authors']])
-                book['authors_data'] = [
-                    {'name': a['name'], 'url': urljoin(page.url, a['href'])}
-                    for a in data['authors']
-                ]
+            authors_locator = page.locator(
+                'div.b-db_entry div.line-container:has(div.key:has-text("Автор")) div.value ul > li > a'
+            )
+            if await authors_locator.count() > 0:
+                book['author'] = ', '.join([
+                    (await a.text_content()).strip()
+                    for a in await authors_locator.all()
+                ])
+                book['authors_data'] = []
+                for a in await authors_locator.all():
+                    href = await a.get_attribute('href')
+                    book['authors_data'].append({
+                        'name': (await a.text_content()).strip(),
+                        'url': urljoin(page.url, href),
+                    })
 
             # Artists
-            if data['artists']:
-                book['artist'] = ', '.join([a['name'] for a in data['artists']])
-                book['artists_data'] = [
-                    {'name': a['name'], 'url': urljoin(page.url, a['href'])}
-                    for a in data['artists']
-                ]
+            artists_locator = page.locator(
+                'div.b-db_entry div.line-container:has(div.key:text-is("Художник")) div.value ul > li > a'
+            )
+            if await artists_locator.count() > 0:
+                book['artist'] = ', '.join([
+                    (await a.text_content()).strip()
+                    for a in await artists_locator.all()
+                ])
+                book['artists_data'] = []
+                for a in await artists_locator.all():
+                    href = await a.get_attribute('href')
+                    book['artists_data'].append({
+                        'name': (await a.text_content()).strip(),
+                        'url': urljoin(page.url, href),
+                    })
 
             # Translators
-            if data['translators']:
-                book['translate'] = ', '.join([t['name'] for t in data['translators']])
-                book['translators_data'] = [
-                    {'name': t['name'], 'url': urljoin(page.url, t['href'])}
-                    for t in data['translators']
-                ]
+            translators_locator = page.locator(
+                'div.b-db_entry div.line-container:has(div.key:has-text("Переводчик")) div.value ul.translators li a'
+            )
+            if await translators_locator.count() > 0:
+                book['translate'] = ', '.join([
+                    (await a.text_content()).strip()
+                    for a in await translators_locator.all()
+                ])
+                book['translators_data'] = []
+                for a in await translators_locator.all():
+                    href = await a.get_attribute('href')
+                    book['translators_data'].append({
+                        'name': (await a.text_content()).strip(),
+                        'url': urljoin(page.url, href),
+                    })
 
             # Annotation
-            if data['annotation']:
-                book['annotation'] = data['annotation']
+            annotation_locator = page.locator('div[itemprop="description"]')
+            if await annotation_locator.count() > 0:
+                book['annotation'] = await annotation_locator.text_content()
 
             # Cover
             if not await db.check_book_have_cover(page.url):
-                if cover_url := data['cover']:
-                    full_cover_url = urljoin(page.url, cover_url)
-                    if cover_name := await save_cover(page, full_cover_url):
-                        book['coverImage'] = cover_name
+                cover_locator = page.locator('div.c-poster img').first
+                if await cover_locator.count() > 0:
+                    if cover_url := await cover_locator.get_attribute('src'):
+                        full_cover_url = urljoin(page.url, cover_url)
+                        if cover_name := await save_cover(page, full_cover_url):
+                            book['coverImage'] = cover_name
 
             # Tags & Categories
-            if data['genres']:
+            tags_and_categories_locator = page.locator('div.b-db_entry a[itemprop="genre"]')
+            if await tags_and_categories_locator.count() > 0:
                 book['category'] = []
                 book['tags'] = []
-                for value in data['genres']:
+                for t in await tags_and_categories_locator.all():
+                    value = (await t.text_content()).strip()
                     if value.startswith('#'):
                         book['tags'].append(re.sub(r'^#\s+', '', value))
                     else:
                         book['category'].append(value)
 
             # Release Year
-            # В значении лежит "выходит с 2021 г." — dateparser на такой строке
-            # целиком отдаёт None, поэтому сначала вытаскиваем год. Дня и месяца
-            # разметка не содержит, прибиваем к 1 января.
-            if data['date_release']:
-                if year_match := re.search(r'\d{4}', data['date_release']):
-                    book['date_release'] = dateparser.parse(f'{year_match.group(0)}-01-01')
+            release_date_locator = page.locator(
+                'div.b-db_entry div.line-container:has(div.key:text-is("Статус:")) div.value'
+            )
+            if await release_date_locator.count() > 0:
+                release_date_text = await release_date_locator.first.text_content()
+                if year_match := re.search(r'\d{4}', release_date_text):
+                    book['date_release'] = dateparser.parse(year_match.group(0))
 
             # Artwork Type
-            if artwork_type := data['artwork_type']:
-                book['artwork_type'] = artwork_type
+            artwork_type_locator = page.locator(
+                'div.b-db_entry div.line-container:has(div.key:text-is("Тип:")) div.value'
+            )
+            if await artwork_type_locator.count() > 0:
+                if artwork_type := (await artwork_type_locator.text_content()).strip():
+                    book['artwork_type'] = artwork_type
 
             # Age Rating
-            if data['age_18_plus']:
+            if await page.locator('div.c-poster.age_18_plus').count() > 0:
                 book['age_rating'] = '18'
 
             # --- Метрики ---
 
             # Rating
-            if data['rating']:
-                if rating_match := re.search(r'[\d.]+', data['rating']):
+            rating_locator = page.locator('div.b-db_entry div.score-value')
+            if await rating_locator.count() > 0:
+                if rating_match := re.search(r'[\d.]+', await rating_locator.text_content()):
                     if rating_match.group(0) != '0':
                         metrics['rating'] = rating_match.group(0)
 
             # Votes
-            if data['votes']:
+            votes_locator = page.locator(
+                'div.secondaryContent:has(h3:text-is("Оценки пользователей")) div.bar[title]'
+            )
+            if await votes_locator.count() > 0:
                 metrics['votes'] = 0
-                for v_title in data['votes']:
-                    if v_match := re.search(r'\d+', v_title):
-                        metrics['votes'] += int(v_match.group(0))
+                for v in await votes_locator.all():
+                    if v_title := await v.get_attribute('title'):
+                        if v_match := re.search(r'\d+', v_title):
+                            metrics['votes'] += int(v_match.group(0))
 
             # Views
-            if data['views']:
-                if views_match := re.search(r'\d+', data['views']):
+            views_locator = page.locator(
+                'div.b-db_entry div.line-container:has(div.key:text-is("Просмотров:")) div.value div.value'
+            )
+            if await views_locator.count() > 0:
+                if views_match := re.search(r'\d+', await views_locator.text_content()):
                     metrics['views'] = views_match.group(0)
 
             # Added to lib
-            adds_text = data['added_to_lib']
-            if adds_text and adds_text != '0':
-                metrics['added_to_lib'] = adds_text
+            adds_locator = page.locator('h3.textWithCount span.count')
+            if await adds_locator.count() > 0:
+                adds_text = (await adds_locator.text_content()).strip()
+                if adds_text and adds_text != '0':
+                    metrics['added_to_lib'] = adds_text
 
             # Comments
-            comments = data['comments']
-            if comments and comments != '0':
-                metrics['comments'] = comments
+            comments_locator = page.locator('div.desu-comments-shell')
+            if await comments_locator.count() > 0:
+                comments = await comments_locator.get_attribute('data-comment-count')
+                if comments and comments != '0':
+                    metrics['comments'] = comments
 
             # Chapters Count
-            if data['chapters']:
-                if chapters_match := re.search(r'Глава\s+(\d+)', data['chapters']):
+            chapters_locator = page.locator('a.read-ch-online')
+            if await chapters_locator.count() > 0:
+                if chapters_match := re.search(r'Глава\s+(\d+)', await chapters_locator.text_content()):
                     if chapters_match.group(1) != '0':
                         metrics['chapters_count'] = chapters_match.group(1)
 
             # Status Writing
-            if data['status_writing']:
-                metrics['status_writing'] = data['status_writing']
+            if await page.locator(
+                'div.b-db_entry div.line-container:has(div.key:text-is("Статус:")) div.value span.released'
+            ).count() > 0:
+                metrics['status_writing'] = 'FINISH'
+            elif await page.locator(
+                'div.b-db_entry div.line-container:has(div.key:text-is("Статус:")) div.value span.ongoing'
+            ).count() > 0:
+                metrics['status_writing'] = 'PROCESS'
 
             # Status Translate
-            if data['status_translate']:
-                metrics['status_translate'] = data['status_translate']
+            if await page.locator(
+                'div.b-db_entry div.line-container:has(div.key:text-is("Перевод:")) div.value span.completed'
+            ).count() > 0:
+                metrics['status_translate'] = 'FINISH'
+            elif await page.locator(
+                'div.b-db_entry div.line-container:has(div.key:text-is("Перевод:")) div.value span.continued'
+            ).count() > 0:
+                metrics['status_translate'] = 'PROCESS'
 
-            # Read Process / Stopped / On Pause / Later / Finished, Likes
-            for field, label in READ_STATS:
-                if bar := data['bars'].get(label):
-                    metrics[field] = bar
+            # Read Process
+            read_process_locator = page.locator(
+                'div.secondaryContent div.line:has(div.x_label:text-is("Читаю")) div.bar'
+            )
+            if await read_process_locator.count() > 0:
+                if read_process := await read_process_locator.get_attribute('title'):
+                    metrics['read_process'] = read_process
+
+            # Read Stopped
+            read_stoped_locator = page.locator(
+                'div.secondaryContent div.line:has(div.x_label:text-is("Брошено")) div.bar'
+            )
+            if await read_stoped_locator.count() > 0:
+                if read_stoped := await read_stoped_locator.get_attribute('title'):
+                    metrics['read_stoped'] = read_stoped
+
+            # Read On Pause
+            read_on_pause_locator = page.locator(
+                'div.secondaryContent div.line:has(div.x_label:text-is("Отложено")) div.bar'
+            )
+            if await read_on_pause_locator.count() > 0:
+                if read_on_pause := await read_on_pause_locator.get_attribute('title'):
+                    metrics['read_on_pause'] = read_on_pause
+
+            # Read Later
+            read_later_locator = page.locator(
+                'div.secondaryContent div.line:has(div.x_label:text-is("Запланировано")) div.bar'
+            )
+            if await read_later_locator.count() > 0:
+                if read_later := await read_later_locator.get_attribute('title'):
+                    metrics['read_later'] = read_later
+
+            # Read Finished
+            read_finished_locator = page.locator(
+                'div.secondaryContent div.line:has(div.x_label:text-is("Прочитано")) div.bar'
+            )
+            if await read_finished_locator.count() > 0:
+                if read_finished := await read_finished_locator.get_attribute('title'):
+                    metrics['read_finished'] = read_finished
+
+            # Likes
+            likes_locator = page.locator(
+                'div.secondaryContent div.line:has(div.x_label:text-is("Любимое")) div.bar'
+            )
+            if await likes_locator.count() > 0:
+                if likes := await likes_locator.get_attribute('title'):
+                    metrics['likes'] = likes
 
             await db.update_book(book)
             await db.create_metrics(metrics)
@@ -304,22 +294,26 @@ class DesuListing(BaseLivelibWorkflow):
         await page.goto(input.url, wait_until='domcontentloaded')
         await page.wait_for_selector('div.footerLegal')
 
-        data = await page.evaluate(LISTING_JS)
-
         # Pagination
-        for href in dict.fromkeys(data['pages']):
-            if await cls.crawl(urljoin(page.url, href), input.task_id):
-                stats['new-page-links'] += 1
+        pagination_locator = page.locator('div.PageNav a')
+        for link in await pagination_locator.all():
+            href = await link.get_attribute('href')
+            if href:
+                if await cls.crawl(urljoin(page.url, href), input.task_id):
+                    stats['new-page-links'] += 1
 
         # Books
-        for href in dict.fromkeys(data['items']):
-            if await DesuItem.crawl(urljoin(page.url, href), input.task_id):
-                stats['new-items-links'] += 1
+        book_links_locator = page.locator('ol.memberList h3 a')
+        for link in await book_links_locator.all():
+            href = await link.get_attribute('href')
+            if href:
+                if await DesuItem.crawl(urljoin(page.url, href), input.task_id):
+                    stats['new-items-links'] += 1
 
         return Output(result='done', data=stats)
 
 
 if __name__ == '__main__':
     DesuListing.run_sync()
-    DesuListing.debug_sync(DesuListing.start_urls[0])
-    # DesuItem.debug_sync('https://desu.uno/manga/the-reversal-of-my-life-as-a-mob-character.6563/')
+    # DesuListing.debug_sync(DesuListing.start_urls[0])
+    DesuItem.debug_sync('https://desu.uno/manga/the-reversal-of-my-life-as-a-mob-character.6563/')
