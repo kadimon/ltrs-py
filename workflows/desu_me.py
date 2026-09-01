@@ -22,7 +22,10 @@ class DesuItem(BaseLivelibWorkflow):
 
     @classmethod
     async def task(cls, input: InputLivelibBook, page: Page) -> Output:
-        resp = await page.goto(input.url, wait_until='domcontentloaded')
+        resp = await page.goto(
+            input.url,
+            wait_until='domcontentloaded'
+        )
 
         if resp.status in (404, 451):
             async with DbSamizdatPrisma() as db:
@@ -291,7 +294,10 @@ class DesuListing(BaseLivelibWorkflow):
     async def task(cls, input: InputLivelibBook, page: Page) -> Output:
         stats = {'new-page-links': 0, 'new-items-links': 0}
 
-        await page.goto(input.url, wait_until='domcontentloaded')
+        await page.goto(
+            input.url,
+            # wait_until='domcontentloaded',
+        )
         await page.wait_for_selector('div.footerLegal')
 
         # Pagination
@@ -316,4 +322,5 @@ class DesuListing(BaseLivelibWorkflow):
 if __name__ == '__main__':
     DesuListing.run_sync()
     # DesuListing.debug_sync(DesuListing.start_urls[0])
-    DesuItem.debug_sync('https://desu.uno/manga/the-reversal-of-my-life-as-a-mob-character.6563/')
+    DesuListing.debug_sync('https://desu.uno/manga/?page=56')
+    # DesuItem.debug_sync('https://desu.uno/manga/the-reversal-of-my-life-as-a-mob-character.6563/')
