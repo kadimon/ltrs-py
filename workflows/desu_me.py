@@ -1,5 +1,5 @@
 import re
-from urllib.parse import urljoin
+from urllib.parse import unquote, urljoin
 
 import dateparser
 from playwright.async_api import Page
@@ -22,10 +22,7 @@ class DesuItem(BaseLivelibWorkflow):
 
     @classmethod
     async def task(cls, input: InputLivelibBook, page: Page) -> Output:
-        resp = await page.goto(
-            input.url,
-            wait_until='domcontentloaded'
-        )
+        resp = await page.goto(input.url, wait_until='domcontentloaded')
 
         if resp.status in (404, 451):
             async with DbSamizdatPrisma() as db:
@@ -294,19 +291,22 @@ class DesuListing(BaseLivelibWorkflow):
     async def task(cls, input: InputLivelibBook, page: Page) -> Output:
         stats = {'new-page-links': 0, 'new-items-links': 0}
 
-        await page.goto(
-            input.url,
-            # wait_until='domcontentloaded',
-        )
+        await page.goto(input.url, wait_until='domcontentloaded')
         await page.wait_for_selector('div.footerLegal')
 
-        # Pagination
-        pagination_locator = page.locator('div.PageNav a')
-        for link in await pagination_locator.all():
-            href = await link.get_attribute('href')
-            if href:
-                if await cls.crawl(urljoin(page.url, href), input.task_id):
-                    stats['new-page-links'] += 1
+        # Pagination (только с первой страницы листинга)
+        pagination_locator = page.locator('div.PageNav').first
+        if await pagination_locator.count() > 0:
+            if await pagination_locator.get_attribute('data-page') == '1':
+                base_url = await pagination_locator.get_attribute('data-baseurl')
+                sentinel = await pagination_locator.get_attribute('data-sentinel')
+                last_page = await pagination_locator.get_attribute('data-last')
+                if base_url and sentinel and last_page:
+                    base_url = unquote(base_url)
+                    for n in range(2, int(last_page) + 1):
+                        href = '/' + base_url.replace(sentinel, str(n))
+                        if await cls.crawl(urljoin(page.url, href), input.task_id):
+                            stats['new-page-links'] += 1
 
         # Books
         book_links_locator = page.locator('ol.memberList h3 a')
@@ -322,5 +322,5 @@ class DesuListing(BaseLivelibWorkflow):
 if __name__ == '__main__':
     DesuListing.run_sync()
     # DesuListing.debug_sync(DesuListing.start_urls[0])
-    DesuListing.debug_sync('https://desu.uno/manga/?page=56')
+    DesuListing.debug_sync('https://desu.uno/manga/?page=2')
     # DesuItem.debug_sync('https://desu.uno/manga/the-reversal-of-my-life-as-a-mob-character.6563/')
