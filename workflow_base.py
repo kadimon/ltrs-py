@@ -169,6 +169,50 @@ class BaseWorkflow(
             return False
 
     @classmethod
+    async def crawl_bulk(
+        cls,
+        urls: list[str],
+        task_id: str,
+        dedupe_hours: int = 480,
+        dont_dedupe: bool = False,
+        chunk_size: int = 1_000,
+        **kwargs
+    ) -> list[str]:
+        urls = list(dict.fromkeys(urls))
+
+        if settings.DEBUG:
+            return urls
+
+        events = []
+        crawled = []
+
+        for url in urls:
+            hash = cls._task_hash(task_id, url)
+            if dont_dedupe or await cls._not_dupe(hash, dedupe_hours):
+                events.append(
+                    BulkPushEventWithMetadata(
+                        key=cls.event,
+                        payload={
+                            'url': url,
+                            'task_id': task_id,
+                        } | kwargs,
+                        additional_metadata={
+                            'customer': cls.customer,
+                            'site': cls.site,
+                            'url': url,
+                            'hash': hash,
+                            'task_id': task_id,
+                        }
+                    )
+                )
+                crawled.append(url)
+
+        for i in range(0, len(events), chunk_size):
+            await hatchet.event.aio_bulk_push(events[i:i + chunk_size])
+
+        return crawled
+
+    @classmethod
     def crawl_sync(
         cls,
         url: str,

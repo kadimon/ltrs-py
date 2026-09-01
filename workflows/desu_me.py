@@ -294,7 +294,7 @@ class DesuListing(BaseLivelibWorkflow):
         await page.goto(input.url, wait_until='domcontentloaded')
         await page.wait_for_selector('div.footerLegal')
 
-        # Pagination (только с первой страницы листинга)
+        # Pagination (только с первой страницы листинга, без проверки на дубли)
         pagination_locator = page.locator('div.PageNav').first
         if await pagination_locator.count() > 0:
             if await pagination_locator.get_attribute('data-page') == '1':
@@ -303,24 +303,30 @@ class DesuListing(BaseLivelibWorkflow):
                 last_page = await pagination_locator.get_attribute('data-last')
                 if base_url and sentinel and last_page:
                     base_url = unquote(base_url)
-                    for n in range(2, int(last_page) + 1):
-                        href = '/' + base_url.replace(sentinel, str(n))
-                        if await cls.crawl(urljoin(page.url, href), input.task_id):
-                            stats['new-page-links'] += 1
+                    page_urls = [
+                        urljoin(page.url, '/' + base_url.replace(sentinel, str(n)))
+                        for n in range(2, int(last_page) + 1)
+                    ]
+                    if page_urls:
+                        crawled = await cls.crawl_bulk(page_urls, input.task_id, dont_dedupe=True)
+                        stats['new-page-links'] = len(crawled)
 
-        # Books
+        # Books (bulk после проверки на дубли)
+        book_urls = []
         book_links_locator = page.locator('ol.memberList h3 a')
         for link in await book_links_locator.all():
             href = await link.get_attribute('href')
             if href:
-                if await DesuItem.crawl(urljoin(page.url, href), input.task_id):
-                    stats['new-items-links'] += 1
+                book_urls.append(urljoin(page.url, href))
+
+        if book_urls:
+            crawled = await DesuItem.crawl_bulk(book_urls, input.task_id)
+            stats['new-items-links'] = len(crawled)
 
         return Output(result='done', data=stats)
 
 
 if __name__ == '__main__':
     DesuListing.run_sync()
-    # DesuListing.debug_sync(DesuListing.start_urls[0])
-    DesuListing.debug_sync('https://desu.uno/manga/?page=2')
+    DesuListing.debug_sync(DesuListing.start_urls[0])
     # DesuItem.debug_sync('https://desu.uno/manga/the-reversal-of-my-life-as-a-mob-character.6563/')
