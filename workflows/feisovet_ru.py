@@ -1,5 +1,5 @@
 import re
-from urllib.parse import quote, urljoin
+from urllib.parse import quote, unquote, urljoin
 
 from playwright.async_api import Page
 
@@ -26,7 +26,9 @@ class FeisovietItem(BaseLivelibWorkflow):
         print(page.url)
 
         # JS: response.status() == 404 || !page.url().includes("/%D0%BC%D0%B0%D0%B3%D0%B0%D0%B7%D0%B8%D0%BD/")
-        if resp.status == 404 or '/%D0%BC%D0%B0%D0%B3%D0%B0%D0%B7%D0%B8%D0%BD/' not in page.url:
+        # Сравниваем на раскодированном URL: браузер может отдать page.url как в percent-encoded,
+        # так и в декодированном виде
+        if resp.status == 404 or '/магазин/' not in unquote(page.url):
             async with DbSamizdatPrisma() as db:
                 await db.mark_book_deleted(page.url, cls.site)
             return Output(result='error', data={'status': resp.status, 'error': 'invalid_url_or_404'})
@@ -88,7 +90,12 @@ class FeisovietItem(BaseLivelibWorkflow):
                     'div[itemtype="http://schema.org/Product"] img[itemprop="image"]'
                 )
                 if await cover_locator.count() > 0:
-                    if cover_src := await cover_locator.get_attribute('src'):
+                    # На сайте включена lazy-загрузка картинок: в src может лежать заглушка
+                    # (`data:,`), а реальный адрес — в data-src
+                    cover_src = await cover_locator.get_attribute('src')
+                    if not cover_src or cover_src.startswith('data:'):
+                        cover_src = await cover_locator.get_attribute('data-src')
+                    if cover_src:
                         full_cover_url = urljoin(page.url, cover_src)
                         if cover_name := await save_cover(page, full_cover_url):
                             book['coverImage'] = cover_name
@@ -212,24 +219,59 @@ class FeisovietListing(BaseLivelibWorkflow):
         await page.goto(input.url, wait_until='domcontentloaded')
         await page.wait_for_selector('div#footer')
 
-        # Pagination
+        # Pagination (только с первой страницы листинга, без проверки на дубли)
         # JS: enqueueLinks selector 'ul.pagination a'
-        for link in await page.locator('ul.pagination').first.locator('a').all():
-            if href := await link.get_attribute('href'):
-                if await cls.crawl(urljoin(page.url, href), input.task_id):
-                    stats['new-page-links'] += 1
+        pagination_locator = page.locator('ul.pagination').first
+        if await pagination_locator.count() > 0:
+            # Текущая страница — <li class="active">N</li>, фолбэк — page=N из URL
+            current_page = None
+            active_locator = pagination_locator.locator('li.active').first
+            if await active_locator.count() > 0:
+                if active_match := re.search(r'\d+', await active_locator.text_content()):
+                    current_page = active_match.group(0)
+            if current_page is None:
+                url_page_match = re.search(r'[?&]page=(\d+)', page.url)
+                current_page = url_page_match.group(1) if url_page_match else '1'
 
-        # Book links
+            if current_page == '1':
+                # Пагинация «оконная» (1 2 … 7 8 9 10 11 12 … 151 152),
+                # поэтому последняя страница — максимальный номер среди ссылок пейджера
+                last_page = 0
+                base_href = None
+                for link in await pagination_locator.locator('a[href]').all():
+                    href = await link.get_attribute('href')
+                    if not href:
+                        continue
+                    if page_match := re.search(r'[?&]page=(\d+)', href):
+                        if (number := int(page_match.group(1))) > last_page:
+                            last_page = number
+                            base_href = urljoin(page.url, href)
+
+                if base_href and last_page > 1:
+                    page_urls = [
+                        re.sub(r'([?&]page=)\d+', rf'\g<1>{n}', base_href)
+                        for n in range(2, last_page + 1)
+                    ]
+                    if page_urls:
+                        crawled = await cls.crawl_bulk(page_urls, input.task_id, dont_dedupe=True)
+                        stats['new-page-links'] = len(crawled)
+
+        # Books (bulk после проверки на дубли)
         # JS: enqueueLinks selector 'p.book-inlist-title a', label: 'book'
+        book_urls = []
         for link in await page.locator('p.book-inlist-title a').all():
             if href := await link.get_attribute('href'):
-                if await FeisovietItem.crawl(urljoin(page.url, quote(href, safe=":/?&=")), input.task_id):
-                    stats['new-items-links'] += 1
+                # href уже percent-encoded — '%' в safe, иначе получим двойное кодирование
+                book_urls.append(quote(urljoin(page.url, href), safe=':/?&=%#'))
+
+        if book_urls:
+            crawled = await FeisovietItem.crawl_bulk(book_urls, input.task_id)
+            stats['new-items-links'] = len(crawled)
 
         return Output(result='done', data=stats)
 
 
 if __name__ == '__main__':
     FeisovietListing.run_sync()
-    # FeisovietListing.debug_sync(FeisovietListing.start_urls[0])
-    # FeisovietItem.debug_sync('https://feisovet.ru/магазин/Притяжение-любви-Без-границ-Нинель-Нуар')
+    FeisovietListing.debug_sync(FeisovietListing.start_urls[0])
+    FeisovietItem.debug_sync('https://feisovet.ru/магазин/Притяжение-любви-Без-границ-Нинель-Нуар')
