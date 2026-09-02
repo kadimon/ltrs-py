@@ -1,5 +1,5 @@
 import re
-from urllib.parse import urljoin
+from urllib.parse import parse_qsl, urlencode, urljoin, urlparse, urlunparse
 
 import dateparser
 from playwright.async_api import Page
@@ -8,6 +8,14 @@ from db import DbSamizdatPrisma
 from interfaces import InputLivelibBook, Output
 from utils import save_cover
 from workflow_base import BaseLivelibWorkflow
+
+
+def build_page_url(url: str, number: int) -> str:
+    """Подставляет ?page=N в URL листинга, сохраняя остальные query-параметры."""
+    parsed = urlparse(url)
+    query = [(k, v) for k, v in parse_qsl(parsed.query, keep_blank_values=True) if k != 'page']
+    query.append(('page', str(number)))
+    return urlunparse(parsed._replace(query=urlencode(query)))
 
 
 class LitgorodItem(BaseLivelibWorkflow):
@@ -137,12 +145,19 @@ class LitgorodItem(BaseLivelibWorkflow):
                     metrics['characters_count'] = chars_match.group(0)
 
             # Site Ratings
+            # Список вложенный: у родительских <li> (жанр верхнего уровня) нет прямого span._cnt,
+            # позиция в рейтинге есть только у дочерних <li> (поджанр).
             ratings_locator = page.locator("div.b-book_item__content div.b-book_rating li")
             if await ratings_locator.count() > 0:
                 metrics['site_ratings'] = {}
                 for li in await ratings_locator.all():
-                    rating_text = await li.locator("> span._cnt").first.text_content()
-                    category_text = await li.locator("> span._text a").first.text_content()
+                    rating_locator = li.locator("> span._cnt")
+                    category_locator = li.locator("> span._text a")
+                    if await rating_locator.count() == 0 or await category_locator.count() == 0:
+                        continue
+
+                    rating_text = await rating_locator.first.text_content()
+                    category_text = await category_locator.first.text_content()
 
                     if rating_match := re.search(r'\d+', rating_text or ''):
                         if category_text:
@@ -209,38 +224,48 @@ class LitgorodListing(BaseLivelibWorkflow):
 
         await page.wait_for_selector("footer div.b-footer")
 
-        # Genres
-        # JS selector: "div.genres-map a", globs: ["https://litgorod.ru/books/search?genre_id=*"]
-        genre_links = await page.locator("div.genres-map a").all()
-        for link in genre_links:
+        # Genres (bulk, без проверки на дубли — страница жанров одна на запуск)
+        genre_urls = []
+        genre_links_locator = page.locator("div.genres-map a")
+        for link in await genre_links_locator.all():
             href = await link.get_attribute('href')
             if href:
                 genre_url = urljoin(page.url, href)
                 if 'genre_id=' in genre_url:
-                    if await cls.crawl(genre_url, input.task_id):
-                        stats['new-page-links'] += 1
+                    genre_urls.append(genre_url)
 
-        # Pagination
-        # JS selector: "div.b-paging__numbers a", globs: ["https://litgorod.ru/books/search?genre_id=*&q=&page=*"]
-        pagination_links = await page.locator("div.b-paging__numbers a").all()
-        for link in pagination_links:
-            href = await link.get_attribute('href')
-            if href:
-                page_url = urljoin(page.url, href)
-                if 'page=' in page_url:
-                    if await cls.crawl(page_url, input.task_id):
-                        stats['new-page-links'] += 1
+        if genre_urls:
+            crawled = await cls.crawl_bulk(genre_urls, input.task_id, dont_dedupe=True)
+            stats['new-page-links'] += len(crawled)
 
-        # Books
-        # JS selector: "div.b-book_item div.h2 > a", globs: ["https://litgorod.ru/books/view/*"], label: "book"
-        book_links = await page.locator("div.b-book_item div.h2 > a").all()
-        for link in book_links:
+        # Pagination (только с первой страницы листинга, без проверки на дубли)
+        pagination_locator = page.locator("div.b-paging__numbers").first
+        if await pagination_locator.count() > 0:
+            query = dict(parse_qsl(urlparse(page.url).query, keep_blank_values=True))
+            if query.get('page', '1') == '1':
+                last_page = 0
+                for num_link in await pagination_locator.locator("a.b-paging__num").all():
+                    if num_match := re.search(r'\d+', (await num_link.text_content()) or ''):
+                        last_page = max(last_page, int(num_match.group(0)))
+
+                if last_page > 1:
+                    page_urls = [build_page_url(page.url, n) for n in range(2, last_page + 1)]
+                    crawled = await cls.crawl_bulk(page_urls, input.task_id, dont_dedupe=True)
+                    stats['new-page-links'] += len(crawled)
+
+        # Books (bulk после проверки на дубли)
+        book_urls = []
+        book_links_locator = page.locator("div.b-book_item div.h2 > a")
+        for link in await book_links_locator.all():
             href = await link.get_attribute('href')
             if href:
                 book_url = urljoin(page.url, href)
                 if '/books/view/' in book_url:
-                    if await LitgorodItem.crawl(book_url, input.task_id):
-                        stats['new-items-links'] += 1
+                    book_urls.append(book_url)
+
+        if book_urls:
+            crawled = await LitgorodItem.crawl_bulk(book_urls, input.task_id)
+            stats['new-items-links'] = len(crawled)
 
         return Output(result='done', data=stats)
 

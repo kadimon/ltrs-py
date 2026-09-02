@@ -68,9 +68,10 @@ class RanobelibItem(BaseLivelibWorkflow):
 
             # Titles other (Альтернативные названия)
             # JS: div[data-info-variant]:has(div:contains("Альтернативные названия")) a
+            # АКТУАЛИЗАЦИЯ: значения теперь в <span>, ссылок <a> в блоке нет
             titles_other_locator = page.locator("div[data-info-variant]").filter(
                 has=page.locator("div").filter(has_text=re.compile("Альтернативные названия"))
-            ).locator("a")
+            ).locator("span")
             if await titles_other_locator.count() > 0:
                 book['titles_other'] = [
                     (await x.text_content() or "").strip() for x in await titles_other_locator.all()
@@ -96,8 +97,10 @@ class RanobelibItem(BaseLivelibWorkflow):
 
             # Artists
             # JS: div[data-info-variant]:has(div:contains("Художник")) a
+            # АКТУАЛИЗАЦИЯ: лейбл может быть совмещённым — "Автор и художник"
+            # (со строчной "х"), поэтому регистронезависимый матч
             artists_locator = page.locator("div[data-info-variant]").filter(
-                has=page.locator("div").filter(has_text=re.compile("Художник"))
+                has=page.locator("div").filter(has_text=re.compile("художник", re.IGNORECASE))
             ).locator("a")
             if await artists_locator.count() > 0:
                 names, data = await collect_people(artists_locator)
@@ -307,26 +310,45 @@ class RanobelibListing(BaseLivelibWorkflow):
     async def task(cls, input: InputLivelibBook, page: Page) -> Output:
         stats = {'new-page-links': 0, 'new-items-links': 0}
 
-        # JS: const data = await response.json();
         resp = await page.request.get(input.url)
         data = await resp.json()
 
-        # Пагинация
-        # JS: nextPageUrl = data["links"]["next"]; pageNum = nextPageUrl.match(/page=(\d+)/)[1]
-        next_page_url = data.get("links", {}).get("next")
-        if next_page_url:
-            if page_match := re.search(r'page=(\d+)', next_page_url):
-                page_num = page_match.group(1)
-                next_url = f"https://api2.mangalib.me/api/manga?site_id[]=3&page={page_num}"
-                if await cls.crawl(next_url, input.task_id):
-                    stats['new-page-links'] += 1
+        meta = data.get('meta') or {}
 
-        # Книги
-        # JS: data["data"].forEach(i => "https://ranobelib.me/ru/book/" + i["slug_url"])
-        for i in data.get("data", []):
-            book_url = "https://ranobelib.me/ru/book/" + i["slug_url"]
-            if await RanobelibItem.crawl(book_url, input.task_id):
-                stats['new-items-links'] += 1
+        # Pagination (только с первой страницы листинга, без проверки на дубли)
+        current_page = meta.get('current_page')
+        if current_page is None:
+            page_match = re.search(r'page=(\d+)', input.url)
+            current_page = int(page_match.group(1)) if page_match else 1
+
+        if int(current_page) == 1:
+            last_page = meta.get('last_page')
+            if last_page:
+                page_urls = [
+                    re.sub(r'page=\d+', f'page={n}', input.url)
+                    for n in range(2, int(last_page) + 1)
+                ]
+                if page_urls:
+                    crawled = await cls.crawl_bulk(page_urls, input.task_id, dont_dedupe=True)
+                    stats['new-page-links'] = len(crawled)
+            else:
+                # Fallback: meta.last_page не отдан — идём по links.next постранично
+                next_page_url = (data.get('links') or {}).get('next')
+                if next_page_url:
+                    if page_match := re.search(r'page=(\d+)', next_page_url):
+                        next_url = re.sub(r'page=\d+', f'page={page_match.group(1)}', input.url)
+                        if await cls.crawl(next_url, input.task_id):
+                            stats['new-page-links'] = 1
+
+        # Books (bulk после проверки на дубли)
+        book_urls = []
+        for i in data.get('data', []):
+            if slug_url := i.get('slug_url'):
+                book_urls.append('https://ranobelib.me/ru/book/' + slug_url)
+
+        if book_urls:
+            crawled = await RanobelibItem.crawl_bulk(book_urls, input.task_id)
+            stats['new-items-links'] = len(crawled)
 
         return Output(result='done', data=stats)
 

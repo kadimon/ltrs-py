@@ -10,6 +10,25 @@ from interfaces import InputLivelibBook, Output
 from utils import save_cover
 from workflow_base import BaseLivelibWorkflow
 
+# Рекламная модалка-ивент (Radix Dialog из event-ad-modal.tsx) растягивается
+# на весь экран и перехватывает клики. Закрываем её, как только она появится.
+CLOSE_AD_MODAL_JS = """
+const AD = 'body > [data-sentry-source-file="event-ad-modal.tsx"]';
+
+const closeAd = () => {
+    const modal = document.querySelectorAll(AD);
+    if (!modal.length) return;
+
+    const close = document.querySelector(`${AD} button[aria-label="Закрыть"]`);
+    if (close) return close.click();
+
+    modal.forEach((node) => node.remove());
+    document.body.removeAttribute('data-scroll-locked');
+};
+
+new MutationObserver(closeAd).observe(document, {childList: true, subtree: true});
+"""
+
 
 class RemangaOrgItem(BaseLivelibWorkflow):
     name = 'livelib-remanga-org-item'
@@ -21,6 +40,8 @@ class RemangaOrgItem(BaseLivelibWorkflow):
 
     @classmethod
     async def task(cls, input: InputLivelibBook, page: Page) -> Output:
+        await page.add_init_script(CLOSE_AD_MODAL_JS)
+
         resp = await page.goto(input.url, wait_until='domcontentloaded')
 
         async with DbSamizdatPrisma() as db:
@@ -140,11 +161,15 @@ class RemangaOrgItem(BaseLivelibWorkflow):
 
             # --- Сбор метрик ---
             # Рейтинг и голоса
+            rating_regex = r'\d+(?:[.,]\d+)?'
             rating_locator = page.locator('div[data-sentry-component="Rating"] p')
             if await rating_locator.count() > 0:
-                metrics['rating'] = await rating_locator.first.text_content()
+                # У тайтлов без оценок вместо числа стоит текст "формируется"
+                rating_text = (await rating_locator.first.text_content() or '').strip()
+                if rating_match := re.fullmatch(rating_regex, rating_text):
+                    metrics['rating'] = rating_match.group(0)
 
-            votes_regex = r'(\d+)\s+голосов'
+            votes_regex = r'(\d+)\s+голос'
             votes_locator = page.locator('div[data-sentry-component="Rating"] p').filter(
                 has_text=re.compile(votes_regex)
             )
@@ -275,19 +300,25 @@ class RemangaOrgListing(BaseLivelibWorkflow):
 
         stats = {'new-page-links': 0, 'new-items-links': 0}
 
-        # Обработка пагинации как в JS файле
+        # Pagination (только с первой страницы листинга, без проверки на дубли)
         url_data = furl(page.url)
-        if url_data.args['page'] == '1':
-            for page_num in range(2, 1001): # Страницы со 2 по 1000
+        if url_data.args.get('page') == '1':
+            page_urls = []
+            for page_num in range(2, 1_001):  # Страницы со 2 по 1000
                 url_data.args['page'] = page_num
-                if await cls.crawl(url_data.url, input.task_id):
-                    stats['new-page-links'] += 1
+                page_urls.append(url_data.url)
+            if page_urls:
+                crawled = await cls.crawl_bulk(page_urls, input.task_id, dont_dedupe=True)
+                stats['new-page-links'] = len(crawled)
 
-            for item in data['content']:
-                book_url = f"https://remanga.org/manga/{item['dir']}/main"
-                # Ставим в очередь задачу для RemangaOrgItem
-                if await cls.item_wf.crawl(book_url, input.task_id):
-                    stats['new-items-links'] += 1
+        # Books (bulk после проверки на дубли)
+        book_urls = [
+            f"https://remanga.org/manga/{item['dir']}/main"
+            for item in data['content']
+        ]
+        if book_urls:
+            crawled = await cls.item_wf.crawl_bulk(book_urls, input.task_id)
+            stats['new-items-links'] = len(crawled)
 
         return Output(result='done', data=stats)
 
