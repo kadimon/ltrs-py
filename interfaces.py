@@ -1,4 +1,4 @@
-from typing import Literal, Any, TypedDict
+from typing import Any, Literal, TypedDict
 
 from pydantic import BaseModel
 
@@ -14,7 +14,8 @@ class InputLitresPartnersBook(InputBase):
     book_id: int = 0
 
 class InputLivelibBook(InputBase):
-    pass
+    # цена, снятая в листинге: у части книг её нет на самой карточке
+    price: str | None = None
 
 class InputSeLtrs(InputBase):
     source: str = ''

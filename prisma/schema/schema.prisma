@@ -1,42 +1,152 @@
 datasource db {
   provider = "postgresql"
   url      = env("PRISMA_URI")
-  schemas  = ["public"]
 }
 
 generator client-py {
   provider                    = "prisma-client-py"
-  interface                   = "asyncio"
-  recursive_type_depth        = 7
+  recursive_type_depth        = 5
   enable_experimental_decimal = true
-  previewFeatures             = ["fullTextSearch", "multiSchema", "prismaSchemaFolder"]
+  previewFeatures             = ["fullTextSearch"]
+  // previewFeatures             = ["fullTextSearchPostgres"]
 }
 
-model Session {
-  id      BigInt   @id
-  name    BigInt   @unique
-  proxy   Proxy    @relation(fields: [proxyId], references: [id])
-  proxyId Int      @default(1)
-  created DateTime @default(now())
-  updated DateTime @updatedAt
-
-  @@schema("public")
+generator client-js {
+  provider                    = "prisma-client-js"
+  recursive_type_depth        = 5
+  enable_experimental_decimal = true
+  previewFeatures             = ["fullTextSearch"]
+  // previewFeatures             = ["fullTextSearchPostgres"]
 }
 
-model Proxy {
-  id       Int       @id @default(autoincrement())
-  ip       String    @db.VarChar(16)
-  port     Int
-  type     ProxyType
-  sessions Session[]
+model Book {
+  id             Int          @id @default(autoincrement())
+  url            String       @unique @db.VarChar(2048)
+  isbn           BigInt?
+  source         String       @db.VarChar(100)
+  title          String       @db.VarChar(1000)
+  title_original String?      @db.VarChar(1000)
+  titles_other   String[]
+  language       String?
+  persons        BookPerson[]
+  author         String?      @db.VarChar(1000)
+  artist         String?      @db.VarChar(1000)
+  publisher      String?      @db.VarChar(1000)
+  owner          String?      @db.VarChar(1000)
+  translate      String?      @db.VarChar(1000)
+  voice          String?      @db.VarChar(1000)
+  category       String[]
+  series         String[]
+  tags           String[]
+  tag_links      BookTag[]
+  artwork_type   String?
+  age_rating     Int?
+  age_rating_str String?
+  annotation     String?
+  coverImage     String?      @db.VarChar(100)
+  url_audio      String?      @db.VarChar(2048)
+  date_release   DateTime?
+  date_final     DateTime?
+  deleted        DateTime?
+  metrics        Metrics[]
 
-  @@schema("public")
+  datected DateTime @default(now())
+  updated  DateTime @updatedAt
 }
 
-enum ProxyType {
-  http
-  socks4
-  socks5
+model Metrics {
+  id                  Int            @default(autoincrement())
+  rating              Float?
+  votes               Int?
+  views               Int?
+  added_to_lib        Int?
+  read_process        Int?
+  read_stoped         Int?
+  read_on_pause       Int?
+  read_later          Int?
+  read_finished       Int?
+  downloaded          Int?
+  likes               Int?
+  unlike              Int?
+  site_ratings        Json?
+  awards              Json?
+  comments            Int?
+  quotes              Int?
+  content_update_date DateTime?
+  status_writing      StatusWriting?
+  status_translate    StatusWriting?
+  pages_count         Int?
+  characters_count    Int?
+  chapters_count      Int?
+  duration            Int?
+  price               Float?
+  price_discount      Float?
+  price_old           Float?
+  price_audio         Float?
+  in_subscribe        Boolean        @default(false)
+  updated             DateTime       @updatedAt @db.Timestamp(3)
+  book                Book           @relation(fields: [bookUrl], references: [url], onDelete: Cascade)
+  bookUrl             String         @db.VarChar(2048)
 
-  @@schema("public")
+  @@id([id, updated])
+  @@unique([bookUrl, updated])
+}
+
+model Person {
+  id         Int          @id @default(autoincrement())
+  url        String       @unique @db.VarChar(2048)
+  name       String       @db.VarChar(512)
+  for_scrape Boolean      @default(false)
+  books      BookPerson[]
+}
+
+model BookPerson {
+  id       Int    @id @default(autoincrement())
+  book     Book   @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  bookId   Int
+  person   Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+  personId Int
+  role     Role
+}
+
+model Tag {
+  id    Int       @id @default(autoincrement())
+  url   String    @unique @db.VarChar(2048)
+  name  String    @db.VarChar(512)
+  books BookTag[]
+}
+
+model BookTag {
+  id     Int     @id @default(autoincrement())
+  book   Book    @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  bookId Int
+  tag    Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  tagId  Int
+  kind   TagKind
+}
+
+enum StatusWriting {
+  FINISH
+  PROCESS
+  PAUSE
+  STOP
+  ANNOUNCE
+  LICENSE
+  NOLICENSE
+}
+
+enum TagKind {
+  CATEGORY
+  SERIES
+  TAG
+}
+
+enum Role {
+  AUTHOR
+  ARTIST
+  PUBLISHER
+  OWNER
+  TRANSLATOR
+  VOICE
+  EDITOR
 }

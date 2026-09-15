@@ -113,6 +113,14 @@ class DbSamizdatPrisma:
             "editors_data": "EDITOR",
         }
 
+        # теги/серии живут парой Tag + BookTag ровно как Person + BookPerson:
+        # текстовые поля book["category"] / book["series"] при этом не трогаем
+        tags_data_fields = {
+            "categories_data": "CATEGORY",
+            "series_data": "SERIES",
+            "tags_data": "TAG",
+        }
+
         async with self.con.tx() as tx:
             for person_field, role in persons_data_fields.items():
                 if persons := book.get(person_field):
@@ -138,6 +146,31 @@ class DbSamizdatPrisma:
                         )
 
                     del book[person_field]
+
+            for tag_field, kind in tags_data_fields.items():
+                if tags := book.get(tag_field):
+                    await tx.booktag.delete_many(
+                        where={
+                            "book": {"url": book["url"]},
+                            "kind": kind,
+                        }
+                    )
+
+                    for tag in tags:
+                        tag_in_db = await tx.tag.upsert(
+                            where={'url': tag['url']},
+                            data={'create': tag, 'update': tag},
+                        )
+
+                        await tx.booktag.create(
+                            data={
+                                "book": {"connect": {"url": book["url"]}},
+                                "tag": {"connect": {"id": tag_in_db.id}},
+                                "kind": kind,
+                            }
+                        )
+
+                    del book[tag_field]
 
             await tx.book.update(
                 where={"url": book["url"]},
@@ -174,6 +207,39 @@ class DbSamizdatPrisma:
         metrics = await self.clear_item(metrics_data)
         metrics = await self.convert_metrics(metrics)
         await self.con.metrics.create(data=metrics)
+
+    async def save_prices(self, prices: Dict[str, str], chunk_size: int = 1_000) -> int:
+        """Пишет цены, снятые в листинге, книгам которые уже есть в базе.
+
+        Нужно потому, что у части книг цена видна только в списке, а событие
+        на карточку могло не уехать из-за дедупликации в `crawl`.
+        """
+        if settings.DEBUG or not prices:
+            return 0
+
+        urls = list(prices)
+        rows = []
+
+        for i in range(0, len(urls), chunk_size):
+            books = await self.con.book.find_many(
+                where={"url": {"in": urls[i:i + chunk_size]}},
+            )
+            for book in books:
+                metrics = await self.clear_item({
+                    "bookUrl": book.url,
+                    "price": prices[book.url],
+                })
+                metrics = await self.convert_metrics(metrics)
+                if metrics.get("price"):
+                    rows.append(metrics)
+
+        for i in range(0, len(rows), chunk_size):
+            await self.con.metrics.create_many(
+                data=rows[i:i + chunk_size],
+                skip_duplicates=True,
+            )
+
+        return len(rows)
 
     async def clear_item(self, item: Dict[str, Any]) -> Dict[str, Any]:
         item_clear = {}
@@ -228,6 +294,7 @@ class DbSamizdatPrisma:
             "likes",
             "unlike",
             "comments",
+            "quotes",
             "pages_count",
             "characters_count",
             "chapters_count",
