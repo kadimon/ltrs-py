@@ -140,6 +140,7 @@ class BaseWorkflow(
         task_id: str,
         dedupe_hours: int = 480,
         dont_dedupe: bool = False,
+        metadata: Optional[dict] = None,
         **kwargs
     ) -> bool:
         if settings.DEBUG:
@@ -155,13 +156,7 @@ class BaseWorkflow(
                 cls.event,
                 payload,
                 options=PushEventOptions(
-                    additional_metadata={
-                        'customer': cls.customer,
-                        'site': cls.site,
-                        'url': url,
-                        'hash': hash,
-                        'task_id': task_id,
-                    }
+                    additional_metadata=cls._metadata(task_id, url, hash, metadata)
                 )
             )
             return True
@@ -176,6 +171,7 @@ class BaseWorkflow(
         dedupe_hours: int = 480,
         dont_dedupe: bool = False,
         chunk_size: int = 1_000,
+        metadata: Optional[dict] = None,
         **kwargs
     ) -> list[str]:
         urls = list(dict.fromkeys(urls))
@@ -196,13 +192,7 @@ class BaseWorkflow(
                             'url': url,
                             'task_id': task_id,
                         } | kwargs,
-                        additional_metadata={
-                            'customer': cls.customer,
-                            'site': cls.site,
-                            'url': url,
-                            'hash': hash,
-                            'task_id': task_id,
-                        }
+                        additional_metadata=cls._metadata(task_id, url, hash, metadata)
                     )
                 )
                 crawled.append(url)
@@ -244,6 +234,36 @@ class BaseWorkflow(
             return False
         else:
             return True
+
+    @classmethod
+    def _metadata(
+        cls,
+        task_id: str,
+        url: str,
+        hash: str,
+        extra: Optional[dict] = None,
+    ) -> dict:
+        """Метаданные события.
+
+        `extra` — то, что знает только вызывающая сторона и чего не будет на
+        целевой странице (цена из листинга). Hatchet хранит метаданные
+        строками, поэтому приводим значения сами и выкидываем пустые.
+        Служебные ключи идут последними: перетереть `hash` нельзя, по нему
+        работает дедупликация в `_not_dupe`.
+        """
+        metadata = {
+            str(k): str(v)
+            for k, v in (extra or {}).items()
+            if v is not None and v != ''
+        }
+
+        return metadata | {
+            'customer': cls.customer,
+            'site': cls.site,
+            'url': url,
+            'hash': hash,
+            'task_id': task_id,
+        }
 
     @classmethod
     def _task_hash(cls, task_id: str, url: str):

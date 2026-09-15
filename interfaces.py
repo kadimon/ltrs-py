@@ -14,8 +14,7 @@ class InputLitresPartnersBook(InputBase):
     book_id: int = 0
 
 class InputLivelibBook(InputBase):
-    # цена, снятая в листинге: у части книг её нет на самой карточке
-    price: str | None = None
+    pass
 
 class InputSeLtrs(InputBase):
     source: str = ''

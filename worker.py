@@ -75,7 +75,16 @@ def create_task_for_class(wf: BaseLitresPartnersWorkflow) -> Workflow:
                 input=wf.input,
                 output=wf.output,
             )
-            result = await instance.task(input, page)
+
+            # ctx отдаём только тем задачам, которые его просят: у подавляющего
+            # большинства воркфлоу сигнатура `task(input, page)`, и менять их
+            # все ради метаданных события смысла нет. Кому нужно —
+            # дописывает `ctx: Context | None = None` и читает
+            # `ctx.additional_metadata`.
+            if 'ctx' in inspect.signature(instance.task).parameters:
+                result = await instance.task(input, page, ctx=ctx)
+            else:
+                result = await instance.task(input, page)
 
             return result
 

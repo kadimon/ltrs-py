@@ -3,6 +3,7 @@ from urllib.parse import urljoin, urlparse
 
 import dateparser
 from furl import furl
+from hatchet_sdk import Context
 from playwright.async_api import Page
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
@@ -154,8 +155,20 @@ class BookmateItem(BaseLivelibWorkflow):
 
         return None
 
+    @staticmethod
+    def event_price(ctx: Context | None) -> str | None:
+        """Цена, снятая в листинге и уехавшая в метаданных события.
+
+        `additional_metadata` отдаётся None, если метаданных не было, а при
+        прогоне через `debug_sync` контекста нет вообще.
+        """
+        if ctx is None:
+            return None
+
+        return (ctx.additional_metadata or {}).get('price')
+
     @classmethod
-    async def task(cls, input: InputLivelibBook, page: Page) -> Output:
+    async def task(cls, input: InputLivelibBook, page: Page, ctx: Context | None = None) -> Output:
         resp = await page.goto(input.url, wait_until='domcontentloaded')
 
         await page.wait_for_selector('h1')
@@ -296,13 +309,13 @@ class BookmateItem(BaseLivelibWorkflow):
             metrics['in_subscribe'] = await plus_button_loc.count() > 0
 
             # Price. `449 ₽` рядом с Плюс-кнопкой — это цена подписки, а не
-            # книги, берём только кнопку покупки. Если на карточке её нет —
-            # цену из листинга, она приезжает во входных данных задачи.
+            # книги, берём только кнопку покупки. У части книг её на карточке
+            # нет вовсе — такая цена приезжает в метаданных события из листинга.
             buy_button_loc = page.locator('[data-test-id="CONTENT_INTERACTION_PPD_BUY_BUTTON"]')
             if await buy_button_loc.count() > 0:
                 metrics['price'] = parse_price(await buy_button_loc.first.text_content())
-            elif input.price:
-                metrics['price'] = parse_price(input.price)
+            elif listing_price := cls.event_price(ctx):
+                metrics['price'] = parse_price(listing_price)
 
             # Pages count
             pages_count_loc = cls.info_value(page, r"страниц")
@@ -470,7 +483,7 @@ class BookmateListing(BaseLivelibWorkflow):
 
     @classmethod
     async def task(cls, input: InputLivelibBook, page: Page) -> Output:
-        stats = {'new-page-links': 0, 'new-items-links': 0, 'prices-found': 0, 'prices-saved': 0}
+        stats = {'new-page-links': 0, 'new-items-links': 0, 'prices-found': 0}
 
         await page.goto(
             input.url,
@@ -499,19 +512,16 @@ class BookmateListing(BaseLivelibWorkflow):
             elif BOOK_PATH_RE.match(path):
                 books.setdefault(url, None)
 
-        # Обработка книг. Цену прокидываем в задачу на карточку, чтобы она
-        # легла в ту же запись метрик. Если задача отсеклась дедупликацией,
-        # цена бы потерялась — пишем её отдельно.
-        prices_to_save = {}
+        # Обработка книг. Цену отдаём в метаданных события: на самой карточке
+        # её у многих книг нет, а в payload ей не место — задача на книгу
+        # описывается только своим URL.
         for book_url, price in books.items():
-            if await BookmateItem.crawl(book_url, input.task_id, price=price):
+            if await BookmateItem.crawl(
+                book_url,
+                input.task_id,
+                metadata={'price': price},
+            ):
                 stats['new-items-links'] += 1
-            elif price:
-                prices_to_save[book_url] = price
-
-        if prices_to_save:
-            async with DbSamizdatPrisma() as db:
-                stats['prices-saved'] = await db.save_prices(prices_to_save)
 
         return Output(result='done' if books else 'empty', data=stats)
 

@@ -208,39 +208,6 @@ class DbSamizdatPrisma:
         metrics = await self.convert_metrics(metrics)
         await self.con.metrics.create(data=metrics)
 
-    async def save_prices(self, prices: Dict[str, str], chunk_size: int = 1_000) -> int:
-        """Пишет цены, снятые в листинге, книгам которые уже есть в базе.
-
-        Нужно потому, что у части книг цена видна только в списке, а событие
-        на карточку могло не уехать из-за дедупликации в `crawl`.
-        """
-        if settings.DEBUG or not prices:
-            return 0
-
-        urls = list(prices)
-        rows = []
-
-        for i in range(0, len(urls), chunk_size):
-            books = await self.con.book.find_many(
-                where={"url": {"in": urls[i:i + chunk_size]}},
-            )
-            for book in books:
-                metrics = await self.clear_item({
-                    "bookUrl": book.url,
-                    "price": prices[book.url],
-                })
-                metrics = await self.convert_metrics(metrics)
-                if metrics.get("price"):
-                    rows.append(metrics)
-
-        for i in range(0, len(rows), chunk_size):
-            await self.con.metrics.create_many(
-                data=rows[i:i + chunk_size],
-                skip_duplicates=True,
-            )
-
-        return len(rows)
-
     async def clear_item(self, item: Dict[str, Any]) -> Dict[str, Any]:
         item_clear = {}
         for k, v in item.items():
