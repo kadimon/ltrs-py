@@ -404,7 +404,9 @@ class BookmateListing(BaseLivelibWorkflow):
     ]
 
     cron_urls = [
-        'https://books.yandex.ru/section/all/novinki-uQfUIsur'
+        'https://books.yandex.ru/section/all/novinki-uQfUIsur',
+        'https://books.yandex.ru/section/audiobook/novinki_2_0-ZecJScMc',
+        'https://books.yandex.ru/section/all/mozhno-kupit-otdelno-piGPhH4m',
     ]
 
     @classmethod
@@ -531,9 +533,9 @@ if __name__ == '__main__':
     BookmateListing.run_cron_sync()
     # Для отладки
     # BookmateListing.debug_sync(BookmateListing.start_urls[0])
-    # BookmateListing.debug_sync('https://books.yandex.ru/section/all/mozhno-kupit-otdelno-piGPhH4m')
+    BookmateListing.debug_sync('https://books.yandex.ru/section/all/mozhno-kupit-otdelno-piGPhH4m')
     # BookmateListing.debug_sync('https://books.yandex.ru/section/all/uyutnye-detektivy-qGulE45y')
     # BookmateListing.debug_sync('https://books.yandex.ru/section/audiobook/sovremennaya-russkaya-proza-XHwMYsO6')
     # BookmateItem.debug_sync('https://books.yandex.ru/books/k5ZjBit1')
-    # BookmateItem.debug_sync('https://books.yandex.ru/books/B5HYvIXk')
+    BookmateItem.debug_sync('https://books.yandex.ru/books/B5HYvIXk')
     # BookmateItem.debug_sync('https://books.yandex.ru/audiobooks/VIitWf9R')
