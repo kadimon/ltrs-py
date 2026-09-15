@@ -38,6 +38,7 @@ model Book {
   category       String[]
   series         String[]
   tags           String[]
+  tag_links      BookTag[]
   artwork_type   String?
   age_rating     Int?
   age_rating_str String?
@@ -54,7 +55,7 @@ model Book {
 }
 
 model Metrics {
-  id                  Int            @id @default(autoincrement())
+  id                  Int            @default(autoincrement())
   rating              Float?
   votes               Int?
   views               Int?
@@ -70,6 +71,7 @@ model Metrics {
   site_ratings        Json?
   awards              Json?
   comments            Int?
+  quotes              Int?
   content_update_date DateTime?
   status_writing      StatusWriting?
   status_translate    StatusWriting?
@@ -86,6 +88,7 @@ model Metrics {
   book                Book           @relation(fields: [bookUrl], references: [url], onDelete: Cascade)
   bookUrl             String         @db.VarChar(2048)
 
+  @@id([id, updated])
   @@unique([bookUrl, updated])
 }
 
@@ -106,6 +109,22 @@ model BookPerson {
   role     Role
 }
 
+model Tag {
+  id    Int       @id @default(autoincrement())
+  url   String    @unique @db.VarChar(2048)
+  name  String    @db.VarChar(512)
+  books BookTag[]
+}
+
+model BookTag {
+  id     Int     @id @default(autoincrement())
+  book   Book    @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  bookId Int
+  tag    Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  tagId  Int
+  kind   TagKind
+}
+
 enum StatusWriting {
   FINISH
   PROCESS
@@ -114,6 +133,12 @@ enum StatusWriting {
   ANNOUNCE
   LICENSE
   NOLICENSE
+}
+
+enum TagKind {
+  CATEGORY
+  SERIES
+  TAG
 }
 
 enum Role {
