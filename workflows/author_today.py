@@ -322,4 +322,4 @@ if __name__ == '__main__':
     #     AuthorTodayListing.debug_sync(cron_url)
     # AuthorTodayListing.debug_sync(AuthorTodayListing.start_urls[0])
     # AuthorTodayListing.debug_sync('https://author.today/u/igor_koltsov/works')
-    # AuthorTodayItem.debug_sync('https://author.today/work/519196')
+    AuthorTodayItem.debug_sync('https://author.today/work/519196')
