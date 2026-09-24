@@ -8,7 +8,7 @@ from playwright.async_api import Page
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
 from db import DbSamizdatPrisma
-from interfaces import InputLivelibBook, Output, WorkerLabels
+from interfaces import InputLivelibBook, Output
 from utils import save_cover
 from workflow_base import BaseLivelibWorkflow
 
@@ -98,8 +98,6 @@ class BookmateItem(BaseLivelibWorkflow):
     event = 'livelib:bookmate-item'
     site = 'bookmate.com'
 
-    labels = WorkerLabels(ip='ru')
-
     input = InputLivelibBook
     output = Output
 
@@ -155,17 +153,21 @@ class BookmateItem(BaseLivelibWorkflow):
 
         return None
 
-    @staticmethod
-    def event_price(ctx: Context | None) -> str | None:
-        """Цена, снятая в листинге и уехавшая в метаданных события.
-
-        `additional_metadata` отдаётся None, если метаданных не было, а при
-        прогоне через `debug_sync` контекста нет вообще.
-        """
-        if ctx is None:
-            return None
-
-        return (ctx.additional_metadata or {}).get('price')
+    # Цена появилась на самой карточке, поэтому приём цены из листинга
+    # отключён. Механизм в `workflow_base` и передача `ctx` в `worker` остались
+    # на месте: вернуть — снять комментарии здесь, в блоке Price ниже и в
+    # `BookmateListing.task`.
+    # @staticmethod
+    # def event_price(ctx: Context | None) -> str | None:
+    #     """Цена, снятая в листинге и уехавшая в метаданных события.
+    #
+    #     `additional_metadata` отдаётся None, если метаданных не было, а при
+    #     прогоне через `debug_sync` контекста нет вообще.
+    #     """
+    #     if ctx is None:
+    #         return None
+    #
+    #     return (ctx.additional_metadata or {}).get('price')
 
     @classmethod
     async def task(cls, input: InputLivelibBook, page: Page, ctx: Context | None = None) -> Output:
@@ -300,22 +302,29 @@ class BookmateItem(BaseLivelibWorkflow):
             if added_to_lib := await cls.exact_count(page, r"На\s*полке"):
                 metrics['added_to_lib'] = added_to_lib
 
-            # Subscription. Скоупим внутрь блока кнопок: в шапке страницы
-            # висит свой Плюс-баннер, он есть вообще везде.
+            # Price. Берём только кнопку покупки: `449 ₽` рядом с Плюс-кнопкой —
+            # это цена подписки, а ценовой бейдж на самой карточке принадлежит
+            # сниппету ДРУГОЙ версии книги (у аудиокниги в нём цена текстовой).
+            buy_button_loc = page.locator('[data-test-id="CONTENT_INTERACTION_PPD_BUY_BUTTON"]')
+            if await buy_button_loc.count() > 0:
+                metrics['price'] = parse_price(await buy_button_loc.first.text_content())
+            # Цена приезжала из листинга в метаданных события — сейчас не нужна,
+            # сайт отдаёт её прямо в кнопке покупки. Чтобы вернуть: снять
+            # комментарии здесь, с `event_price` выше и с `metadata=` в
+            # `BookmateListing.task`.
+            # elif listing_price := cls.event_price(ctx):
+            #     metrics['price'] = parse_price(listing_price)
+
+            # Subscription. Вне подписки книга считается тогда, когда у неё есть
+            # своя цена и нет Плюс-кнопки; во всех остальных случаях — в подписке.
+            # Скоуп по блоку кнопок обязателен: в шапке висит свой Плюс-баннер,
+            # он есть вообще на каждой странице.
             plus_button_loc = page.locator(
                 '[data-test-id="CONTENT_INTERACTION_BUTTONS"] '
                 '[data-test-id="CONTENT_INTERACTION_PLUS_BUTTON"]'
             )
-            metrics['in_subscribe'] = await plus_button_loc.count() > 0
-
-            # Price. `449 ₽` рядом с Плюс-кнопкой — это цена подписки, а не
-            # книги, берём только кнопку покупки. У части книг её на карточке
-            # нет вовсе — такая цена приезжает в метаданных события из листинга.
-            buy_button_loc = page.locator('[data-test-id="CONTENT_INTERACTION_PPD_BUY_BUTTON"]')
-            if await buy_button_loc.count() > 0:
-                metrics['price'] = parse_price(await buy_button_loc.first.text_content())
-            elif listing_price := cls.event_price(ctx):
-                metrics['price'] = parse_price(listing_price)
+            has_plus = await plus_button_loc.count() > 0
+            metrics['in_subscribe'] = has_plus or not metrics.get('price')
 
             # Pages count
             pages_count_loc = cls.info_value(page, r"страниц")
@@ -371,8 +380,6 @@ class BookmateListing(BaseLivelibWorkflow):
     event = 'livelib:bookmate-listing'
     site = 'bookmate.com'
 
-    labels = WorkerLabels(ip='ru')
-
     input = InputLivelibBook
     output = Output
     item_wf = BookmateItem
@@ -404,9 +411,7 @@ class BookmateListing(BaseLivelibWorkflow):
     ]
 
     cron_urls = [
-        'https://books.yandex.ru/section/all/novinki-uQfUIsur',
-        'https://books.yandex.ru/section/audiobook/novinki_2_0-ZecJScMc',
-        'https://books.yandex.ru/section/all/mozhno-kupit-otdelno-piGPhH4m',
+        'https://books.yandex.ru/section/all/novinki-uQfUIsur'
     ]
 
     @classmethod
@@ -509,20 +514,21 @@ class BookmateListing(BaseLivelibWorkflow):
             path = urlparse(url).path
 
             if LISTING_PATH_RE.match(path):
-                pass
-                # if await cls.crawl(url, input.task_id):
-                #     stats['new-page-links'] += 1
+                if await cls.crawl(url, input.task_id):
+                    stats['new-page-links'] += 1
             elif BOOK_PATH_RE.match(path):
                 books.setdefault(url, None)
 
-        # Обработка книг. Цену отдаём в метаданных события: на самой карточке
-        # её у многих книг нет, а в payload ей не место — задача на книгу
-        # описывается только своим URL.
+        # Обработка книг. Цену из листинга больше не передаём — карточка книги
+        # отдаёт её сама в кнопке покупки. Сбор цены в `collect_cards` оставлен:
+        # он ничего не стоит, держит счётчик `prices-found` как признак того,
+        # что бейдж в листингах ещё на месте, и позволяет вернуть передачу
+        # одной строкой, если цена с карточек снова пропадёт.
         for book_url, price in books.items():
             if await BookmateItem.crawl(
                 book_url,
                 input.task_id,
-                metadata={'price': price},
+                # metadata={'price': price},
             ):
                 stats['new-items-links'] += 1
 
@@ -537,6 +543,6 @@ if __name__ == '__main__':
     # BookmateListing.debug_sync('https://books.yandex.ru/section/all/mozhno-kupit-otdelno-piGPhH4m')
     # BookmateListing.debug_sync('https://books.yandex.ru/section/all/uyutnye-detektivy-qGulE45y')
     # BookmateListing.debug_sync('https://books.yandex.ru/section/audiobook/sovremennaya-russkaya-proza-XHwMYsO6')
-    # BookmateItem.debug_sync('https://books.yandex.ru/books/k5ZjBit1')
-    # BookmateItem.debug_sync('https://books.yandex.ru/books/FwogPVbZ')
-    # BookmateItem.debug_sync('https://books.yandex.ru/audiobooks/VIitWf9R')
+    BookmateItem.debug_sync('https://books.yandex.ru/books/k5ZjBit1')
+    BookmateItem.debug_sync('https://books.yandex.ru/books/B5HYvIXk')
+    BookmateItem.debug_sync('https://books.yandex.ru/audiobooks/VIitWf9R')
