@@ -8,7 +8,7 @@ from playwright.async_api import Page
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
 from db import DbSamizdatPrisma
-from interfaces import InputLivelibBook, Output
+from interfaces import InputLivelibBook, Output, WorkerLabels
 from utils import save_cover
 from workflow_base import BaseLivelibWorkflow
 
@@ -97,6 +97,8 @@ class BookmateItem(BaseLivelibWorkflow):
     name = 'livelib-bookmate-item'
     event = 'livelib:bookmate-item'
     site = 'bookmate.com'
+
+    labels = WorkerLabels(ip='ru')
 
     input = InputLivelibBook
     output = Output
@@ -380,6 +382,8 @@ class BookmateListing(BaseLivelibWorkflow):
     event = 'livelib:bookmate-listing'
     site = 'bookmate.com'
 
+    labels = WorkerLabels(ip='ru')
+
     input = InputLivelibBook
     output = Output
     item_wf = BookmateItem
@@ -411,8 +415,8 @@ class BookmateListing(BaseLivelibWorkflow):
     ]
 
     cron_urls = [
-        # 'https://books.yandex.ru/section/all/novinki-uQfUIsur',
-        # 'https://books.yandex.ru/section/audiobook/novinki_2_0-ZecJScMc',
+        'https://books.yandex.ru/section/all/novinki-uQfUIsur',
+        'https://books.yandex.ru/section/audiobook/novinki_2_0-ZecJScMc',
         'https://books.yandex.ru/section/all/mozhno-kupit-otdelno-piGPhH4m',
     ]
 

@@ -10,6 +10,7 @@ RUN pip install \
     hatchet-sdk==1.40.1 \
     prisma \
     pymongo \
+    httpx[socks] \
     dateparser \
     pillow \
     puremagic \
