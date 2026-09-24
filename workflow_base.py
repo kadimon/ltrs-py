@@ -1,12 +1,25 @@
 import asyncio
 import hashlib
+import inspect
 import re
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from itertools import batched
+from pathlib import Path
 from pprint import pp
-from typing import ClassVar, Generic, Literal, Optional, Type, TypeVar
+from typing import (
+    Any,
+    AsyncIterator,
+    ClassVar,
+    Generic,
+    Literal,
+    Optional,
+    Type,
+    TypeVar,
+)
 
+import httpx
 import pandas as pd
 from browserforge.fingerprints import Screen
 from camoufox.async_api import AsyncCamoufox
@@ -53,6 +66,57 @@ class BaseWorkflow(
             result='debug',
             data=input.model_dump()
         )
+
+    # --- Транспорт ---
+
+    @classmethod
+    def _proxy_uri(cls) -> str | None:
+        return settings.PROXY_URI if cls.proxy_enable else None
+
+    @classmethod
+    @asynccontextmanager
+    async def session(cls, debug: bool = False) -> AsyncIterator[Page]:
+        """Ресурс, который `task` получает вторым аргументом.
+
+        По умолчанию — страница Camoufox. API-воркфлоу переопределяют это
+        через `ApiMixin` и получают `httpx.AsyncClient`.
+        """
+        if debug:
+            extra = {}
+        else:
+            addons_dir = Path(settings.BROWSER_ADDONS_DIR)
+            addons = (
+                [str(f.resolve()) for f in addons_dir.iterdir()]
+                if addons_dir.is_dir() else []
+            )
+            extra = {
+                'headless': 'virtual',
+                'persistent_context': True,
+                'user_data_dir': 'user_data',
+                'addons': addons,
+            }
+
+        proxy = cls._proxy_uri()
+        async with AsyncCamoufox(
+            os='windows',
+            humanize=True,
+            screen=Screen(max_width=1920, max_height=1080),
+            locale=['ru-RU', 'en-US'],
+            proxy={'server': proxy} if proxy else None,
+            **extra,
+        ) as browser:
+            yield await browser.new_page()
+
+    @classmethod
+    async def call_task(cls, input: TInput, session: Any, ctx=None) -> TOutput:
+        """ctx отдаём только тем задачам, которые его просят: у большинства
+        воркфлоу сигнатура `task(input, page)`. Кому нужно — дописывает
+        `ctx: Context | None = None` и читает `ctx.additional_metadata`."""
+        if 'ctx' in inspect.signature(cls.task).parameters:
+            return await cls.task(input, session, ctx=ctx)
+        return await cls.task(input, session)
+
+    # --- Запуск ---
 
     @classmethod
     async def run(cls, user_check: Literal['y', 'n'] | None = None) -> None:
@@ -102,32 +166,14 @@ class BaseWorkflow(
 
     @classmethod
     async def debug(cls, url: str, **kwargs) -> None:
-        if settings.DEBUG:
-            async with AsyncCamoufox(
-                proxy={'server': settings.PROXY_URI} if cls.proxy_enable else None,
-                # geoip=True,
-                locale=['ru-RU', 'en-US'],
-                os='windows',
-                humanize=True,
-                screen=Screen(max_width=1920, max_height=1080),
-                # block_images=True,
-            ) as browser:
-                # browser = await p.firefox.connect(settings.DEBUG_PW_SERVER)
+        if not settings.DEBUG:
+            return
 
-                # context = await browser.new_context(
-                #     proxy={'server': settings.PROXY_URI} if cls.proxy_enable else None,
-                #     viewport={'width': 1920, 'height': 1080},
-                # )
+        async with cls.session(debug=True) as session:
+            input = cls.input(url=url, **kwargs)
+            result = await cls.call_task(input, session)
 
-                # page = await context.new_page()
-                page = await browser.new_page()
-                input = cls.input(url=url, **kwargs)
-                result = await cls.task(input, page)
-
-                # await context.close()
-                await browser.close()
-
-                pp(result.model_dump())
+        pp(result.model_dump())
 
     @classmethod
     def debug_sync(cls, url: str, **kwargs) -> Optional[bool]:
@@ -268,6 +314,41 @@ class BaseWorkflow(
     @classmethod
     def _task_hash(cls, task_id: str, url: str):
         return task_id + hashlib.md5(f'{cls.event}{url}'.encode()).hexdigest()
+
+
+class ApiMixin:
+    """Транспорт без браузера: `task` вторым аргументом получает
+    `httpx.AsyncClient`, уже настроенный заголовками и прокси класса.
+
+    Ставить в базах ПЕРВЫМ, чтобы его `session` победил браузерный:
+
+        class X(ApiMixin, BaseLivelibWorkflow):
+            headers = {...}
+
+    Заголовки отдельного запроса (`client.get(..., headers=...)`) httpx
+    склеивает с заголовками клиента.
+
+    Все атрибуты — ClassVar, чтобы `@dataclass` у наследников не превращал
+    их в поля.
+    """
+
+    headers: ClassVar[dict[str, str]] = {}
+    http_timeout: ClassVar[float] = 15
+    follow_redirects: ClassVar[bool] = True
+    # http2, verify, cookies, limits и прочее для httpx.AsyncClient
+    http_client_kwargs: ClassVar[dict[str, Any]] = {}
+
+    @classmethod
+    @asynccontextmanager
+    async def session(cls, debug: bool = False) -> AsyncIterator[httpx.AsyncClient]:
+        async with httpx.AsyncClient(
+            headers=cls.headers,
+            proxy=cls._proxy_uri(),
+            timeout=cls.http_timeout,
+            follow_redirects=cls.follow_redirects,
+            **cls.http_client_kwargs,
+        ) as client:
+            yield client
 
 
 @dataclass

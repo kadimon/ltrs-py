@@ -2,10 +2,7 @@ import importlib
 import inspect
 import pathlib
 import pkgutil
-from pathlib import Path
 
-from browserforge.fingerprints import Screen
-from camoufox.async_api import AsyncCamoufox
 from hatchet_sdk import (
     ConcurrencyExpression,
     ConcurrencyLimitStrategy,
@@ -16,13 +13,13 @@ from hatchet_sdk.labels import DesiredWorkerLabel
 
 import settings
 from settings import hatchet
-from workflow_base import BaseLitresPartnersWorkflow
+from workflow_base import BaseWorkflow
 
 WORKFLOWS_DIR = pathlib.Path(__file__).parent / 'workflows'
 PACKAGE_NAME = 'workflows'  # папка должна содержать __init__.py
 
 
-def create_task_for_class(wf: BaseLitresPartnersWorkflow) -> Workflow:
+def create_task_for_class(wf: type[BaseWorkflow]) -> Workflow:
     @hatchet.task(
         name=wf.name,
         on_events=[wf.event],
@@ -49,44 +46,9 @@ def create_task_for_class(wf: BaseLitresPartnersWorkflow) -> Workflow:
 
     )
     async def task_function(input: wf.input, ctx: Context) -> wf.output:
-        addons_dir = Path(settings.BROWSER_ADDONS_DIR)
-        if addons_dir.exists():
-            addons_paths_list = [str(f.resolve()) for f in addons_dir.iterdir() if addons_dir.is_dir()]
-        else:
-            addons_paths_list = []
-
-        async with AsyncCamoufox(
-            os='windows',
-            humanize=True,
-            headless='virtual',
-            screen=Screen(max_width=1920, max_height=1080),
-            persistent_context=True,
-            user_data_dir='user_data',
-            locale=['ru-RU', 'en-US'],
-            addons=addons_paths_list,
-            proxy={'server': settings.PROXY_URI} if wf.proxy_enable else None,
-        ) as browser:
-            page = await browser.new_page()
-
-            instance = wf(
-                name=wf.name,
-                event=wf.event,
-                customer=wf.customer,
-                input=wf.input,
-                output=wf.output,
-            )
-
-            # ctx отдаём только тем задачам, которые его просят: у подавляющего
-            # большинства воркфлоу сигнатура `task(input, page)`, и менять их
-            # все ради метаданных события смысла нет. Кому нужно —
-            # дописывает `ctx: Context | None = None` и читает
-            # `ctx.additional_metadata`.
-            if 'ctx' in inspect.signature(instance.task).parameters:
-                result = await instance.task(input, page, ctx=ctx)
-            else:
-                result = await instance.task(input, page)
-
-            return result
+        # Что открыть — браузер или httpx-клиент — решает сам класс через `session()`
+        async with wf.session() as session:
+            return await wf.call_task(input, session, ctx=ctx)
 
     return task_function
 

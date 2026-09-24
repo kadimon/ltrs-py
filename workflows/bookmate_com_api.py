@@ -14,7 +14,7 @@ import settings
 from db import DbSamizdatPrisma
 from interfaces import InputLivelibBook, Output, WorkerLabels
 from utils import save_cover_httpx
-from workflow_base import BaseLivelibWorkflow
+from workflow_base import ApiMixin, BaseLivelibWorkflow
 
 BOOK_PATH_RE = re.compile(r'^/(books|audiobooks|comicbooks)/[^/]+/?$')
 
@@ -133,7 +133,7 @@ def release_year(value) -> str | None:
     return None
 
 
-class BookmateApiItem(BaseLivelibWorkflow):
+class BookmateApiItem(ApiMixin, BaseLivelibWorkflow):
     name = 'livelib-bookmate-api-item'
     event = 'livelib:bookmate-api-item'
     site = 'bookmate.com'
@@ -144,6 +144,11 @@ class BookmateApiItem(BaseLivelibWorkflow):
     output = Output
 
     concurrency = 1
+    # карточка + эмоции/цена параллельно + обложка — с запасом над http_timeout
+    execution_timeout_sec = 60
+
+    # Заголовки httpx-клиента, который создаёт ApiMixin.session()
+    headers = API_HEADERS
 
     @staticmethod
     async def fetch_emotions(client: httpx.AsyncClient, kind: str, uuid: str) -> list[dict]:
@@ -166,6 +171,7 @@ class BookmateApiItem(BaseLivelibWorkflow):
         try:
             resp = await client.post(
                 GRAPHQL_URL,
+                # склеиваются с заголовками клиента
                 headers={
                     'Accept': 'application/json',
                     'X-APOLLO-OPERATION-NAME': operation,
@@ -190,176 +196,174 @@ class BookmateApiItem(BaseLivelibWorkflow):
         return format_price(offer['price'])
 
     @classmethod
-    async def task(cls, input: InputLivelibBook, page=None, ctx: Context | None = None) -> Output:
-        # `page` не используется — оставлен, т.к. `workflow_base` передаёт его в task.
+    async def task(
+        cls,
+        input: InputLivelibBook,
+        client: httpx.AsyncClient,
+        ctx: Context | None = None,
+    ) -> Output:
         url = clean_url(input.url)
 
         if not (parsed := parse_book_url(url)):
             return Output(result='error', data={'status': None, 'error': 'invalid_url_or_404'})
         kind, uuid = parsed
 
-        # Все запросы по книге (карточка, эмоции, цена, обложка) — из одной сессии
-        async with httpx.AsyncClient(
-            headers=API_HEADERS,
-            proxy=settings.PROXY_URI if cls.proxy_enable else None,
-            timeout=30,
-            follow_redirects=True,
-        ) as client:
-            resp = await client.get(f'{API_URL}/{kind}/{uuid}')
+        resp = await client.get(f'{API_URL}/{kind}/{uuid}')
 
-            # Проверка статуса
-            if resp.status_code == 404:
-                async with DbSamizdatPrisma() as db:
-                    await db.mark_book_deleted(url, cls.site)
-                return Output(result='error', data={'status': resp.status_code, 'error': 'invalid_url_or_404'})
-            resp.raise_for_status()
-
-            data = resp.json().get(CONTENT_KEYS[kind]) or {}
-
-            emotions, price = await asyncio.gather(
-                cls.fetch_emotions(client, kind, uuid),
-                cls.fetch_price(client, kind, uuid),
-            )
-
+        # Проверка статуса
+        if resp.status_code == 404:
             async with DbSamizdatPrisma() as db:
-                book = {'url': url, 'source': cls.site}
-                metrics = {'bookUrl': url}
+                await db.mark_book_deleted(url, cls.site)
+            return Output(result='error', data={'status': resp.status_code, 'error': 'invalid_url_or_404'})
+        resp.raise_for_status()
 
-                # Title
-                if title := (data.get('title') or '').strip():
-                    book['title'] = title
+        data = resp.json().get(CONTENT_KEYS[kind]) or {}
 
-                if not await db.check_book_exist(url):
-                    await db.create_book(book)
+        emotions, price = await asyncio.gather(
+            cls.fetch_emotions(client, kind, uuid),
+            cls.fetch_price(client, kind, uuid),
+        )
 
-                # Authors
-                authors = authors_of(data)
-                if author := people_names(authors):
-                    book['author'] = author
-                    book['authors_data'] = people_links(authors, 'authors')
+        async with DbSamizdatPrisma() as db:
+            book = {'url': url, 'source': cls.site}
+            metrics = {'bookUrl': url}
 
-                # Annotation
-                if annotation := (data.get('annotation') or '').strip():
-                    book['annotation'] = annotation
+            # Title
+            if title := (data.get('title') or '').strip():
+                book['title'] = title
 
-                # Cover
-                if not await db.check_book_have_cover(url):
-                    img_src = (data.get('cover') or {}).get('large')
-                    if img_src and 'empty_cover' not in img_src:
-                        if img_name := await save_cover_httpx(client, img_src):
-                            book['coverImage'] = img_name
+            if not await db.check_book_exist(url):
+                await db.create_book(book)
 
-                # Category
-                topics = [t for t in data.get('topics') or [] if t.get('title')]
-                if topics:
-                    book['category'] = [t['title'].strip() for t in topics]
-                    book['categories_data'] = [
-                        {'name': t['title'].strip(), 'url': topic_url(t)}
-                        for t in topics if t.get('slug') and t.get('uuid')
-                    ]
+            # Authors
+            authors = authors_of(data)
+            if author := people_names(authors):
+                book['author'] = author
+                book['authors_data'] = people_links(authors, 'authors')
 
-                # Series
-                series = [s for s in data.get('series_list') or [] if s.get('title')]
-                if series:
-                    book['series'] = [s['title'].strip() for s in series]
-                    book['series_data'] = [
-                        {'name': s['title'].strip(), 'url': web_url('series', s['uuid'])}
-                        for s in series if s.get('uuid')
-                    ]
+            # Annotation
+            if annotation := (data.get('annotation') or '').strip():
+                book['annotation'] = annotation
 
-                # Release Date — только год
-                year = release_year(data.get('publication_date')) or release_year(data.get('original_year'))
-                if year:
-                    book['date_release'] = dateparser.parse(year, date_formats=['%Y'])
+            # Cover
+            if not await db.check_book_have_cover(url):
+                img_src = (data.get('cover') or {}).get('large')
+                if img_src and 'empty_cover' not in img_src:
+                    if img_name := await save_cover_httpx(client, img_src):
+                        book['coverImage'] = img_name
 
-                # Owner
-                if owner := (data.get('owner_catalog_title') or '').strip():
-                    book['owner'] = owner
+            # Category
+            topics = [t for t in data.get('topics') or [] if t.get('title')]
+            if topics:
+                book['category'] = [t['title'].strip() for t in topics]
+                book['categories_data'] = [
+                    {'name': t['title'].strip(), 'url': topic_url(t)}
+                    for t in topics if t.get('slug') and t.get('uuid')
+                ]
 
-                # Publisher
-                if publisher := people_names(data.get('publishers')):
-                    book['publisher'] = publisher
+            # Series
+            series = [s for s in data.get('series_list') or [] if s.get('title')]
+            if series:
+                book['series'] = [s['title'].strip() for s in series]
+                book['series_data'] = [
+                    {'name': s['title'].strip(), 'url': web_url('series', s['uuid'])}
+                    for s in series if s.get('uuid')
+                ]
 
-                # Translator
-                if translator := people_names(data.get('translators')):
-                    book['translate'] = translator
+            # Release Date — только год
+            year = release_year(data.get('publication_date')) or release_year(data.get('original_year'))
+            if year:
+                book['date_release'] = dateparser.parse(year, date_formats=['%Y'])
 
-                # Artist
-                if artist := people_names(data.get('illustrators')):
-                    book['artist'] = artist
+            # Owner
+            if owner := (data.get('owner_catalog_title') or '').strip():
+                book['owner'] = owner
 
-                # Voice (у аудиокниг)
-                if voice := people_names(data.get('narrators')):
-                    book['voice'] = voice
+            # Publisher
+            if publisher := people_names(data.get('publishers')):
+                book['publisher'] = publisher
 
-                # Age Rating: API отдаёт `16`, храним `16+`
-                if (age := data.get('age_restriction')) not in (None, ''):
-                    book['age_rating'] = f'{age}+'
+            # Translator
+            if translator := people_names(data.get('translators')):
+                book['translate'] = translator
 
-                # Audio
-                if kind != 'audiobooks' and (audio_uuids := data.get('linked_audiobook_uuids')):
-                    book['url_audio'] = web_url('audiobooks', audio_uuids[0])
+            # Artist
+            if artist := people_names(data.get('illustrators')):
+                book['artist'] = artist
 
-                # --- Metrics ---
+            # Voice (у аудиокниг)
+            if voice := people_names(data.get('narrators')):
+                book['voice'] = voice
 
-                # Read Process («Читают» / «Слушают»)
-                read_process = data.get('readers_count')
-                if read_process is None:
-                    read_process = data.get('listeners_count')
-                if read_process is not None:
-                    metrics['read_process'] = str(read_process)
+            # Age Rating: API отдаёт `16`, храним `16+`
+            if (age := data.get('age_restriction')) not in (None, ''):
+                book['age_rating'] = f'{age}+'
 
-                # Comments (Впечатления)
-                if data.get('impressions_count') is not None:
-                    metrics['comments'] = str(data['impressions_count'])
+            # Audio
+            if kind != 'audiobooks' and (audio_uuids := data.get('linked_audiobook_uuids')):
+                book['url_audio'] = web_url('audiobooks', audio_uuids[0])
 
-                # Quotes (Цитаты)
-                if data.get('quotes_count') is not None:
-                    metrics['quotes'] = str(data['quotes_count'])
+            # --- Metrics ---
 
-                # Added to library (На полке)
-                if data.get('bookshelves_count') is not None:
-                    metrics['added_to_lib'] = str(data['bookshelves_count'])
+            # Read Process («Читают» / «Слушают»)
+            read_process = data.get('readers_count')
+            if read_process is None:
+                read_process = data.get('listeners_count')
+            if read_process is not None:
+                metrics['read_process'] = str(read_process)
 
-                # Price — цена отдельной покупки из purchaseOffer
-                if price:
-                    metrics['price'] = price
+            # Comments (Впечатления)
+            if data.get('impressions_count') is not None:
+                metrics['comments'] = str(data['impressions_count'])
 
-                # Subscription.
-                # TODO: в карточке /api/v5 нет признака подписки: `access_restrictions`
-                # с `level: bookmate` бывает и у книг вне подписки (vNm1HD4t).
-                # Пока считаем: есть цена отдельной покупки — вне подписки.
-                metrics['in_subscribe'] = not metrics.get('price')
+            # Quotes (Цитаты)
+            if data.get('quotes_count') is not None:
+                metrics['quotes'] = str(data['quotes_count'])
 
-                # Pages count (`paper_pages` у книг, `pages_count` у комиксов)
-                pages_count = data.get('paper_pages') or data.get('pages_count')
-                if pages_count:
-                    metrics['pages_count'] = str(pages_count)
+            # Added to library (На полке)
+            if data.get('bookshelves_count') is not None:
+                metrics['added_to_lib'] = str(data['bookshelves_count'])
 
-                # Duration (у аудиокниг, в секундах)
-                if data.get('duration'):
-                    metrics['duration'] = int(data['duration'])
+            # Price — цена отдельной покупки из purchaseOffer
+            if price:
+                metrics['price'] = price
 
-                # Awards
-                awards = {}
-                for rating in emotions:
-                    label = ((rating.get('emotion') or {}).get('label') or '').strip()
-                    if label and rating.get('count') is not None:
-                        awards[label] = str(rating['count'])
-                if awards:
-                    metrics['awards'] = awards
+            # Subscription.
+            # TODO: в карточке /api/v5 нет признака подписки: `access_restrictions`
+            # с `level: bookmate` бывает и у книг вне подписки (vNm1HD4t).
+            # Пока считаем: есть цена отдельной покупки — вне подписки.
+            metrics['in_subscribe'] = not metrics.get('price')
 
-                await db.update_book(book)
-                await db.create_metrics(metrics)
+            # Pages count (`paper_pages` у книг, `pages_count` у комиксов)
+            pages_count = data.get('paper_pages') or data.get('pages_count')
+            if pages_count:
+                metrics['pages_count'] = str(pages_count)
 
-                # --- Crawl book formats ---
-                for key, section in LINKED_KEYS.items():
-                    if section == kind:
-                        continue
-                    for linked_uuid in data.get(key) or []:
-                        await cls.crawl(web_url(section, linked_uuid), input.task_id)
+            # Duration (у аудиокниг, в секундах)
+            if data.get('duration'):
+                metrics['duration'] = int(data['duration'])
 
-                return Output(result='done', data={'book': book, 'metrics': metrics})
+            # Awards
+            awards = {}
+            for rating in emotions:
+                label = ((rating.get('emotion') or {}).get('label') or '').strip()
+                if label and rating.get('count') is not None:
+                    awards[label] = str(rating['count'])
+            if awards:
+                metrics['awards'] = awards
+
+            await db.update_book(book)
+            await db.create_metrics(metrics)
+
+        # --- Crawl book formats ---
+        for key, section in LINKED_KEYS.items():
+            if section == kind:
+                continue
+            for linked_uuid in data.get(key) or []:
+                await cls.crawl(web_url(section, linked_uuid), input.task_id)
+
+        return Output(result='done', data={'book': book, 'metrics': metrics})
+
 
 class BookmateApiListing(BookmateApiItem):
     name = 'livelib-bookmate-api-listing'
