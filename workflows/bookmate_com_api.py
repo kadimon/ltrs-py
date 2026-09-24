@@ -364,18 +364,8 @@ class BookmateApiItem(BaseLivelibWorkflow):
 class BookmateApiListing(BookmateApiItem):
     name = 'livelib-bookmate-api-listing'
     event = 'livelib:bookmate-api-listing'
-    site = 'bookmate.com'
 
-    labels = WorkerLabels(ip='ru')
-
-    input = InputLivelibBook
-    output = Output
     item_wf = BookmateApiItem
-
-    concurrency = 4
-    execution_timeout_sec = 7_200
-    backoff_max_seconds = 30
-    backoff_factor = 2
 
     @classmethod
     async def run(cls, user_check: Literal['y', 'n'] | None = None) -> None:
