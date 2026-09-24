@@ -411,7 +411,9 @@ class BookmateListing(BaseLivelibWorkflow):
     ]
 
     cron_urls = [
-        'https://books.yandex.ru/section/all/novinki-uQfUIsur'
+        # 'https://books.yandex.ru/section/all/novinki-uQfUIsur',
+        # 'https://books.yandex.ru/section/audiobook/novinki_2_0-ZecJScMc',
+        'https://books.yandex.ru/section/all/mozhno-kupit-otdelno-piGPhH4m',
     ]
 
     @classmethod
@@ -514,8 +516,9 @@ class BookmateListing(BaseLivelibWorkflow):
             path = urlparse(url).path
 
             if LISTING_PATH_RE.match(path):
-                if await cls.crawl(url, input.task_id):
-                    stats['new-page-links'] += 1
+                pass
+                # if await cls.crawl(url, input.task_id):
+                #     stats['new-page-links'] += 1
             elif BOOK_PATH_RE.match(path):
                 books.setdefault(url, None)
 
