@@ -103,7 +103,7 @@ class BookmateItem(BaseLivelibWorkflow):
     input = InputLivelibBook
     output = Output
 
-    concurrency = 25
+    concurrency = 15
 
     @staticmethod
     def info_value(page: Page, label: str):

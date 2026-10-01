@@ -143,7 +143,7 @@ class BookmateApiItem(ApiMixin, BaseLivelibWorkflow):
     input = InputLivelibBook
     output = Output
 
-    concurrency = 2
+    concurrency = 6
     # карточка + эмоции/цена параллельно + обложка — с запасом над http_timeout
     execution_timeout_sec = 60
 
