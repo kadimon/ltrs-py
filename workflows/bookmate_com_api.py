@@ -1,6 +1,6 @@
 import asyncio
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Literal
 from urllib.parse import urlparse
 
@@ -143,12 +143,70 @@ class BookmateApiItem(ApiMixin, BaseLivelibWorkflow):
     input = InputLivelibBook
     output = Output
 
-    concurrency = 6
+    concurrency = 9
     # карточка + эмоции/цена параллельно + обложка — с запасом над http_timeout
     execution_timeout_sec = 60
 
     # Заголовки httpx-клиента, который создаёт ApiMixin.session()
     headers = API_HEADERS
+
+    @classmethod
+    async def run(cls, user_check: Literal['y', 'n'] | None = None) -> None:
+        if settings.DEBUG:
+            return
+
+        if not user_check:
+            user_check = input(f'Ты уверен что хочешь запустить {cls.site}? Y/N:')
+        if user_check.lower() == 'y':
+            sitemap_books_urls = []
+            for sitemap_url in [
+                'https://books.yandex.ru/s3-assets/sitemap/ru/books/sitemap-books.xml',
+                'https://books.yandex.ru/s3-assets/sitemap/ru/audiobooks/sitemap-audiobooks.xml',
+                'https://books.yandex.ru/s3-assets/sitemap/ru/comics/sitemap-comics.xml',
+                'https://books.yandex.ru/s3-assets/sitemap/ru/audio/sitemap-audio-1.xml',
+            ]:
+                sitemap = SitemapFetcher(url=sitemap_url, recursion_level=0).sitemap()
+                sitemap_books_urls.extend([p.url for p in sitemap.all_pages()])
+
+            print('books in sitemap:', len(sitemap_books_urls))
+
+            async with DbSamizdatPrisma() as db:
+                done_books_urls = [
+                    b.url for b in
+                    await db.con.book.find_many(
+                        where={
+                            'source': cls.site,
+                            # 'updated': {
+                            #     'gte': datetime.now().astimezone() - timedelta(days=7),
+                            # },
+                        }
+                    )
+                ]
+                print('books done before:', len(done_books_urls))
+
+                need_book_urls = []
+                # need_book_urls = [
+                #     b.url for b in
+                #     await db.con.book.find_many(
+                #         where={
+                #             'source': cls.site,
+                #             'updated': {
+                #                 'lte': datetime.now().astimezone() - timedelta(days=7),
+                #             },
+                #         }
+                #     )
+                # ]
+                print('books need from db:', len(need_book_urls))
+
+            cls.start_urls = list(set(need_book_urls + sitemap_books_urls)- set(done_books_urls))
+
+            print('books total:', len(cls.start_urls))
+
+            await super().run(user_check)
+        elif user_check.lower() == 'n':
+            return
+        else:
+            print('wrong value')
 
     @staticmethod
     async def fetch_emotions(client: httpx.AsyncClient, kind: str, uuid: str) -> list[dict]:
@@ -365,32 +423,10 @@ class BookmateApiItem(ApiMixin, BaseLivelibWorkflow):
         return Output(result='done', data={'book': book, 'metrics': metrics})
 
 
-class BookmateApiListing(BookmateApiItem):
-    name = 'livelib-bookmate-api-listing'
-    event = 'livelib:bookmate-api-listing'
 
-    item_wf = BookmateApiItem
-
-    @classmethod
-    async def run(cls, user_check: Literal['y', 'n'] | None = None) -> None:
-        if settings.DEBUG:
-            return
-
-        for sitemap_url in [
-            'https://books.yandex.ru/s3-assets/sitemap/ru/books/sitemap-books.xml',
-            'https://books.yandex.ru/s3-assets/sitemap/ru/audiobooks/sitemap-audiobooks.xml',
-            'https://books.yandex.ru/s3-assets/sitemap/ru/comics/sitemap-comics.xml',
-            'https://books.yandex.ru/s3-assets/sitemap/ru/audio/sitemap-audio-1.xml',
-        ]:
-            sitemap = SitemapFetcher(url=sitemap_url, recursion_level=0).sitemap()
-            cls.start_urls.extend([p.url for p in sitemap.all_pages()])
-
-        print('books in sitemap:', len(cls.start_urls))
-
-        await super().run()
 
 if __name__ == '__main__':
-    BookmateApiListing.run_sync()
+    BookmateApiItem.run_sync()
     # Для отладки
     BookmateApiItem.debug_sync('https://books.yandex.ru/books/DNsh3Cxr')
     BookmateApiItem.debug_sync('https://books.yandex.ru/audiobooks/vNm1HD4t')
