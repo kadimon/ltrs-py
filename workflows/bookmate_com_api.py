@@ -163,40 +163,48 @@ class BookmateApiItem(ApiMixin, BaseLivelibWorkflow):
                 'https://books.yandex.ru/s3-assets/sitemap/ru/books/sitemap-books.xml',
                 'https://books.yandex.ru/s3-assets/sitemap/ru/audiobooks/sitemap-audiobooks.xml',
                 'https://books.yandex.ru/s3-assets/sitemap/ru/comics/sitemap-comics.xml',
-                'https://books.yandex.ru/s3-assets/sitemap/ru/audio/sitemap-audio-1.xml',
+                'https://books.yandex.ru/s3-assets/sitemap/ru/audio/sitemap-audio.xml',
             ]:
                 sitemap = SitemapFetcher(url=sitemap_url, recursion_level=0).sitemap()
-                sitemap_books_urls.extend([p.url for p in sitemap.all_pages()])
+                sitemap_books_urls.extend([
+                    p.url
+                    for p in sitemap.all_pages()
+                    # if '/audio/' not in p.url
+                ])
 
             print('books in sitemap:', len(sitemap_books_urls))
 
             async with DbSamizdatPrisma() as db:
-                done_books_urls = [
+                done_books_urls = []
+                # done_books_urls = [
+                #     b.url for b in
+                #     await db.con.book.find_many(
+                #         where={
+                #             'source': cls.site,
+                #             # 'updated': {
+                #             #     'gte': datetime.now().astimezone() - timedelta(days=7),
+                #             # },
+                #         }
+                #     )
+                # ]
+                # print('books done before:', len(done_books_urls))
+
+                # need_book_urls = []
+                need_book_urls = [
                     b.url for b in
                     await db.con.book.find_many(
                         where={
                             'source': cls.site,
                             # 'updated': {
-                            #     'gte': datetime.now().astimezone() - timedelta(days=7),
+                            #     'lte': datetime.now().astimezone() - timedelta(days=7),
                             # },
                         }
                     )
                 ]
-                print('books done before:', len(done_books_urls))
-
-                need_book_urls = []
-                # need_book_urls = [
-                #     b.url for b in
-                #     await db.con.book.find_many(
-                #         where={
-                #             'source': cls.site,
-                #             'updated': {
-                #                 'lte': datetime.now().astimezone() - timedelta(days=7),
-                #             },
-                #         }
-                #     )
-                # ]
                 print('books need from db:', len(need_book_urls))
+
+            print(*list(set(need_book_urls) - set(sitemap_books_urls)), sep='\n')
+            return
 
             cls.start_urls = list(set(need_book_urls + sitemap_books_urls)- set(done_books_urls))
 
@@ -268,14 +276,16 @@ class BookmateApiItem(ApiMixin, BaseLivelibWorkflow):
 
         resp = await client.get(f'{API_URL}/{kind}/{uuid}')
 
-        # Проверка статуса
-        if resp.status_code == 404:
+        data = {}
+        if resp.status_code != 404:
+            resp.raise_for_status()
+            data = resp.json().get(CONTENT_KEYS[kind]) or {}
+
+        # Удалена: 404 или в карточке нет поля `share_link`
+        if resp.status_code == 404 or 'share_link' not in data:
             async with DbSamizdatPrisma() as db:
                 await db.mark_book_deleted(url, cls.site)
             return Output(result='error', data={'status': resp.status_code, 'error': 'invalid_url_or_404'})
-        resp.raise_for_status()
-
-        data = resp.json().get(CONTENT_KEYS[kind]) or {}
 
         emotions, price = await asyncio.gather(
             cls.fetch_emotions(client, kind, uuid),
