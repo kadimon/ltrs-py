@@ -144,7 +144,7 @@ class BookmateApiItem(ApiMixin, BaseLivelibWorkflow):
     output = Output
 
     concurrency = 9
-    # карточка + эмоции/цена параллельно + обложка — с запасом над http_timeout
+    # карточка + эмоции/цена/сайт параллельно + обложка — с запасом над http_timeout
     execution_timeout_sec = 60
 
     # Заголовки httpx-клиента, который создаёт ApiMixin.session()
@@ -261,6 +261,16 @@ class BookmateApiItem(ApiMixin, BaseLivelibWorkflow):
 
         return format_price(offer['price'])
 
+    @staticmethod
+    async def fetch_site_status(client: httpx.AsyncClient, url: str) -> int | None:
+        """HTTP-статус страницы книги на сайте. Неактивная книга (kSBeQ8LJ, SVP8OuO6)
+        отдаёт 404, хотя карточка в API у неё как у активной. Ошибка сети — None."""
+        try:
+            async with client.stream('GET', url) as resp:
+                return resp.status_code
+        except httpx.HTTPError:
+            return None
+
     @classmethod
     async def task(
         cls,
@@ -276,21 +286,26 @@ class BookmateApiItem(ApiMixin, BaseLivelibWorkflow):
 
         resp = await client.get(f'{API_URL}/{kind}/{uuid}')
 
-        data = {}
-        if resp.status_code != 404:
-            resp.raise_for_status()
-            data = resp.json().get(CONTENT_KEYS[kind]) or {}
-
-        # Удалена: 404 или в карточке нет поля `share_link`
-        if resp.status_code == 404 or 'share_link' not in data:
+        # Проверка статуса
+        if resp.status_code == 404:
             async with DbSamizdatPrisma() as db:
                 await db.mark_book_deleted(url, cls.site)
             return Output(result='error', data={'status': resp.status_code, 'error': 'invalid_url_or_404'})
+        resp.raise_for_status()
 
-        emotions, price = await asyncio.gather(
+        data = resp.json().get(CONTENT_KEYS[kind]) or {}
+
+        emotions, price, site_status = await asyncio.gather(
             cls.fetch_emotions(client, kind, uuid),
             cls.fetch_price(client, kind, uuid),
+            cls.fetch_site_status(client, web_url(kind, uuid)),
         )
+
+        # Неактивная книга: карточка в API как у активной, а сайт отдаёт 404
+        if site_status == 404:
+            async with DbSamizdatPrisma() as db:
+                await db.mark_book_deleted(url, cls.site)
+            return Output(result='error', data={'status': site_status, 'error': 'invalid_url_or_404'})
 
         async with DbSamizdatPrisma() as db:
             book = {'url': url, 'source': cls.site}
@@ -438,6 +453,7 @@ class BookmateApiItem(ApiMixin, BaseLivelibWorkflow):
 if __name__ == '__main__':
     BookmateApiItem.run_sync()
     # Для отладки
-    BookmateApiItem.debug_sync('https://books.yandex.ru/books/DNsh3Cxr')
-    BookmateApiItem.debug_sync('https://books.yandex.ru/audiobooks/vNm1HD4t')
-    BookmateApiItem.debug_sync('https://books.yandex.ru/audiobooks/BcSbSsAC')
+    # BookmateApiItem.debug_sync('https://books.yandex.ru/books/DNsh3Cxr')
+    # BookmateApiItem.debug_sync('https://books.yandex.ru/audiobooks/vNm1HD4t')
+    # BookmateApiItem.debug_sync('https://books.yandex.ru/audiobooks/BcSbSsAC')
+    BookmateApiItem.debug_sync('https://books.yandex.ru/audiobooks/Xdk2qugW')
