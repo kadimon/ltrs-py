@@ -1,6 +1,7 @@
 import asyncio
 import html
 import re
+from datetime import datetime, timedelta
 from typing import Literal
 from urllib.parse import quote
 
@@ -64,10 +65,24 @@ class LitnetApiItem(ApiMixin, BaseLivelibWorkflow):
             print('books in sitemap:', len(sitemap_books_urls))
 
             async with DbSamizdatPrisma() as db:
+                # done_books_urls = []
+                done_books_urls = [
+                    b.url for b in
+                    await db.con.book.find_many(
+                        where={
+                            'source': cls.site,
+                            'updated': {
+                                'gte': datetime.now().astimezone() - timedelta(days=7),
+                            },
+                        }
+                    )
+                ]
+                print('books done before:', len(done_books_urls))
+
                 need_book_urls = await db.get_all_books_urls(cls.site)
             print('books need from db:', len(need_book_urls))
 
-            cls.start_urls = list(set(need_book_urls + sitemap_books_urls))
+            cls.start_urls = list(set(need_book_urls + sitemap_books_urls)- set(done_books_urls))
 
             print('books total:', len(cls.start_urls))
 

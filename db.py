@@ -1,6 +1,6 @@
 import json
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
 from pymongo import AsyncMongoClient
@@ -121,7 +121,7 @@ class DbSamizdatPrisma:
             "tags_data": "TAG",
         }
 
-        async with self.con.tx() as tx:
+        async with self.con.tx(timeout=timedelta(seconds=30)) as tx:
             for person_field, role in persons_data_fields.items():
                 if persons := book.get(person_field):
                     await tx.bookperson.delete_many(
