@@ -175,32 +175,32 @@ class BookmateApiItem(ApiMixin, BaseLivelibWorkflow):
             print('books in sitemap:', len(sitemap_books_urls))
 
             async with DbSamizdatPrisma() as db:
-                # done_books_urls = []
-                done_books_urls = [
-                    b.url for b in
-                    await db.con.book.find_many(
-                        where={
-                            'source': cls.site,
-                            # 'updated': {
-                            #     'gte': datetime.now().astimezone() - timedelta(days=7),
-                            # },
-                        }
-                    )
-                ]
-                print('books done before:', len(done_books_urls))
-
-                need_book_urls = []
-                # need_book_urls = [
+                done_books_urls = []
+                # done_books_urls = [
                 #     b.url for b in
                 #     await db.con.book.find_many(
                 #         where={
                 #             'source': cls.site,
                 #             # 'updated': {
-                #             #     'lte': datetime.now().astimezone() - timedelta(days=7),
+                #             #     'gte': datetime.now().astimezone() - timedelta(days=7),
                 #             # },
                 #         }
                 #     )
                 # ]
+                print('books done before:', len(done_books_urls))
+
+                # need_book_urls = []
+                need_book_urls = [
+                    b.url for b in
+                    await db.con.book.find_many(
+                        where={
+                            'source': cls.site,
+                            # 'updated': {
+                            #     'lte': datetime.now().astimezone() - timedelta(days=7),
+                            # },
+                        }
+                    )
+                ]
                 print('books need from db:', len(need_book_urls))
 
             cls.start_urls = list(set(need_book_urls + sitemap_books_urls)- set(done_books_urls))
