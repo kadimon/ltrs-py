@@ -71,7 +71,7 @@ class DbSamizdatPrisma:
         self.con: Optional[Prisma] = None
 
     async def __aenter__(self):
-        self.con = Prisma()
+        self.con = Prisma(http={'timeout': None})
         await self.con.connect()
         return self
 
